@@ -1,0 +1,111 @@
+<div class="pagina">
+  <app-topbar />
+  <app-header />
+
+  <div class="page-head">
+    <div class="wrap">
+      <div class="crumb">Início › <span>Aniversariantes</span></div>
+      <div class="ph-row">
+        <span class="cakeic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M5 21h14M5 21v-7a2 2 0 012-2h10a2 2 0 012 2v7M5 14c1.5 1 2.5 1 4 0s2.5-1 4 0 2.5 1 4 0M12 8V5M9 5.5c0-1 3-1 3 0M12 3.2a.6.6 0 100 1.2.6.6 0 000-1.2z"
+              stroke="#fff"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <div>
+          <h1>Aniversariantes</h1>
+          <p>Comemore o mês com quem faz parte do Grupo WTorre.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap aniv-body">
+    <div class="monthbar">
+      <button type="button" class="mb-btn" title="Mês anterior" (click)="mesAnterior()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M15 6l-6 6 6 6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      <div class="mb-label">{{ mesTitulo() }}</div>
+      <button type="button" class="mb-btn" title="Próximo mês" (click)="mesProximo()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M9 6l6 6-6 6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </div>
+
+    @if (erro()) {
+      <div class="alert err">{{ erro() }}</div>
+    }
+
+    @if (carregando()) {
+      <div class="loading">Carregando aniversariantes…</div>
+    } @else {
+      @if (mostrarHoje()) {
+        <div class="hoje">
+          <div class="hoje-head">
+            <span class="tag">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 3l2 5 5 .5-3.8 3.3L16.5 17 12 14.3 7.5 17l1.3-5.2L5 8.5 10 8z"
+                  stroke="#9a6b12"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Hoje
+            </span>
+            <span class="msg">É dia de comemorar! Mande os parabéns.</span>
+          </div>
+          <div class="hoje-list">
+            @for (p of hojeList(); track p.id) {
+              <app-aniversariantes-card [pessoa]="p" variant="hoje" />
+            }
+          </div>
+        </div>
+      }
+
+      @if (lista().length) {
+        <div class="sec-label">{{ secLabel() }}</div>
+        <div class="grid">
+          @for (p of lista(); track p.id) {
+            <app-aniversariantes-card [pessoa]="p" [ehHoje]="ehHoje(p)" />
+          }
+        </div>
+      } @else {
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M5 21h14M5 21v-7a2 2 0 012-2h10a2 2 0 012 2v7M12 8V5"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <div>Nenhum aniversariante em {{ mesNome(mesAtual()) }}.</div>
+        </div>
+      }
+    }
+  </div>
+
+  <app-footer />
+</div>

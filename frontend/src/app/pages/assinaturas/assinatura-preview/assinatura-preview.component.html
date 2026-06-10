@@ -1,0 +1,7 @@
+@if (html()) {
+  <div class="preview-shell">
+    <div class="preview-content" [innerHTML]="html()"></div>
+  </div>
+} @else {
+  <div class="preview-empty">Preview indisponível para este domínio.</div>
+}

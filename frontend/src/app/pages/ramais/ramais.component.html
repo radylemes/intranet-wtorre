@@ -1,0 +1,134 @@
+<div class="pagina">
+  <app-topbar />
+  <app-header />
+
+  <div class="page-head">
+    <div class="wrap">
+      <div class="crumb">Início › <span>Ramais &amp; Contatos</span></div>
+      <div class="ph-row">
+        <div>
+          <h1>Ramais &amp; Contatos</h1>
+        </div>
+        <div class="ph-actions">
+          <span class="sync">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 4v6h6M20 20v-6h-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M20 9A8 8 0 005.6 5.6L4 7M4 15a8 8 0 0014.4 3.4L20 17"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Sincronizado há {{ tempoDesdeSync() }}
+          </span>
+          @if (isAdmin()) {
+            <button
+              type="button"
+              class="btn-sync"
+              [disabled]="sincronizando()"
+              (click)="sincronizar()"
+            >
+              {{ sincronizando() ? 'Sincronizando…' : 'Sincronizar agora' }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap ramais-body">
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+          <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Buscar por nome, cargo, ramal, e-mail ou departamento..."
+          [ngModel]="busca()"
+          (ngModelChange)="busca.set($event)"
+        />
+      </div>
+      <div class="selwrap">
+        <select class="flt" [ngModel]="departamentoFiltro()" (ngModelChange)="departamentoFiltro.set($event)">
+          <option value="">Todos os departamentos</option>
+          @for (d of departamentos(); track d) {
+            <option [value]="d">{{ d }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="chips">
+      <button
+        type="button"
+        class="chip c-all"
+        [class.active]="!empresaFiltro()"
+        (click)="limparEmpresa()"
+      >
+        Todas as empresas
+      </button>
+      @for (emp of empresas(); track emp) {
+        <button
+          type="button"
+          [class]="'chip ' + chipClasse(emp)"
+          [class.active]="empresaFiltro() === emp"
+          (click)="toggleEmpresa(emp)"
+        >
+          <span class="cd" [style.background]="corMarca(emp)"></span>
+          {{ emp }}
+        </button>
+      }
+      @if (temOutros()) {
+        <button
+          type="button"
+          class="chip c-neutro"
+          [class.active]="empresaFiltro() === OUTROS_EMPRESA"
+          (click)="toggleOutros()"
+        >
+          <span class="cd" style="background: var(--ink-dim)"></span>
+          Outros
+        </button>
+      }
+    </div>
+
+    @if (erro()) {
+      <div class="alert err">{{ erro() }}</div>
+    }
+
+    @if (carregando()) {
+      <div class="loading">Carregando diretório…</div>
+    } @else {
+      <div class="resline">
+        <b>{{ colaboradoresFiltrados().length }}</b>
+        {{
+          colaboradoresFiltrados().length === 1
+            ? 'colaborador encontrado'
+            : 'colaboradores encontrados'
+        }}
+      </div>
+
+      @if (!colaboradoresFiltrados().length) {
+        <div class="empty">Nenhum colaborador encontrado para esses filtros.</div>
+      } @else {
+        <div class="grid">
+          @for (c of colaboradoresFiltrados(); track c.id) {
+            <app-ramais-card [colaborador]="c" (copiar)="copiar($event.texto, $event.label)" />
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <app-footer />
+  <app-toast />
+</div>

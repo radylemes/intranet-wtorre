@@ -1,0 +1,61 @@
+@if (variant === 'hoje') {
+  <div class="hoje-card">
+    <div
+      class="ava"
+      [class.has-foto]="fotoUrl()"
+      [style.background]="fotoUrl() ? undefined : corAvatar(pessoa.nome)"
+    >
+      @if (fotoUrl()) {
+        <img [src]="fotoUrl()!" [alt]="pessoa.nome" class="ava-img" />
+      } @else {
+        {{ iniciais(pessoa.nome) }}
+      }
+    </div>
+    <div class="info">
+      <div class="nm">{{ pessoa.nome }}</div>
+      @if (pessoa.cargo) {
+        <div class="role">{{ pessoa.cargo }}</div>
+      }
+      @if (pessoa.departamento) {
+        <div class="dep">
+          {{ pessoa.departamento }}
+          <span class="cobadge" [class]="classeEmpresa(pessoa.empresa)">
+            {{ badgeLabel(pessoa.empresa) }}
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+} @else {
+  <div class="bcard" [class.today]="ehHoje">
+    <div class="datechip">
+      <div class="d">{{ pessoa.nasc_dia }}</div>
+      <div class="m">{{ abrevMes() }}</div>
+    </div>
+    <div
+      class="ava"
+      [class.has-foto]="fotoUrl()"
+      [style.background]="fotoUrl() ? undefined : corAvatar(pessoa.nome)"
+    >
+      @if (fotoUrl()) {
+        <img [src]="fotoUrl()!" [alt]="pessoa.nome" class="ava-img" />
+      } @else {
+        {{ iniciais(pessoa.nome) }}
+      }
+    </div>
+    <div class="info">
+      <div class="nm">{{ pessoa.nome }}</div>
+      @if (pessoa.cargo) {
+        <div class="role">{{ pessoa.cargo }}</div>
+      }
+      @if (pessoa.departamento) {
+        <div class="dep">
+          {{ pessoa.departamento }}
+          <span class="cobadge" [class]="classeEmpresa(pessoa.empresa)">
+            {{ badgeLabel(pessoa.empresa) }}
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+}

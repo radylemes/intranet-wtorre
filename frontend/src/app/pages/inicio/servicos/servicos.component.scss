@@ -53,6 +53,14 @@
   background: var(--panel);
   transition: 0.25s;
   box-shadow: 0 12px 30px -22px rgba(28, 42, 82, 0.3);
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+a.tool {
+  text-decoration: none;
+  color: inherit;
 }
 
 .tool:hover {

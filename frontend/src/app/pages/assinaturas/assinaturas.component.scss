@@ -1,0 +1,198 @@
+:host {
+  display: block;
+}
+
+.pagina-assinaturas .wrap {
+  max-width: none;
+  width: 100%;
+  padding-left: clamp(20px, 3vw, 48px);
+  padding-right: clamp(20px, 3vw, 48px);
+}
+
+.page-head {
+  position: relative;
+  z-index: 5;
+  padding: 36px 0 18px;
+}
+
+.crumb {
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  margin-bottom: 14px;
+}
+
+.crumb span {
+  color: var(--ink);
+}
+
+.page-head h1 {
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 38px);
+  letter-spacing: -0.02em;
+}
+
+.page-head p {
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  max-width: 720px;
+}
+
+.main-content {
+  padding-bottom: 64px;
+}
+
+.secao {
+  margin-top: 36px;
+}
+
+.secao-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.secao-head-text h2 {
+  margin-bottom: 6px;
+}
+
+.secao-head .secao-desc {
+  margin-bottom: 0;
+}
+
+.secao-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.btn-add-compartilhada {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--wtorre);
+  background: #fff;
+  color: var(--wtorre);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.15s;
+}
+
+.btn-add-compartilhada:hover:not(:disabled) {
+  background: var(--wtorre);
+  color: #fff;
+}
+
+.btn-add-compartilhada:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.secao h2 {
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.secao-desc {
+  font-size: 14px;
+  color: var(--ink-dim);
+  margin-bottom: 18px;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.cards-grid > :only-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.state-box {
+  padding: 20px 22px;
+  border-radius: 10px;
+  border: 1px solid var(--line-solid);
+  background: var(--panel);
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-bottom: 18px;
+}
+
+.state-box--erro {
+  border-color: #e8b4b0;
+  background: #fff8f7;
+  color: var(--ink);
+}
+
+.state-box--erro strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.state-box--erro .hint {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.state-box--muted {
+  color: var(--ink-dim);
+}
+
+.btn-download {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--wtorre);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.15s;
+}
+
+.btn-download:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.btn-download:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.instrucao {
+  margin: -6px 0 18px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+@media (max-width: 900px) {
+  .secao-head-actions {
+    width: 100%;
+  }
+
+  .secao-head-actions .btn-add-compartilhada,
+  .secao-head-actions .btn-download {
+    flex: 1 1 auto;
+  }
+}

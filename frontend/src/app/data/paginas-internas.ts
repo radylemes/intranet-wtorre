@@ -15,6 +15,9 @@ export interface PaginaInterna {
 export const PAGINAS_INTERNAS: PaginaInterna[] = [
   { path: '/inicio', label: 'Início' },
   { path: '/documentos', label: 'Documentos' },
+  { path: '/ramais', label: 'Ramais' },
+  { path: '/aniversariantes', label: 'Aniversariantes' },
+  { path: '/assinaturas', label: 'Assinaturas de E-mail' },
 ];
 
 export function findPaginaInterna(path: string): PaginaInterna | undefined {

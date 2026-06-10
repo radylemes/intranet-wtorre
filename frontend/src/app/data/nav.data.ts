@@ -15,7 +15,9 @@ export interface NavDropdown {
 export const NAV_LINKS: NavItem[] = [
   { label: 'Início', href: '/inicio' },
   { label: 'Agendas' },
-  { label: 'Ramais' },
+  { label: 'Ramais', href: '/ramais' },
+  { label: 'Aniversariantes', href: '/aniversariantes' },
+  { label: 'Assinaturas de E-mail', href: '/assinaturas' },
   { label: 'TI' },
   { label: 'BI' },
   { label: 'Oportunidades' },

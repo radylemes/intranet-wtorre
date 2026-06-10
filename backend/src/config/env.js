@@ -37,6 +37,11 @@ const env = {
     process.env.STORAGE_DIR ||
     path.join(__dirname, '..', '..', 'storage', 'documentos'),
   maxUploadMb: Number(process.env.MAX_UPLOAD_MB) || 50,
+  ramalAdField: process.env.RAMAL_AD_FIELD || 'businessPhones',
+  syncColaboradoresMin: Number(process.env.SYNC_COLABORADORES_MIN) || 60,
+  colaboradoresFotosDir:
+    process.env.COLABORADORES_FOTOS_DIR ||
+    path.join(__dirname, '..', '..', 'storage', 'colaboradores-fotos'),
 };
 
 function validateEnv() {

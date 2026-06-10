@@ -1,7 +1,7 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of, from, switchMap, throwError } from 'rxjs';
+import { Observable, tap, catchError, of, throwError, firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { LoginResposta, Usuario } from '../models/usuario.model';
 import { MsalConfigService } from './msal-config.service';
@@ -75,40 +75,40 @@ export class AuthService {
   }
 
   handleRedirect(): Observable<LoginResposta | null> {
-    const instance = this.msalConfig.getInstance();
-    if (!instance) return of(null);
+    const result = this.msalConfig.consumeRedirectResult();
+    if (!result?.idToken) return of(null);
 
-    return from(instance.handleRedirectPromise()).pipe(
-      switchMap((result) => {
-        if (!result?.idToken) return of(null);
+    const fp = result.idToken.slice(0, 32);
+    if (sessionStorage.getItem(CHAVE_REDIRECT_FP) === fp) {
+      return of(null);
+    }
+    sessionStorage.setItem(CHAVE_REDIRECT_FP, fp);
 
-        const fp = result.idToken.slice(0, 32);
-        if (sessionStorage.getItem(CHAVE_REDIRECT_FP) === fp) {
-          return of(null);
-        }
-        sessionStorage.setItem(CHAVE_REDIRECT_FP, fp);
+    if (typeof window !== 'undefined' && window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
 
-        if (typeof window !== 'undefined' && window.location.hash) {
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-
-        return this.http.post<LoginResposta>(
-          this.api('/auth/login-microsoft'),
-          {},
-          { headers: new HttpHeaders({ Authorization: `Bearer ${result.idToken}` }) }
-        ).pipe(
-          tap((res) => {
-            this.persistirSessao(res, true);
-            void this.router.navigate(['/inicio']);
-          }),
-          catchError((err) => {
-            sessionStorage.removeItem(CHAVE_REDIRECT_FP);
-            return throwError(() => err);
-          })
-        );
-      }),
-      catchError(() => of(null))
+    return this.http.post<LoginResposta>(
+      this.api('/auth/login-microsoft'),
+      {},
+      { headers: new HttpHeaders({ Authorization: `Bearer ${result.idToken}` }) }
+    ).pipe(
+      tap((res) => this.persistirSessao(res, true)),
+      catchError((err) => {
+        sessionStorage.removeItem(CHAVE_REDIRECT_FP);
+        return throwError(() => err);
+      })
     );
+  }
+
+  irParaInicio(): void {
+    if (!this.estaLogado()) return;
+
+    void this.router.navigateByUrl('/inicio', { replaceUrl: true }).then((ok) => {
+      if (!ok && typeof window !== 'undefined') {
+        window.location.assign('/inicio');
+      }
+    });
   }
 
   refresh(): Observable<{ accessToken: string; token: string } | null> {
@@ -129,7 +129,7 @@ export class AuthService {
     );
   }
 
-  logout(navigate = true): void {
+  logout(navigate = true, msalLogout = true): void {
     const refreshToken = this.getRefreshToken();
     if (refreshToken) {
       this.http.post(this.api('/auth/logout'), { refreshToken }).subscribe();
@@ -138,7 +138,7 @@ export class AuthService {
     const instance = this.msalConfig.getInstance();
     if (instance) {
       const accounts = instance.getAllAccounts();
-      if (accounts.length) {
+      if (msalLogout && accounts.length) {
         void instance.logoutRedirect({ account: accounts[0] }).catch(() => {
           instance.clearCache();
         });
@@ -181,8 +181,10 @@ export class AuthService {
     if (!this.estaLogado()) return of(null);
     return this.http.get<Usuario>(this.api('/auth/me')).pipe(
       tap((u) => this.usuario.set(this.mapUsuario(u))),
-      catchError(() => {
-        this.logout();
+      catchError((err: HttpErrorResponse) => {
+        if (err.status === 401) {
+          this.logout(true, false);
+        }
         return of(null);
       })
     );
@@ -250,4 +252,14 @@ export class AuthService {
       }
     }
   }
+}
+
+export function authMsalRedirectInitializer(auth: AuthService) {
+  return () =>
+    firstValueFrom(auth.handleRedirect())
+      .then((res) => {
+        if (res) auth.irParaInicio();
+        return res;
+      })
+      .catch(() => null);
 }

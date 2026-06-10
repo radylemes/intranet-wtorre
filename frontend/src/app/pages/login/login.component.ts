@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LoginBrandPanelComponent } from './login-brand-panel.component';
 import { AuthService } from '../../services/auth.service';
@@ -17,7 +17,6 @@ export class LoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   readonly auth = inject(AuthService);
   readonly msalConfig = inject(MsalConfigService);
-  private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
   readonly form = this.fb.nonNullable.group({
@@ -34,11 +33,6 @@ export class LoginComponent implements OnInit {
   sessaoExpirada = signal(false);
 
   ngOnInit(): void {
-    if (this.auth.estaLogado()) {
-      void this.router.navigate(['/inicio']);
-      return;
-    }
-
     this.route.queryParams.subscribe((params) => {
       this.sessaoExpirada.set(params['reason'] === 'idle');
     });
@@ -49,6 +43,11 @@ export class LoginComponent implements OnInit {
     }
 
     this.auth.handleRedirect().subscribe({
+      next: (res) => {
+        if (res) {
+          this.auth.irParaInicio();
+        }
+      },
       error: (err: HttpErrorResponse) => {
         this.mensagemErro.set(err.error?.mensagem || 'Falha no login Microsoft.');
       },
@@ -69,12 +68,8 @@ export class LoginComponent implements OnInit {
 
     this.auth.loginLocal(email.trim(), senha, manterConectado).subscribe({
       next: () => {
-        void this.router.navigate(['/inicio']).then((ok) => {
-          if (!ok) {
-            this.mensagemErro.set('Não foi possível abrir a página inicial.');
-          }
-          this.autenticando.set(false);
-        });
+        this.auth.irParaInicio();
+        this.autenticando.set(false);
       },
       error: (err: unknown) => {
         const http = err as HttpErrorResponse;

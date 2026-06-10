@@ -1,7 +1,7 @@
 const authService = require('../services/auth.service');
 const usersRepo = require('../repositories/users.repository');
 const tenantsRepo = require('../repositories/tenants.repository');
-const graphService = require('../services/graph.service');
+const { fetchUserPhotoBufferFromTenant } = require('../services/microsoftGraph');
 const auditRepo = require('../repositories/auditLog.repository');
 
 function meta(req) {
@@ -81,10 +81,10 @@ async function profilePhoto(req, res) {
 
     for (const tenant of tenants) {
       try {
-        const photo = await graphService.getUserPhoto(tenant, req.user.microsoft_id);
+        const photo = await fetchUserPhotoBufferFromTenant(tenant, req.user.microsoft_id);
         if (photo) {
-          res.setHeader('Content-Type', photo.contentType);
-          res.setHeader('Cache-Control', 'private, max-age=3600');
+          res.set('Cache-Control', 'private, max-age=3600');
+          res.type(photo.contentType);
           return res.send(photo.buffer);
         }
       } catch {

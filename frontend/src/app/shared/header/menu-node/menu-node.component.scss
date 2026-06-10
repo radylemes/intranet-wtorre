@@ -6,6 +6,13 @@
   position: relative;
 }
 
+.menu-ico {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
 .bar-trigger,
 .bar-link {
   display: flex;

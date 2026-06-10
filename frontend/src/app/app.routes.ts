@@ -1,10 +1,12 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
+import { guestGuard } from './guards/guest.guard';
 
 export const routes: Routes = [
   {
     path: 'login',
+    canActivate: [guestGuard],
     loadComponent: () =>
       import('./pages/login/login.component').then((m) => m.LoginComponent),
   },
@@ -25,6 +27,28 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () =>
       import('./pages/documentos/documentos.component').then((m) => m.DocumentosComponent),
+  },
+  {
+    path: 'ramais',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/ramais/ramais.component').then((m) => m.RamaisComponent),
+  },
+  {
+    path: 'aniversariantes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/aniversariantes/aniversariantes.component').then(
+        (m) => m.AniversariantesComponent
+      ),
+  },
+  {
+    path: 'assinaturas',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/assinaturas/assinaturas.component').then(
+        (m) => m.AssinaturasComponent
+      ),
   },
   {
     path: 'admin',
@@ -59,6 +83,6 @@ export const routes: Routes = [
       { path: '', redirectTo: 'menu', pathMatch: 'full' },
     ],
   },
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: '**', redirectTo: 'login' },
+  { path: '', redirectTo: 'inicio', pathMatch: 'full' },
+  { path: '**', redirectTo: 'inicio' },
 ];

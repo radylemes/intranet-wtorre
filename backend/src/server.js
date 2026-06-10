@@ -10,6 +10,12 @@ const tenantsRoutes = require('./routes/tenants.routes');
 const menuRoutes = require('./routes/menu.routes');
 const docCategoriasRoutes = require('./routes/doc-categorias.routes');
 const documentosRoutes = require('./routes/documentos.routes');
+const colaboradoresRoutes = require('./routes/colaboradores.routes');
+const aniversariantesRoutes = require('./routes/aniversariantes.routes');
+const assinaturasRoutes = require('./routes/assinaturas.routes');
+const assinaturasController = require('./controllers/assinaturas.controller');
+const { agendarSincronizacaoColaboradores } = require('./services/colaboradores.sync');
+const { ensureFotosDir } = require('./controllers/colaboradores.controller');
 
 try {
   validateEnv();
@@ -40,6 +46,17 @@ app.use('/api/v1/tenants', tenantsRoutes);
 app.use('/api/v1/menu', menuRoutes);
 app.use('/api/v1/doc-categorias', docCategoriasRoutes);
 app.use('/api/v1/documentos', documentosRoutes);
+app.use('/api/v1/colaboradores', colaboradoresRoutes);
+app.use('/api/v1/aniversariantes', aniversariantesRoutes);
+
+// Rotas públicas de assinaturas (sem JWT — usadas pelo instalador antes de qualquer login)
+app.get('/api/v1/assinaturas/script/instalar', assinaturasController.obterScriptBase);
+app.get('/api/v1/assinaturas/instalar-assinaturas.ps1', assinaturasController.obterScriptBase);
+app.get('/api/v1/assinaturas/instalar-assinaturas-base.ps1', assinaturasController.obterScriptBase);
+app.get('/api/v1/assinaturas/config/:token', assinaturasController.obterConfig);
+app.get('/api/v1/assinaturas/fonts/:filename', assinaturasController.servirFonte);
+
+app.use('/api/v1/assinaturas', assinaturasRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ mensagem: 'Rota não encontrada.' });
@@ -52,4 +69,10 @@ app.use((err, _req, res, _next) => {
 
 app.listen(env.port, () => {
   console.log(`API Intranet WTorre rodando em http://127.0.0.1:${env.port}`);
+  try {
+    ensureFotosDir();
+  } catch (err) {
+    console.error('[colaboradores] Não foi possível criar pasta de cache de fotos:', err.message);
+  }
+  agendarSincronizacaoColaboradores();
 });

@@ -6,8 +6,12 @@ import { AuthService } from '../services/auth.service';
 
 const PUBLIC_PATHS = [
   '/auth/login',
+  '/auth/login-microsoft',
   '/auth/refresh',
   '/tenants/msal-config',
+  '/assinaturas/instalar-assinaturas.ps1',
+  '/assinaturas/instalar-assinaturas-base.ps1',
+  '/assinaturas/config/',
 ];
 
 function isPublic(url: string): boolean {
@@ -15,12 +19,16 @@ function isPublic(url: string): boolean {
   return PUBLIC_PATHS.some((p) => url.includes(p));
 }
 
+function usesGraphToken(url: string): boolean {
+  return url.includes(environment.apiBaseUrl) && url.includes('/assinaturas/me');
+}
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   let request = req;
 
   const token = auth.getToken();
-  if (token && !isPublic(req.url)) {
+  if (token && !isPublic(req.url) && !usesGraphToken(req.url)) {
     request = req.clone({
       setHeaders: { Authorization: `Bearer ${token}` },
     });
@@ -35,7 +43,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       return auth.refresh().pipe(
         switchMap((refreshed) => {
           if (!refreshed?.accessToken) {
-            auth.logout();
+            auth.logout(true, false);
             return throwError(() => err);
           }
           const retry = req.clone({
@@ -44,7 +52,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           return next(retry);
         }),
         catchError(() => {
-          auth.logout();
+          auth.logout(true, false);
           return throwError(() => err);
         })
       );

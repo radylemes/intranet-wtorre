@@ -10,6 +10,7 @@ import {
   MsalConfigService,
   msalConfigInitializer,
 } from './services/msal-config.service';
+import { AuthService, authMsalRedirectInitializer } from './services/auth.service';
 
 export function msalInstanceFactory(msalConfig: MsalConfigService) {
   const instance = msalConfig.getInstance();
@@ -37,6 +38,12 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: msalConfigInitializer,
       deps: [MsalConfigService],
+      multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: authMsalRedirectInitializer,
+      deps: [AuthService],
       multi: true,
     },
     {

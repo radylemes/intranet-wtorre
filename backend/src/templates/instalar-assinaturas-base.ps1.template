@@ -1,0 +1,577 @@
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+    Instala assinaturas de e-mail para todos os aliases do usuário logado.
+    Limpa assinaturas antigas antes de instalar.
+    Baixa as configurações via HTTP a partir de -ConfigUrl.
+#>
+
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$ConfigUrl
+)
+
+$ErrorActionPreference = 'Continue'
+
+$USUARIO    = "$env:USERNAME"
+$SIG_FOLDER = "$env:APPDATA\Microsoft\Signatures"
+$BLOB       = "https://nubankparqueassets.blob.core.windows.net/email-assets"
+
+Write-Host "`n  Baixando configuracoes..." -ForegroundColor Cyan
+try {
+    $response    = Invoke-RestMethod -Uri $ConfigUrl -Method GET -Headers @{ "User-Agent" = "Instalador-Assinaturas/1.0" } -ErrorAction Stop
+    $ASSINATURAS = $response.assinaturas
+    $emailPadrao = $response.EmailPadrao
+} catch {
+    Write-Host "ERRO: Nao foi possivel baixar as configuracoes." -ForegroundColor Red
+    Write-Host "      Verifique sua conexao e tente novamente." -ForegroundColor Yellow
+    Write-Host "      Detalhe: $($_.Exception.Message)" -ForegroundColor DarkGray
+    Read-Host "`nPressione Enter para fechar"
+    exit 1
+}
+
+# ---------------------------------------------
+#  MAPA DE DOMINIOS
+# ---------------------------------------------
+$DOMINIOS = @{
+    "nubankparque.com"        = @{ Cor="#8D0DE3"; Entidade="Nubank Parque";   Banner="$BLOB/banner_nubank_parque.gif";  Font="'NuSansDisplay',Helvetica,Arial,sans-serif"; WNome="500";  WResto="400";    FontFace=$true  }
+    "allianzparque.com.br"    = @{ Cor="#005399"; Entidade="Real Arenas";     Banner="$BLOB/banner_allianz_parque.gif"; Font="Helvetica,Arial,sans-serif";                 WNome="bold"; WResto="normal"; FontFace=$false }
+    "basecoworking.space"     = @{ Cor="#005399"; Entidade="Base Coworking";  Banner="$BLOB/banner_base_coworking.gif"; Font="Helvetica,Arial,sans-serif";                 WNome="bold"; WResto="normal"; FontFace=$false }
+    "novoanhangabau.com.br"   = @{ Cor="#000000"; Entidade="Novo Anhangabaú"; Banner="$BLOB/banner_novoanhangabau.gif"; Font="Arial,sans-serif";                           WNome="bold"; WResto="normal"; FontFace=$false }
+    "wtentretenimento.com.br" = @{ Cor="#005399"; Entidade="Real Arenas";     Banner="$BLOB/banner_allianz_parque.gif"; Font="Helvetica,Arial,sans-serif";                 WNome="bold"; WResto="normal"; FontFace=$false }
+    "wtorre.com.br"           = @{ Cor="#005399"; Entidade="WTorre";          Banner="$BLOB/banner_wtorre.gif";         Font="Helvetica,Arial,sans-serif";                 WNome="bold"; WResto="normal"; FontFace=$false }
+}
+
+# ---------------------------------------------
+#  FUNCOES
+# ---------------------------------------------
+function Get-Dominio($email) {
+    if ($email -match "@(.+)$") {
+        $d = $matches[1].ToLower()
+        if ($d -eq "nubankparque.com.br") { return "nubankparque.com" }
+        return $d
+    }
+    return $null
+}
+
+function Stop-WordProcesses {
+    $wordProcs = Get-Process -Name "WINWORD" -ErrorAction SilentlyContinue
+    if (-not $wordProcs) { return }
+
+    Write-Host "  Encerrando processos do Word em execucao..." -ForegroundColor Gray
+    $wordProcs | ForEach-Object {
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Milliseconds 800
+}
+
+function Remove-PathWithRetry {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        [int]$Retries = 10,
+        [int]$DelayMs = 500
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $true }
+
+    for ($i = 1; $i -le $Retries; $i++) {
+        try {
+            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
+            if (-not (Test-Path -LiteralPath $Path)) { return $true }
+        } catch {
+            if ($i -lt $Retries) { Start-Sleep -Milliseconds $DelayMs }
+        }
+    }
+
+    return -not (Test-Path -LiteralPath $Path)
+}
+
+function Write-TextFileWithRetry {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        [Parameter(Mandatory=$true)]
+        [string]$Content,
+        [Parameter(Mandatory=$true)]
+        [System.Text.Encoding]$Encoding,
+        [int]$Retries = 10,
+        [int]$DelayMs = 500
+    )
+
+    $dir = Split-Path -Parent $Path
+    if ($dir -and -not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+
+    $lastError = $null
+    for ($i = 1; $i -le $Retries; $i++) {
+        $tempPath = "$Path.tmp.$([Guid]::NewGuid().ToString('N'))"
+        try {
+            [System.IO.File]::WriteAllText($tempPath, $Content, $Encoding)
+            if (Test-Path -LiteralPath $Path) {
+                Remove-Item -LiteralPath $Path -Force -ErrorAction Stop
+            }
+            [System.IO.File]::Move($tempPath, $Path)
+            return
+        } catch {
+            $lastError = $_
+            if (Test-Path -LiteralPath $tempPath) {
+                Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+            }
+            if ($i -lt $Retries) { Start-Sleep -Milliseconds $DelayMs }
+        }
+    }
+
+    throw $lastError
+}
+
+function Remove-SignatureArtifacts {
+    param([Parameter(Mandatory=$true)][string]$SigName)
+
+    Remove-PathWithRetry (Join-Path $SIG_FOLDER "$SigName.htm") | Out-Null
+    Remove-PathWithRetry (Join-Path $SIG_FOLDER "$SigName.txt") | Out-Null
+    Remove-PathWithRetry (Join-Path $SIG_FOLDER "$SigName.rtf") | Out-Null
+    Remove-PathWithRetry (Join-Path $SIG_FOLDER "${SigName}_files") | Out-Null
+}
+
+function Clear-Signatures {
+    if (-not (Test-Path $SIG_FOLDER)) { return }
+
+    Stop-WordProcesses
+
+    $items = @(Get-ChildItem -Path $SIG_FOLDER -Force -ErrorAction SilentlyContinue)
+    if ($items.Count -eq 0) {
+        Write-Host "  Pasta de assinaturas ja estava vazia." -ForegroundColor Gray
+        return
+    }
+
+    $removed = 0
+    foreach ($item in $items) {
+        if (Remove-PathWithRetry -Path $item.FullName) {
+            $removed++
+        }
+    }
+
+    $remaining = @(Get-ChildItem -Path $SIG_FOLDER -Force -ErrorAction SilentlyContinue)
+    Write-Host "  $removed de $($items.Count) item(s) removido(s)." -ForegroundColor Gray
+
+    if ($remaining.Count -gt 0) {
+        Write-Host "  AVISO: $($remaining.Count) item(s) ainda bloqueado(s) (Outlook aberto?)." -ForegroundColor Yellow
+        Write-Host "         Feche o Outlook completamente e execute o instalador novamente." -ForegroundColor Yellow
+    }
+}
+
+function Get-NuSansFontFaceBlock {
+    return @"
+<style>
+  @font-face { font-family:'NuSansDisplay'; font-weight:500; font-style:normal; src:url('$BLOB/NuSansDisplay-Medium.otf') format('opentype'); }
+  @font-face { font-family:'NuSansDisplay'; font-weight:400; font-style:normal; src:url('$BLOB/NuSansDisplay-Regular.otf') format('opentype'); }
+</style>
+"@
+}
+
+function Install-NuSansFonts {
+    $fontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+    if (-not (Test-Path $fontsDir)) {
+        New-Item -ItemType Directory -Path $fontsDir -Force | Out-Null
+    }
+
+    $files = @(
+        @{ Url = "$BLOB/NuSansDisplay-Medium.otf"; File = "NuSansDisplay-Medium.otf"; RegName = "NuSans Display Medium (OpenType)" }
+        @{ Url = "$BLOB/NuSansDisplay-Regular.otf"; File = "NuSansDisplay-Regular.otf"; RegName = "NuSans Display Regular (OpenType)" }
+    )
+
+    $regPath = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
+    $installedAny = $false
+
+    foreach ($f in $files) {
+        $dest = Join-Path $fontsDir $f.File
+        if (-not (Test-Path -LiteralPath $dest)) {
+            try {
+                Invoke-WebRequest -Uri $f.Url -OutFile $dest -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+            } catch {
+                Write-Host "  AVISO: Nao foi possivel baixar $($f.File)." -ForegroundColor Yellow
+                continue
+            }
+        }
+
+        if (-not (Test-Path -LiteralPath $dest)) { continue }
+
+        New-ItemProperty -Path $regPath -Name $f.RegName -Value $f.File -PropertyType String -Force | Out-Null
+        $installedAny = $true
+    }
+
+    if (-not $installedAny) { return }
+
+    try {
+        Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class NativeFontNotify {
+    [DllImport("gdi32.dll", CharSet=CharSet.Auto)]
+    public static extern int AddFontResource(string lpFileName);
+    [DllImport("user32.dll")]
+    public static extern int SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+    public static readonly IntPtr HWND_BROADCAST = new IntPtr(0xffff);
+    public static readonly uint WM_FONTCHANGE = 0x001D;
+}
+"@
+        foreach ($f in $files) {
+            $dest = Join-Path $fontsDir $f.File
+            if (Test-Path -LiteralPath $dest) {
+                [NativeFontNotify]::AddFontResource($dest) | Out-Null
+            }
+        }
+        [NativeFontNotify]::SendMessage([NativeFontNotify]::HWND_BROADCAST, [NativeFontNotify]::WM_FONTCHANGE, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+        Write-Host "  Fontes Nu Sans instaladas para o usuario." -ForegroundColor Gray
+    } catch {
+        Write-Host "  AVISO: Fontes copiadas, mas o Windows pode precisar reiniciar o Outlook." -ForegroundColor Yellow
+    }
+}
+
+function Build-HTML($cfg, $sig) {
+    $cor      = $cfg.Cor
+    $font     = $cfg.Font
+    $entidade = $cfg.Entidade
+    $banner   = $cfg.Banner
+    $wNome    = $cfg.WNome
+    $wResto   = $cfg.WResto
+
+    $iconStyle = "font-family:Arial,Helvetica,sans-serif;color:$cor"
+    $icoMail   = "<span style=""$iconStyle"">&#x2709;&#xFE0E;</span>"
+    $icoPhone  = "<span style=""$iconStyle"">&#x260E;&#xFE0E;</span>"
+
+    if ($sig.Tipo -eq "compartilhada") {
+        $celLine = ""
+        if ($sig.Celular) {
+            $cel = $sig.Celular -replace '\s',''
+            $celLine = " | <a href=""tel:$cel"" style=""color:$cor;text-decoration:underline"">$($sig.Celular)</a>"
+        }
+        $foneHtml = ""
+        if ($sig.Telefone) {
+            $tel = $sig.Telefone -replace '\s',''
+            $foneHtml = "<p style=""margin:0;font-size:10pt;font-family:$font;color:$cor;font-weight:$wResto"">$icoPhone <a href=""tel:$tel"" style=""color:$cor;text-decoration:underline"">$($sig.Telefone)</a>$celLine</p>"
+        }
+        $conteudo = @"
+      <p style="margin:0 0 2px 0;font-size:11pt;font-family:$font;color:$cor;font-weight:$wNome">$($sig.Nome)</p>
+      <p style="margin:0 0 10px 0;font-size:10pt;font-family:$font;color:$cor;font-weight:$wResto">$($sig.Cargo)</p>
+      <p style="margin:0 0 3px 0;font-size:10pt;font-family:$font;color:$cor;font-weight:$wResto">$icoMail <a href="mailto:$($sig.Email)" style="color:$cor;text-decoration:underline">$($sig.Email)</a></p>
+      $foneHtml
+"@
+    } else {
+        $celLine = ""
+        if ($sig.Celular) {
+            $cel = $sig.Celular -replace '\s',''
+            $celLine = " | <a href=""tel:$cel"" style=""color:$cor;text-decoration:underline"">$($sig.Celular)</a>"
+        }
+        $foneHtml = ""
+        if ($sig.Telefone) {
+            $tel = $sig.Telefone -replace '\s',''
+            $foneHtml = "<p style=""margin:0;font-size:10pt;font-family:$font;color:$cor;font-weight:$wResto"">$icoPhone <a href=""tel:$tel"" style=""color:$cor;text-decoration:underline"">$($sig.Telefone)</a>$celLine</p>"
+        }
+        $conteudo = @"
+      <p style="margin:0 0 2px 0;font-size:11pt;font-family:$font;color:$cor;font-weight:$wNome">$($sig.Nome)</p>
+      <p style="margin:0 0 10px 0;font-size:10pt;font-family:$font;color:$cor;font-weight:$wResto">$($sig.Cargo)</p>
+      <p style="margin:0 0 3px 0;font-size:10pt;font-family:$font;color:$cor;font-weight:$wResto">$icoMail <a href="mailto:$($sig.Email)" style="color:$cor;text-decoration:underline">$($sig.Email)</a></p>
+      $foneHtml
+"@
+    }
+
+    return @"
+<table border="0" cellpadding="0" cellspacing="0" width="700" style="font-family:$font">
+  <tr>
+    <td width="250" valign="middle" style="padding:0 12px 0 0">
+      <img width="250" height="103" src="$banner" alt="$entidade" style="display:block">
+    </td>
+    <td valign="top" style="padding:6px 0 0 16px;border-left:1px solid #e0e0e0">
+$conteudo
+    </td>
+  </tr>
+</table>
+<p style="font-size:7.5pt;font-family:Verdana,sans-serif;color:#BABABA;font-style:italic;margin:6px 0 0 0">O conteúdo do presente e-mail, incluindo eventuais arquivos anexados, foi enviado pela <b>$entidade</b> para uso exclusivo do(s) destinatário(s) e envolve informações confidenciais protegidas por contratos e/ou por lei. Seu conteúdo não deve ser compartilhado, distribuído ou copiado sem o consentimento da mesma, na figura do remetente do presente e-mail.</p>
+<p style="font-size:7.5pt;font-family:Verdana,sans-serif;color:#BABABA;font-style:italic;margin:4px 0 0 0">The content of this email, including any attachments, was sent by <b>$entidade</b> for the exclusive use of the recipient(s) and involve confidential information protected by contracts and/or by law. Its content should not be shared, distributed or copied without the consent of <b>$entidade</b>, through the authorization by the sender of this e-mail.</p>
+"@
+}
+
+function Save-Signature($sigName, $html, [string]$fontFaceBlock = "") {
+    if (-not (Test-Path $SIG_FOLDER)) {
+        New-Item -ItemType Directory -Path $SIG_FOLDER -Force | Out-Null
+    }
+
+    Remove-SignatureArtifacts -SigName $sigName
+
+    $fullHtml = @"
+<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns:m="http://schemas.microsoft.com/office/2004/12/omml" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="Generator" content="Instalador-Assinaturas">
+$fontFaceBlock
+<!--[if gte mso 9]><xml>
+<o:OfficeDocumentSettings>
+<o:AllowPNG/>
+<o:PixelsPerInch>96</o:PixelsPerInch>
+</o:OfficeDocumentSettings>
+</xml><![endif]-->
+</head>
+<body lang="PT-BR" style="margin:0;padding:0;">
+$html
+</body>
+</html>
+"@
+
+    $htmPath = Join-Path $SIG_FOLDER "$sigName.htm"
+    $txtPath = Join-Path $SIG_FOLDER "$sigName.txt"
+    $utf8Bom = New-Object System.Text.UTF8Encoding $true
+
+    try {
+        Write-TextFileWithRetry -Path $htmPath -Content $fullHtml -Encoding $utf8Bom
+
+        $plain = ($html -replace '(?s)<style.*?</style>', '' -replace '<[^>]+>', ' ')
+        $plain = ($plain -replace '\s+', ' ').Trim()
+        Write-TextFileWithRetry -Path $txtPath -Content $plain -Encoding $utf8Bom
+    } catch {
+        Write-Host "  ERRO: Nao foi possivel gravar $sigName - arquivo em uso." -ForegroundColor Red
+        Write-Host "        Feche o Outlook e execute o .bat novamente." -ForegroundColor Yellow
+        Write-Host "        Detalhe: $($_.Exception.Message)" -ForegroundColor DarkGray
+        throw
+    }
+}
+
+function Set-SignatureRegistryKeys {
+    param(
+        [Parameter(Mandatory=$true)][string]$Path,
+        [Parameter(Mandatory=$true)][string]$SigName
+    )
+
+    Set-ItemProperty -Path $Path -Name "New Signature" -Value $SigName -Type String -Force -ErrorAction SilentlyContinue
+    Set-ItemProperty -Path $Path -Name "Reply-Forward Signature" -Value $SigName -Type String -Force -ErrorAction SilentlyContinue
+}
+
+function Get-OutlookAccountEmail($acctKeyPath) {
+    $props = Get-ItemProperty -Path $acctKeyPath -ErrorAction SilentlyContinue
+    if (-not $props) { return $null }
+    foreach ($name in @('Email', 'SMTP Email Address', 'IMAP Email Address', 'POP3 Email Address')) {
+        if ($props.$name) { return [string]$props.$name }
+    }
+    return $null
+}
+
+function Normalize-Email($email) {
+    if (-not $email) { return '' }
+    $e = $email.ToLower().Trim()
+    if ($e -match '@nubankparque\.com\.br$') {
+        $e = $e -replace '@nubankparque\.com\.br$','@nubankparque.com'
+    }
+    return $e
+}
+
+function Set-OutlookSignatureRegistry {
+    param(
+        [Parameter(Mandatory=$true)]
+        [array]$Instaladas,
+        [Parameter(Mandatory=$true)]
+        [string]$PadraoSigName
+    )
+
+    if (-not $Instaladas -or $Instaladas.Count -eq 0) { return $null }
+
+    $porEmail = @{}
+    foreach ($item in $Instaladas) {
+        $key = Normalize-Email $item.Email
+        if ($key -and -not $porEmail.ContainsKey($key)) {
+            $porEmail[$key] = $item.SigName
+        }
+    }
+
+    $officeVer = $null
+
+    foreach ($ver in @("16.0", "15.0", "14.0")) {
+        $office = "HKCU:\Software\Microsoft\Office\$ver"
+        if (-not (Test-Path $office)) { continue }
+
+        $setup = "$office\Outlook\Setup"
+        if (-not (Test-Path $setup)) { New-Item -Path $setup -Force | Out-Null }
+        Set-ItemProperty -Path $setup -Name "DisableRoamingSignatures" -Value 1 -Type DWord -Force
+        Set-SignatureRegistryKeys -Path $setup -SigName $PadraoSigName
+
+        $mail = "$office\Common\MailSettings"
+        if (-not (Test-Path $mail)) { New-Item -Path $mail -Force | Out-Null }
+        Set-ItemProperty -Path $mail -Name "NewSignature" -Value $PadraoSigName -Type String -Force
+        Set-ItemProperty -Path $mail -Name "ReplySignature" -Value $PadraoSigName -Type String -Force
+        Remove-ItemProperty -Path $mail -Name "First-Run" -ErrorAction SilentlyContinue
+
+        $optionsMail = "$office\Outlook\Options\Mail"
+        if (Test-Path (Split-Path $optionsMail -Parent)) {
+            if (-not (Test-Path $optionsMail)) { New-Item -Path $optionsMail -Force | Out-Null }
+            Set-ItemProperty -Path $optionsMail -Name "NewSignature" -Value $PadraoSigName -Type String -Force -ErrorAction SilentlyContinue
+            Set-ItemProperty -Path $optionsMail -Name "ReplySignature" -Value $PadraoSigName -Type String -Force -ErrorAction SilentlyContinue
+        }
+
+        $profiles = "$office\Outlook\Profiles"
+        if (-not (Test-Path $profiles)) {
+            $officeVer = $ver
+            continue
+        }
+
+        Get-ChildItem $profiles -ErrorAction SilentlyContinue |
+            Where-Object { $_.PSChildName -and $_.PSChildName -ne "DefaultProfile" } |
+            ForEach-Object {
+                $profilePath = Join-Path $profiles $_.PSChildName
+                $accountsBase = Join-Path $profilePath "9375CFF0413111d3B88A00104B2A6676"
+                if (-not (Test-Path -LiteralPath $accountsBase)) { return }
+
+                Get-ChildItem $accountsBase -ErrorAction SilentlyContinue | ForEach-Object {
+                    if ($_.PSChildName -notmatch '^0000000') { return }
+
+                    $acctEmail = Get-OutlookAccountEmail $_.PSPath
+                    $sigName = $PadraoSigName
+                    if ($acctEmail) {
+                        $norm = Normalize-Email $acctEmail
+                        if ($porEmail.ContainsKey($norm)) {
+                            $sigName = $porEmail[$norm]
+                        }
+                    }
+
+                    Set-SignatureRegistryKeys -Path $_.PSPath -SigName $sigName
+                }
+            }
+
+        $officeVer = $ver
+    }
+
+    return $officeVer
+}
+
+# ---------------------------------------------
+#  EXECUCAO
+# ---------------------------------------------
+Write-Host "`n============================================" -ForegroundColor Cyan
+Write-Host "  Instalador de Assinaturas - Nubank Parque" -ForegroundColor Cyan
+Write-Host "============================================`n" -ForegroundColor Cyan
+
+if ($ASSINATURAS.Count -eq 0) {
+    Write-Host "ERRO: Nenhuma assinatura encontrada na configuracao." -ForegroundColor Red
+    Write-Host "      Gere o instalador novamente pela pagina de assinaturas." -ForegroundColor Yellow
+    Read-Host "`nPressione Enter para fechar"
+    exit 1
+}
+
+$outlookProc = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
+if ($outlookProc) {
+    Write-Host "AVISO: O Outlook esta aberto e pode bloquear os arquivos de assinatura." -ForegroundColor Yellow
+    Write-Host "       Recomendado: feche o Outlook antes de continuar.`n" -ForegroundColor Yellow
+    $resp = Read-Host "  Deseja continuar mesmo assim? (S/N)"
+    if ($resp -notmatch "^[Ss]$") {
+        Write-Host "`nInstalacao cancelada. Feche o Outlook e execute novamente." -ForegroundColor Red
+        Read-Host "`nPressione Enter para fechar"
+        exit 0
+    }
+    Write-Host ""
+}
+
+Stop-WordProcesses
+
+Write-Host "[1/3] Limpando assinaturas antigas..." -ForegroundColor Cyan
+Clear-Signatures
+
+$restantes = @(Get-ChildItem -Path $SIG_FOLDER -Force -ErrorAction SilentlyContinue)
+if ($restantes.Count -gt 0 -and $outlookProc) {
+    Write-Host "`nERRO: Arquivos de assinatura ainda bloqueados pelo Outlook." -ForegroundColor Red
+    Write-Host "      Feche o Outlook (verifique o icone na bandeja do sistema) e execute o .bat novamente." -ForegroundColor Yellow
+    Read-Host "`nPressione Enter para fechar"
+    exit 1
+}
+
+Write-Host "[2/3] Instalando assinaturas..." -ForegroundColor Cyan
+
+$precisaNuSans = $false
+foreach ($sig in $ASSINATURAS) {
+    $domCheck = Get-Dominio $sig.Email
+    if ($domCheck -and $DOMINIOS[$domCheck].FontFace) {
+        $precisaNuSans = $true
+        break
+    }
+}
+if ($precisaNuSans) {
+    Write-Host "  Instalando fontes Nu Sans no Windows..." -ForegroundColor Gray
+    Install-NuSansFonts
+}
+
+$instaladas = @()
+
+if (-not $emailPadrao -and $ASSINATURAS.Count -gt 0) {
+    $emailPadrao = $ASSINATURAS[0].Email
+}
+
+foreach ($sig in $ASSINATURAS) {
+    $dominio = Get-Dominio $sig.Email
+    $cfg     = $DOMINIOS[$dominio]
+
+    if (-not $cfg) {
+        Write-Host "  [SKIP] $($sig.Email) - dominio nao mapeado" -ForegroundColor DarkGray
+        continue
+    }
+
+    $prefix  = ($sig.Email -split "@")[0]
+    $dom     = ($dominio -split "\.")[0]
+    $sigName = "${USUARIO}_${prefix}_${dom}"
+    $tipo    = $sig.Tipo
+
+    Write-Host "  * $sigName  ($tipo)" -ForegroundColor White
+
+    $html = Build-HTML $cfg $sig
+    $fontFaceBlock = ""
+    if ($cfg.FontFace) { $fontFaceBlock = Get-NuSansFontFaceBlock }
+    try {
+        Save-Signature $sigName $html $fontFaceBlock
+    } catch {
+        Read-Host "`nPressione Enter para fechar"
+        exit 1
+    }
+
+    $instaladas += [PSCustomObject]@{
+        SigName = $sigName
+        Email   = $sig.Email
+        Padrao  = ((Normalize-Email $sig.Email) -eq (Normalize-Email $emailPadrao))
+    }
+}
+
+Write-Host "`n[3/3] Configurando assinatura padrao..." -ForegroundColor Cyan
+
+$padrao = $instaladas | Where-Object { $_.Padrao } | Select-Object -First 1
+if (-not $padrao) { $padrao = $instaladas | Select-Object -First 1 }
+
+$verMsg = "Outlook nao detectado - selecione manualmente em Opcoes > Email > Assinaturas"
+if ($padrao) {
+    $htmPadrao = Join-Path $SIG_FOLDER "$($padrao.SigName).htm"
+    if (-not (Test-Path -LiteralPath $htmPadrao)) {
+        Write-Host "  ERRO: Arquivo da assinatura padrao nao encontrado: $htmPadrao" -ForegroundColor Red
+        $verMsg = "Assinatura padrao nao encontrada em disco."
+    } else {
+        $ver = Set-OutlookSignatureRegistry -Instaladas $instaladas -PadraoSigName $padrao.SigName
+        if ($ver) {
+            $verMsg = "Padrao: $($padrao.SigName) ($($padrao.Email)) no Outlook $ver"
+            Write-Host "  * $($padrao.SigName) definida como padrao ($($padrao.Email))" -ForegroundColor Green
+            Write-Host "  * Registro atualizado em Setup, MailSettings e contas do Outlook" -ForegroundColor Gray
+        } else {
+            $verMsg = "Assinaturas instaladas, mas nao foi possivel definir o padrao automaticamente."
+            Write-Host "  AVISO: $verMsg" -ForegroundColor Yellow
+        }
+    }
+} elseif ($instaladas.Count -eq 0) {
+    $verMsg = "Nenhuma assinatura valida foi instalada."
+}
+
+Write-Host "`n============================================" -ForegroundColor Cyan
+Write-Host "  OK  $($instaladas.Count) assinatura(s) instalada(s)" -ForegroundColor Green
+$instaladas | ForEach-Object {
+    $star = if ($_.Padrao) { "  * padrao" } else { "" }
+    Write-Host "     * $($_.SigName).htm$star"
+}
+Write-Host "  $verMsg" -ForegroundColor Yellow
+Write-Host "`n  Reinicie o Outlook para aplicar as alteracoes." -ForegroundColor Yellow
+Write-Host "  Se a lista de assinaturas estiver vazia, feche o Outlook e execute o .bat novamente." -ForegroundColor Yellow
+Write-Host "============================================`n" -ForegroundColor Cyan
+
+Read-Host "Pressione Enter para fechar"

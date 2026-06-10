@@ -8,22 +8,41 @@
     </div>
     <div class="tools">
       @for (s of servicos; track s.titulo) {
-        <div class="tool">
-          <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M7 17L17 7M17 7H9M17 7v8"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <div class="t-ic">
-            <app-servico-icon [icon]="s.icon" />
+        @if (s.href) {
+          <a class="tool" [routerLink]="s.href">
+            <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M7 17L17 7M17 7H9M17 7v8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <div class="t-ic">
+              <app-servico-icon [icon]="s.icon" />
+            </div>
+            <h3>{{ s.titulo }}</h3>
+            <p>{{ s.desc }}</p>
+          </a>
+        } @else {
+          <div class="tool">
+            <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M7 17L17 7M17 7H9M17 7v8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <div class="t-ic">
+              <app-servico-icon [icon]="s.icon" />
+            </div>
+            <h3>{{ s.titulo }}</h3>
+            <p>{{ s.desc }}</p>
           </div>
-          <h3>{{ s.titulo }}</h3>
-          <p>{{ s.desc }}</p>
-        </div>
+        }
       }
     </div>
   </div>

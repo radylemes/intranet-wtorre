@@ -1,4 +1,5 @@
 const { decrypt } = require('./crypto.service');
+const { fetchUserPhotoBufferFromTenant } = require('./microsoftGraph');
 
 async function getAppToken(tenant) {
   const clientSecret = decrypt(tenant.client_secret_ciphertext);
@@ -54,14 +55,7 @@ function extractDepartment(profile) {
 }
 
 async function getUserPhoto(tenant, oid) {
-  const token = await getAppToken(tenant);
-  const res = await fetch(`https://graph.microsoft.com/v1.0/users/${oid}/photo/$value`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) return null;
-  const buffer = Buffer.from(await res.arrayBuffer());
-  return { buffer, contentType: res.headers.get('content-type') || 'image/jpeg' };
+  return fetchUserPhotoBufferFromTenant(tenant, oid);
 }
 
 async function testConnection(tenant) {
@@ -76,4 +70,31 @@ async function testConnection(tenant) {
   return true;
 }
 
-module.exports = { getAppToken, getUserProfile, extractDepartment, getUserPhoto, testConnection };
+const USER_LIST_SELECT =
+  'id,displayName,jobTitle,department,mail,userPrincipalName,mobilePhone,businessPhones,companyName,accountEnabled,userType,onPremisesExtensionAttributes';
+
+async function listAllUsers(tenant) {
+  const token = await getAppToken(tenant);
+  const users = [];
+  let url =
+    `https://graph.microsoft.com/v1.0/users?$select=${USER_LIST_SELECT}&$top=999`;
+
+  while (url) {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'Falha ao listar usuários no Graph');
+    }
+    const data = await res.json();
+    if (Array.isArray(data.value)) {
+      users.push(...data.value);
+    }
+    url = data['@odata.nextLink'] || null;
+  }
+
+  return users;
+}
+
+module.exports = { getAppToken, getUserProfile, extractDepartment, getUserPhoto, testConnection, listAllUsers };

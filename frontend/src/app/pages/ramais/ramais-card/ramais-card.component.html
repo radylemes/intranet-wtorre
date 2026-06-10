@@ -1,0 +1,139 @@
+<article class="person">
+  <div class="p-top">
+    <div class="ava" [class.has-foto]="fotoUrl()" [style.background]="fotoUrl() ? undefined : corAvatar(colaborador.nome)">
+      @if (fotoUrl()) {
+        <img [src]="fotoUrl()!" [alt]="colaborador.nome" class="ava-img" />
+      } @else {
+        {{ iniciais(colaborador.nome) }}
+      }
+    </div>
+    <div class="p-id">
+      <div class="nm">{{ colaborador.nome }}</div>
+      @if (colaborador.cargo) {
+        <div class="role">{{ colaborador.cargo }}</div>
+      }
+      @if (colaborador.departamento) {
+        <div class="dep">
+          {{ colaborador.departamento }}
+          <span class="cobadge" [class]="classeEmpresa(colaborador.empresa)">
+            {{ badgeLabel(colaborador.empresa) }}
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="p-contacts">
+    <div class="cline ramal">
+      <span class="ci" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="M5 4h4l2 5-3 2a13 13 0 006 6l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </span>
+      <span class="ct">
+        <small>Ramal</small>
+        <b>{{ colaborador.ramal || '—' }}</b>
+      </span>
+      @if (colaborador.ramal) {
+        <button
+          type="button"
+          class="copy"
+          title="Copiar ramal"
+          (click)="onCopiar(colaborador.ramal, 'Ramal')"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2" />
+            <path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </button>
+      }
+    </div>
+
+    @if (colaborador.telefone_fixo) {
+      <div class="cline">
+        <span class="ci" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M5 4h4l2 5-3 2a13 13 0 006 6l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <span class="ct">
+          <small>Telefone fixo</small>
+          <span class="val">{{ colaborador.telefone_fixo }}</span>
+        </span>
+        <button
+          type="button"
+          class="copy"
+          title="Copiar telefone fixo"
+          (click)="onCopiar(colaborador.telefone_fixo, 'Telefone fixo')"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2" />
+            <path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    @if (colaborador.email) {
+      <div class="cline">
+        <span class="ci" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" />
+            <path d="M4 6l8 6 8-6" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </span>
+        <span class="ct">
+          <small>E-mail</small>
+          <span class="val">{{ colaborador.email }}</span>
+        </span>
+        <button
+          type="button"
+          class="copy"
+          title="Copiar e-mail"
+          (click)="onCopiar(colaborador.email, 'E-mail')"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2" />
+            <path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </button>
+      </div>
+    }
+
+    @if (colaborador.celular) {
+      <div class="cline">
+        <span class="ci" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+            <path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="ct">
+          <small>Celular</small>
+          <span class="val">{{ colaborador.celular }}</span>
+        </span>
+        <button
+          type="button"
+          class="copy"
+          title="Copiar celular"
+          (click)="onCopiar(colaborador.celular, 'Celular')"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="2" />
+            <path d="M5 15V5a2 2 0 012-2h10" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </button>
+      </div>
+    }
+  </div>
+</article>

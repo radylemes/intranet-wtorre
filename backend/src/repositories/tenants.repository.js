@@ -42,6 +42,15 @@ async function findById(id) {
   return mapTenant(rows[0]);
 }
 
+async function findActiveWithSecret(id) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT * FROM azure_tenants WHERE id = ? AND ativo = 1 AND client_secret_ciphertext IS NOT NULL LIMIT 1',
+    [id]
+  );
+  return mapTenant(rows[0]);
+}
+
 async function create(data) {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -119,6 +128,7 @@ module.exports = {
   findPrincipal,
   findAll,
   findById,
+  findActiveWithSecret,
   create,
   update,
   remove,

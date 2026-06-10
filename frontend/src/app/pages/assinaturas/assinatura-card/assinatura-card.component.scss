@@ -1,0 +1,160 @@
+.sig-card {
+  background: #fff;
+  border: 1px solid #e4e4e4;
+  border-radius: 10px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.sig-card--warn {
+  border-color: #e8a317;
+  background: #fffdf5;
+}
+
+.sig-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sig-checks {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.sig-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sig-check--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sig-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.sig-check--disabled input {
+  cursor: not-allowed;
+}
+
+.sig-remove {
+  flex-shrink: 0;
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+  color: #c0392b;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sig-remove:hover {
+  color: #96281b;
+}
+
+.sig-email {
+  font-size: 13px;
+  color: #9ca3af;
+  word-break: break-all;
+  margin-top: -4px;
+}
+
+.sig-warn {
+  font-size: 13px;
+  color: #9a6700;
+  margin: 0;
+}
+
+.sig-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sig-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sig-fields label span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sig-fields input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e4e4e4;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.sig-fields input:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgb(37 99 235 / 12%);
+}
+
+.sig-card-body {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.sig-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sig-preview-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@container (max-width: 620px) {
+  .sig-card-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .sig-card-body {
+    grid-template-columns: 1fr;
+  }
+}

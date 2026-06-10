@@ -1,0 +1,156 @@
+<div class="pagina pagina-assinaturas">
+  <app-topbar />
+  <app-header />
+
+  <div class="page-head">
+    <div class="wrap">
+      <div class="crumb">Início › <span>Assinaturas de E-mail</span></div>
+      <h1>Assinaturas de E-mail</h1>
+      <p>
+        Gere e instale assinaturas padronizadas para todos os seus aliases e caixas
+        compartilhadas. Selecione as assinaturas desejadas e baixe o script de instalação.
+      </p>
+    </div>
+  </div>
+
+  <main class="wrap main-content">
+    @if (carregando()) {
+      <div class="state-box">Carregando seus dados do Microsoft 365…</div>
+    } @else if (erroMsal()) {
+      <div class="state-box state-box--erro">
+        <strong>Não foi possível carregar assinaturas pessoais</strong>
+        <p>{{ erroMsal() }}</p>
+        <p class="hint">
+          Esta página requer login com Microsoft (Entra ID). Utilizadores com login local
+          devem autenticar-se via Microsoft para carregar aliases e telefones.
+        </p>
+      </div>
+    }
+
+    <section class="secao">
+      <div class="secao-head">
+        <div class="secao-head-text">
+          <h2>Assinaturas pessoais</h2>
+          <p class="secao-desc">
+            Um card para cada alias SMTP encontrado na sua conta Microsoft 365.
+          </p>
+        </div>
+        <div class="secao-head-actions">
+          <button
+            type="button"
+            class="btn-add-compartilhada"
+            [disabled]="carregando() || !!erroMsal()"
+            (click)="abrirModalCompartilhada()"
+          >
+            Adicionar Assinaturas Compartilhadas
+          </button>
+          <button
+            type="button"
+            class="btn-download"
+            [disabled]="!temSelecionadas() || !emailPadrao() || gerando() || carregando() || !!erroMsal()"
+            (click)="baixarScript()"
+          >
+            {{ gerando() ? 'Gerando instalador…' : 'Baixar Instalador (.bat)' }}
+          </button>
+        </div>
+      </div>
+      <p class="instrucao">
+        Após baixar, execute o arquivo .bat com duplo clique. Reinicie o Outlook após a
+        instalação.
+      </p>
+
+      @if (!carregando() && !erroMsal() && pessoais().length === 0 && compartilhadas().length === 0) {
+        <div class="state-box">Nenhuma assinatura encontrada. Adicione caixas compartilhadas se necessário.</div>
+      }
+
+      <div class="cards-grid">
+        @for (item of pessoais(); track item.id) {
+          <app-assinatura-card
+            [item]="item"
+            [isPadrao]="isEmailPadrao(item.email)"
+            (itemChange)="atualizarPessoal(item.id, $event)"
+            (padraoChange)="definirPadrao(item.email)"
+          />
+        }
+        @for (item of compartilhadas(); track item.id) {
+          <app-assinatura-card
+            [item]="item"
+            [isPadrao]="isEmailPadrao(item.email)"
+            (itemChange)="atualizarCompartilhada(item.id, $event)"
+            (padraoChange)="definirPadrao(item.email)"
+            (remover)="removerCaixa(item.id)"
+          />
+        }
+      </div>
+    </section>
+
+  </main>
+
+  <app-admin-modal
+    [open]="modalCompartilhadaAberto()"
+    title="Adicionar Assinaturas Compartilhadas"
+    [subtitle]="'Domínios aceitos: ' + dominiosAceitos"
+    saveLabel="Adicionar caixas"
+    (save)="adicionarCaixa()"
+    (cancel)="fecharModalCompartilhada()"
+  >
+    <div class="field">
+      <label for="emailsCaixa">E-mails da caixa</label>
+      <textarea
+        id="emailsCaixa"
+        placeholder="fale@basecoworking.space&#10;contato@basecoworking.space"
+        [ngModel]="emailsCaixa()"
+        (ngModelChange)="emailsCaixa.set($event)"
+        name="emailsCaixaModal"
+      ></textarea>
+      <p class="help">Um e-mail por linha (ou separados por vírgula).</p>
+    </div>
+    <div class="field">
+      <label for="nomeCaixa">Nome</label>
+      <input
+        id="nomeCaixa"
+        type="text"
+        placeholder="Daniel Lemes"
+        [ngModel]="nomeCaixa()"
+        (ngModelChange)="nomeCaixa.set($event)"
+        name="nomeCaixaModal"
+      />
+    </div>
+    <div class="field">
+      <label for="telefoneCaixa">Telefone</label>
+      <input
+        id="telefoneCaixa"
+        type="text"
+        placeholder="+55 (11) 0000-0000"
+        [ngModel]="telefoneCaixa()"
+        (ngModelChange)="telefoneCaixa.set($event)"
+        name="telefoneCaixaModal"
+      />
+    </div>
+    <div class="field">
+      <label for="cargoCaixa">Cargo</label>
+      <input
+        id="cargoCaixa"
+        type="text"
+        placeholder="Administrador de Redes"
+        [ngModel]="cargoCaixa()"
+        (ngModelChange)="cargoCaixa.set($event)"
+        name="cargoCaixaModal"
+      />
+    </div>
+    <div class="field">
+      <label for="celularCaixa">Celular</label>
+      <input
+        id="celularCaixa"
+        type="text"
+        placeholder="+55 (11) 90000-0000"
+        [ngModel]="celularCaixa()"
+        (ngModelChange)="celularCaixa.set($event)"
+        name="celularCaixaModal"
+      />
+    </div>
+  </app-admin-modal>
+
+  <app-footer />
+  <app-toast />
+</div>

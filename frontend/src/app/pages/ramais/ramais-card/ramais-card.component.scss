@@ -1,0 +1,211 @@
+.person {
+  background: var(--panel);
+  border: 1px solid var(--line-solid);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  transition: 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.person:hover {
+  transform: translateY(-3px);
+  border-color: rgba(29, 84, 230, 0.3);
+  box-shadow: 0 22px 44px -26px rgba(28, 42, 82, 0.42);
+}
+
+.p-top {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.ava {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.ava.has-foto {
+  display: block;
+  position: relative;
+  background: var(--panel-2);
+}
+
+.ava.has-foto .ava-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  border-radius: 14px;
+  transform: scale(1.15);
+}
+
+.p-id {
+  min-width: 0;
+  flex: 1;
+}
+
+.p-id .nm {
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.p-id .role {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.p-id .dep {
+  font-size: 11.5px;
+  color: var(--ink-dim);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cobadge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: none;
+  white-space: nowrap;
+}
+
+.cobadge.wtorre {
+  color: var(--wtorre);
+  background: rgba(29, 84, 230, 0.1);
+}
+
+.cobadge.nubank {
+  color: var(--nubank);
+  background: rgba(138, 5, 190, 0.1);
+}
+
+.cobadge.base {
+  color: var(--base);
+  background: rgba(14, 141, 160, 0.1);
+}
+
+.cobadge.novo {
+  color: var(--novo);
+  background: rgba(26, 26, 26, 0.08);
+}
+
+.cobadge.neutro {
+  color: var(--ink-soft);
+  background: rgba(138, 147, 168, 0.15);
+}
+
+.p-contacts {
+  margin-top: 15px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.cline {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 13px;
+}
+
+.cline .ci {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  display: grid;
+  place-items: center;
+  color: var(--ink-dim);
+  flex-shrink: 0;
+}
+
+.cline .ci svg {
+  width: 15px;
+  height: 15px;
+}
+
+.cline.ramal .ci {
+  background: rgba(29, 84, 230, 0.1);
+  color: var(--wtorre);
+}
+
+.cline .ct {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cline .ct small {
+  color: var(--ink-dim);
+  font-size: 10.5px;
+  display: block;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cline .ct b {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.cline .ct .val {
+  display: block;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.copy {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line-solid);
+  background: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--ink-dim);
+  transition: 0.15s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.copy:hover {
+  color: var(--wtorre);
+  border-color: var(--wtorre);
+}
+
+.copy svg {
+  width: 14px;
+  height: 14px;
+}

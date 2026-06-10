@@ -2,6 +2,7 @@ export interface Servico {
   titulo: string;
   desc: string;
   icon: 'alert' | 'search' | 'calendar' | 'report';
+  href?: string;
 }
 
 export const SERVICOS: Servico[] = [
@@ -14,6 +15,7 @@ export const SERVICOS: Servico[] = [
     titulo: 'Lista de Ramais',
     desc: 'Encontre colegas, áreas e telefones de todas as unidades do grupo.',
     icon: 'search',
+    href: '/ramais',
   },
   {
     titulo: 'Agendas & Reservas',

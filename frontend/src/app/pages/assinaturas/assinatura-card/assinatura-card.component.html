@@ -1,0 +1,83 @@
+<div class="sig-card" [class.sig-card--warn]="dominioDesconhecido()">
+  <div class="sig-card-top">
+    <div class="sig-checks">
+      @if (mostrarCheckbox) {
+        <label class="sig-check">
+          <input
+            type="checkbox"
+            [checked]="item.selecionada"
+            [disabled]="dominioDesconhecido()"
+            (change)="onSelecao($any($event.target).checked)"
+          />
+          <span>Selecionar</span>
+        </label>
+      }
+      <label class="sig-check" [class.sig-check--disabled]="!item.selecionada || dominioDesconhecido()">
+        <input
+          type="checkbox"
+          [checked]="isPadrao"
+          [disabled]="!item.selecionada || dominioDesconhecido()"
+          (change)="onPadrao($any($event.target).checked)"
+        />
+        <span>Assinatura Padrão</span>
+      </label>
+    </div>
+    @if (item.tipo === 'compartilhada') {
+      <button type="button" class="sig-remove" (click)="onRemover()">Remover</button>
+    }
+  </div>
+
+  <div class="sig-email">{{ item.email }}</div>
+
+  @if (dominioDesconhecido()) {
+    <p class="sig-warn">
+      Este domínio não possui template de assinatura. Contacte o suporte de TI.
+    </p>
+  }
+
+  <div class="sig-card-body">
+    @if (editavel && (item.tipo === 'pessoal' || item.tipo === 'compartilhada')) {
+      <div class="sig-fields">
+        <label>
+          <span>Nome</span>
+          <input
+            type="text"
+            [ngModel]="item.nome"
+            (ngModelChange)="emitChange({ nome: $event })"
+          />
+        </label>
+        <label>
+          <span>Telefone</span>
+          <input
+            type="text"
+            [ngModel]="item.telefone"
+            (ngModelChange)="emitChange({ telefone: $event })"
+          />
+        </label>
+        <label>
+          <span>Cargo</span>
+          <input
+            type="text"
+            [ngModel]="item.cargo"
+            (ngModelChange)="emitChange({ cargo: $event })"
+          />
+        </label>
+        <label>
+          <span>Celular</span>
+          <input
+            type="text"
+            [ngModel]="item.celular"
+            (ngModelChange)="emitChange({ celular: $event })"
+          />
+        </label>
+      </div>
+    }
+
+    @if (payload(); as p) {
+      <div class="sig-preview">
+        <span class="sig-preview-label">Preview</span>
+        <app-assinatura-preview [assinatura]="p" />
+      </div>
+    }
+  </div>
+</div>

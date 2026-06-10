@@ -1,0 +1,70 @@
+@font-face {
+  font-family: 'NuSansDisplay';
+  font-weight: 500;
+  font-style: normal;
+  src: url('/api/v1/assinaturas/fonts/NuSansDisplay-Medium.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'NuSansDisplay';
+  font-weight: 400;
+  font-style: normal;
+  src: url('/api/v1/assinaturas/fonts/NuSansDisplay-Regular.otf') format('opentype');
+}
+
+.preview-shell {
+  border: 1px solid #e4e4e4;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  padding: 10px 12px;
+}
+
+.preview-content {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+:host ::ng-deep .preview-content table {
+  width: 100% !important;
+  max-width: 100%;
+  table-layout: fixed;
+}
+
+:host ::ng-deep .preview-content table td:first-child {
+  width: 38% !important;
+  padding: 0 10px 0 0 !important;
+  vertical-align: middle;
+}
+
+:host ::ng-deep .preview-content table td:first-child img {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 250px;
+}
+
+:host ::ng-deep .preview-content table td:last-child {
+  width: 62% !important;
+  padding: 4px 0 0 12px !important;
+  vertical-align: top;
+  border-left: 1px solid #e0e0e0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+:host ::ng-deep .preview-content p {
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  line-height: 1.35;
+}
+
+.preview-empty {
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-dim);
+  border: 1px dashed #e4e4e4;
+  border-radius: 8px;
+}
