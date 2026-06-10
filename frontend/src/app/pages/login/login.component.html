@@ -1,0 +1,105 @@
+<div class="shell">
+  <app-login-brand-panel />
+
+  <main class="login-side">
+    <div class="login-box">
+      <div class="restricted">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="2" />
+          <path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="2" />
+        </svg>
+        Página corporativa · Acesso restrito
+      </div>
+
+      @if (sessaoExpirada()) {
+        <div class="warn show" role="status">Sua sessão expirou por inatividade. Entre novamente.</div>
+      }
+
+      @if (avisoMsal()) {
+        <div class="warn show" role="status">{{ avisoMsal() }}</div>
+      }
+
+      <h2>Entrar na intranet</h2>
+      <p class="hint">Use sua conta corporativa Microsoft para continuar.</p>
+
+      @if (mensagemErro()) {
+        <div class="err show" role="alert">{{ mensagemErro() }}</div>
+      }
+
+      <button
+        class="btn-ms"
+        type="button"
+        (click)="entrarMicrosoft()"
+        [disabled]="autenticando() || auth.msalBusy() || !msalConfig.hasClientId()"
+      >
+        <span class="ms-grid" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </span>
+        {{ autenticando() || auth.msalBusy() ? 'Redirecionando...' : 'Entrar com Microsoft' }}
+      </button>
+
+      <button class="link-local" type="button" (click)="toggleLoginLocal()">
+        {{ mostrarLoginLocal ? 'Ocultar login administrativo' : 'Login sem Microsoft (admin)' }}
+      </button>
+
+      @if (mostrarLoginLocal) {
+        <form [formGroup]="form" (ngSubmit)="enviarLogin()" class="local-form">
+          <div class="field">
+            <label for="email">E-mail administrativo</label>
+            <div class="input">
+              <input
+                id="email"
+                type="email"
+                formControlName="email"
+                placeholder="admin@grupowtorre.com"
+                autocomplete="username"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="pass">Senha</label>
+            <div class="input">
+              <input
+                id="pass"
+                [type]="mostrarSenha ? 'text' : 'password'"
+                formControlName="senha"
+                placeholder="••••••••••"
+                autocomplete="current-password"
+                (keydown.enter)="onSenhaEnter($event)"
+              />
+              <button class="toggle" type="button" (click)="alternarSenha()" aria-label="Mostrar senha">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="row-between">
+            <label class="remember">
+              <input type="checkbox" formControlName="manterConectado" />
+              Manter conectado
+            </label>
+          </div>
+
+          <button class="btn-login" type="submit" [disabled]="autenticando()">
+            {{ autenticando() ? 'Autenticando...' : 'Acessar (admin)' }}
+          </button>
+        </form>
+      }
+
+      <p class="legal">
+        <b>Aviso de segurança.</b> Este é um sistema de uso exclusivo do Grupo WTorre. O acesso é
+        monitorado e registrado. O uso não autorizado é proibido e pode estar sujeito a medidas
+        disciplinares e legais. Ao continuar, você concorda com a Política de Segurança da
+        Informação.
+      </p>
+    </div>
+  </main>
+</div>

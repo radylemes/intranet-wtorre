@@ -1,0 +1,94 @@
+<div class="admin-shell" [class.sidebar-open]="sidebarOpen()">
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <app-logo-w class="logo-wrap" />
+      <div>
+        <div class="grp">GRUPO WTORRE</div>
+        <div class="sub">Administração</div>
+      </div>
+    </div>
+
+    <div class="nav-group-label">Gestão de conteúdo</div>
+    <nav class="sidebar-nav">
+      <a routerLink="/admin/menu" routerLinkActive="active" (click)="closeSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M3 6h18M3 12h18M3 18h18"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+        Gestão do Menu
+      </a>
+      <a routerLink="/admin/documentos" routerLinkActive="active" (click)="closeSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+          />
+        </svg>
+        Documentos
+      </a>
+    </nav>
+
+    <div class="nav-group-label">Acessos</div>
+    <nav class="sidebar-nav">
+      <a routerLink="/admin/tenants" routerLinkActive="active" (click)="closeSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+          <path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        Tenants Azure
+      </a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <a routerLink="/inicio" class="back-link" (click)="closeSidebar()">← Voltar à intranet</a>
+      <div class="sb-user">
+        <span class="av">{{ auth.getIniciais() }}</span>
+        <div>
+          <div class="nm">{{ auth.usuario()?.nome_completo ?? auth.usuario()?.nome ?? 'Usuário' }}</div>
+          <div class="rl">Perfil {{ auth.usuario()?.perfil ?? 'USER' }}</div>
+        </div>
+      </div>
+      <button type="button" class="btn-logout" (click)="sair()">Sair</button>
+    </div>
+  </aside>
+
+  <div class="sidebar-backdrop" (click)="closeSidebar()" aria-hidden="true"></div>
+
+  <div class="admin-main">
+    <header class="admin-topline">
+      <div class="topline-left">
+        <button type="button" class="menu-toggle" aria-label="Abrir menu" (click)="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M3 6h18M3 12h18M3 18h18"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+        <div class="breadcrumb">
+          <span class="bc-root">Administração</span>
+          <span class="bc-sep">›</span>
+          <span class="bc-current">{{ pageTitle() }}</span>
+        </div>
+      </div>
+      <div class="status-dot">
+        <span class="dot"></span>
+        Sistemas normais
+      </div>
+    </header>
+
+    <main class="admin-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<app-admin-toast />

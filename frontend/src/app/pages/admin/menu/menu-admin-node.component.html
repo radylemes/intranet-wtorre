@@ -1,0 +1,123 @@
+<div
+  class="menu-tree-list"
+  cdkDropList
+  [cdkDropListData]="items"
+  (cdkDropListDropped)="onDrop($event)"
+>
+  @for (item of items; track item.id) {
+    <div
+      class="node"
+      [class.open]="temSubmenu(item) && !estaRecolhido(item.id)"
+      cdkDrag
+    >
+      <div class="row" [class.parent]="temSubmenu(item)">
+        <span class="grip" cdkDragHandle title="Arrastar para reordenar">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="9" cy="6" r="1.4" fill="currentColor" />
+            <circle cx="15" cy="6" r="1.4" fill="currentColor" />
+            <circle cx="9" cy="12" r="1.4" fill="currentColor" />
+            <circle cx="15" cy="12" r="1.4" fill="currentColor" />
+            <circle cx="9" cy="18" r="1.4" fill="currentColor" />
+            <circle cx="15" cy="18" r="1.4" fill="currentColor" />
+          </svg>
+        </span>
+        <button
+          type="button"
+          class="chev"
+          [class.empty]="!temSubmenu(item)"
+          [attr.aria-expanded]="temSubmenu(item) ? !estaRecolhido(item.id) : null"
+          [attr.aria-label]="temSubmenu(item) ? (estaRecolhido(item.id) ? 'Expandir' : 'Recolher') : null"
+          (click)="onChevronClick($event, item)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M9 6l6 6-6 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+        <span class="nicon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            @if (temSubmenu(item)) {
+              <path
+                d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+            } @else {
+              <path
+                d="M10 14a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 10a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            }
+          </svg>
+        </span>
+        <span class="lbl">{{ item.label }}</span>
+        @if (temSubmenu(item)) {
+          <span class="count">{{ item.children!.length }}</span>
+        }
+        <span class="badges">
+          <span class="bdg" [class]="badgeClass(item.url)">{{ badgeLabel(item.url) }}</span>
+          @if (item.ativo === false) {
+            <span class="bdg off">Inativo</span>
+          }
+        </span>
+        <span class="acts">
+          @if (temSubmenu(item)) {
+            <button type="button" class="ib" title="Adicionar subitem" (click)="emit('addChild', item)">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+          }
+          <button type="button" class="ib" title="Editar" (click)="emit('edit', item)">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 20h4L18 10l-4-4L4 16z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <button type="button" class="ib del" title="Remover" (click)="emit('remove', item)">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </span>
+      </div>
+
+      @if (temSubmenu(item)) {
+        <div class="children">
+          <app-menu-admin-node
+            [items]="item.children!"
+            [depth]="depth + 1"
+            [parentId]="item.id"
+            [recolhidos]="recolhidos"
+            [tipoUrl]="tipoUrl"
+            (action)="action.emit($event)"
+            (reordered)="reordered.emit()"
+          />
+        </div>
+      }
+    </div>
+  }
+</div>

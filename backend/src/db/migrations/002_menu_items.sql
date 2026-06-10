@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS menu_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  label VARCHAR(100) NOT NULL,
+  url VARCHAR(500) NULL,
+  parent_id INT NULL,
+  ordem INT NOT NULL DEFAULT 0,
+  abrir_nova_aba TINYINT(1) NOT NULL DEFAULT 1,
+  icone VARCHAR(50) NULL,
+  cabecalho VARCHAR(100) NULL,
+  ativo TINYINT(1) NOT NULL DEFAULT 1,
+  visivel_perfil VARCHAR(20) NULL,
+  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (parent_id) REFERENCES menu_items(id) ON DELETE CASCADE,
+  INDEX idx_parent_ordem (parent_id, ordem)
+);

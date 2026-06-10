@@ -1,0 +1,25 @@
+<div class="co {{ empresa.classe }}">
+  <span class="glow"></span>
+  <span class="co-badge">{{ empresa.badge }}</span>
+  @if (empresa.logoHtml && empresa.classe === 'novo') {
+    <div class="co-logo">NOVO<br />ANHANGABAÚ</div>
+  } @else {
+    <div class="co-logo">{{ empresa.logo }}</div>
+  }
+  <div class="co-meta">
+    <div class="role">{{ empresa.role }}</div>
+    <div class="desc">{{ empresa.desc }}</div>
+    <span class="enter">
+      Entrar
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M5 12h14M13 6l6 6-6 6"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </span>
+  </div>
+</div>

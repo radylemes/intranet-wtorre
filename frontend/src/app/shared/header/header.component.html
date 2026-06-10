@@ -1,0 +1,76 @@
+<header class="main">
+  <div class="wrap navrow">
+    <a routerLink="/inicio" class="brandmark" (click)="fecharMenu()">
+      <app-logo-w class="logo-wrap" />
+      <span class="txt">
+        <div class="grp">GRUPO WTORRE</div>
+        <div class="sub">Intranet Corporativa</div>
+      </span>
+    </a>
+
+    <nav class="menu" [class.aberto]="menuAberto()">
+      @for (item of menuItems(); track item.id) {
+        <app-menu-node
+          [item]="item"
+          [depth]="0"
+          [mobile]="mobile()"
+          [expandedIds]="expandedIds()"
+          [onToggleMobile]="toggleExpanded"
+          [onCloseMenu]="fecharMenu"
+        />
+      }
+    </nav>
+
+    <div class="header-cta">
+      <button class="btn-chamado" type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        <span>Abrir Chamado</span>
+      </button>
+      <div class="avatar-wrap">
+        <button
+          class="avatar"
+          type="button"
+          [title]="auth.usuario()?.nome_completo ?? auth.usuario()?.nome ?? 'Meu perfil'"
+          (click)="toggleAvatarMenu()"
+        >
+          @if (fotoUrl()) {
+            <img [src]="fotoUrl()!" alt="" class="avatar-img" />
+          } @else {
+            {{ auth.getIniciais() }}
+          }
+        </button>
+        @if (avatarMenuAberto()) {
+          <div class="avatar-menu">
+            <div class="avatar-menu-name">
+              {{ auth.usuario()?.nome_completo ?? auth.usuario()?.nome }}
+            </div>
+            <div class="avatar-menu-email">{{ auth.usuario()?.email }}</div>
+            @if (auth.isAdmin()) {
+              <a routerLink="/admin/menu" (click)="fecharAvatarMenu()">Gestão do Menu</a>
+              <a routerLink="/admin/tenants" (click)="fecharAvatarMenu()">Tenants Azure</a>
+              <a routerLink="/admin/documentos" (click)="fecharAvatarMenu()">Documentos</a>
+            }
+            <button type="button" (click)="sair()">Sair</button>
+          </div>
+        }
+      </div>
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Abrir menu"
+        (click)="toggleMenu()"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M3 6h18M3 12h18M3 18h18"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,130 @@
+.block {
+  position: relative;
+  z-index: 5;
+  padding: 30px 0;
+}
+
+.block-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 20px;
+}
+
+.block-head h2 {
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 25px;
+  letter-spacing: -0.01em;
+}
+
+.block-head .tag {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.block-head .tag::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--wtorre);
+}
+
+.block-head a.more {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-weight: 600;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  transition: 0.2s;
+}
+
+.block-head a.more:hover {
+  color: var(--ink);
+  gap: 10px;
+}
+
+.layout-2 {
+  display: grid;
+  grid-template-columns: 1.55fr 0.85fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.sys-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 13px;
+}
+
+.sys {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  background: var(--panel);
+  border: 1px solid var(--line-solid);
+  transition: 0.2s;
+  box-shadow: 0 8px 20px -18px rgba(28, 42, 82, 0.3);
+}
+
+.sys:hover {
+  background: var(--panel-2);
+  border-color: rgba(29, 84, 230, 0.4);
+  transform: translateY(-2px);
+}
+
+.sys:active {
+  transform: scale(0.98);
+}
+
+.sys .icn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: rgba(29, 84, 230, 0.1);
+  color: var(--wtorre);
+}
+
+.sys .name {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.sys .name small {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-dim);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+@media (max-width: 1080px) {
+  .layout-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .sys-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .sys-grid {
+    grid-template-columns: 1fr;
+  }
+}

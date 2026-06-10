@@ -1,0 +1,153 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Tenants Azure</h1>
+    <p>Cadastre as empresas do grupo (WTorre, Nubank Parque, Base, Novo Anhangabaú).</p>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Cadastrados</h2>
+      <button type="button" class="btn-primary btn-sm" (click)="novoTenant()">Novo tenant</button>
+    </div>
+    <div class="card-body">
+      @if (!tenants().length) {
+        <p class="empty">Nenhum tenant cadastrado.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Tenant ID</th>
+              <th>Principal</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of tenants(); track t.id) {
+              <tr>
+                <td><strong>{{ t.nome }}</strong></td>
+                <td class="mono">{{ t.azure_tenant_id }}</td>
+                <td>{{ t.eh_principal ? 'Sim' : '—' }}</td>
+                <td>
+                  <span class="status-badge" [class.on]="t.ativo" [class.off]="!t.ativo">
+                    {{ t.ativo ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td class="row-actions">
+                  <button type="button" class="btn-ghost btn-sm" (click)="testar(t)">Testar conexão</button>
+                  <button type="button" class="iconbtn" title="Editar" (click)="editar(t)">✎</button>
+                  <button type="button" class="iconbtn del" title="Remover" (click)="excluir(t)">✕</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </section>
+</div>
+
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="tituloModal()"
+  [subtitle]="subtituloModal()"
+  icon="tenant"
+  [salvando]="salvando()"
+  saveLabel="Salvar tenant"
+  (save)="salvar()"
+  (cancel)="fecharModal()"
+>
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <div class="field">
+      <label for="tenant-nome">Nome da empresa</label>
+      <input
+        id="tenant-nome"
+        formControlName="nome"
+        type="text"
+        placeholder="Ex.: WTorre, Nubank Parque, Base..."
+      />
+    </div>
+
+    <div class="field mono">
+      <label for="tenant-id">Azure Tenant ID</label>
+      <input
+        id="tenant-id"
+        formControlName="azure_tenant_id"
+        type="text"
+        placeholder="00000000-0000-0000-0000-000000000000"
+      />
+      <div class="help">
+        Portal Azure → Microsoft Entra ID → Visão geral → <strong>ID do Diretório (locatário)</strong>.
+      </div>
+    </div>
+
+    <div class="field mono">
+      <label for="tenant-client">Client ID</label>
+      <input
+        id="tenant-client"
+        formControlName="client_id"
+        type="text"
+        placeholder="00000000-0000-0000-0000-000000000000"
+      />
+      <div class="help">
+        Da app registration → Visão geral → <strong>ID do aplicativo (cliente)</strong>.
+      </div>
+    </div>
+
+    <div class="field mono">
+      <label for="tenant-secret">Client Secret</label>
+      <div class="secret">
+        <input
+          id="tenant-secret"
+          formControlName="client_secret"
+          [type]="mostrarSecret() ? 'text' : 'password'"
+          placeholder="Deixe vazio para manter o atual"
+        />
+        <button
+          type="button"
+          class="eye"
+          [attr.aria-label]="mostrarSecret() ? 'Ocultar' : 'Mostrar'"
+          (click)="toggleSecret()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </button>
+      </div>
+      <div class="help">
+        Em Certificados e segredos → <strong>Novo segredo do cliente</strong>. Copie o
+        <strong>valor</strong> (só aparece uma vez). Será armazenado criptografado.
+      </div>
+    </div>
+
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Tenant ativo</div>
+        <div class="ts">Permite que usuários desta empresa façam login</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="ativo" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Tenant principal (MSAL)</div>
+        <div class="ts">
+          Define o Client ID exposto ao botão "Entrar com Microsoft". Apenas um pode ser principal.
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="eh_principal" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </form>
+</app-admin-modal>

@@ -1,0 +1,61 @@
+@if (open()) {
+  <div class="admin-modal overlay" (click)="onBackdropClick()">
+    <div class="admin-modal__panel" role="dialog" [attr.aria-label]="title()" (click)="$event.stopPropagation()">
+      <header class="m-head">
+        <span class="ic" aria-hidden="true">
+          @if (icon() === 'tenant') {
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+              <path d="M9 8h6M9 12h6M9 16h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+        </span>
+        <div class="ttl">
+          <h3>{{ title() }}</h3>
+          @if (subtitle()) {
+            <div class="sb">{{ subtitle() }}</div>
+          }
+        </div>
+        <button type="button" class="x" aria-label="Fechar" (click)="onCancel()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </header>
+
+      <div class="m-body">
+        <ng-content />
+      </div>
+
+      <footer class="m-foot">
+        <button type="button" class="btn btn-ghost" (click)="onCancel()">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="salvando()" (click)="onSave()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M5 13l4 4L19 7"
+              stroke="#fff"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          {{ salvando() ? 'Salvando...' : saveLabel() }}
+        </button>
+      </footer>
+    </div>
+  </div>
+}

@@ -1,0 +1,134 @@
+:host {
+  display: block;
+}
+
+.cat-branch {
+  margin-bottom: 2px;
+}
+
+.cat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 11px;
+  transition: background 0.15s;
+}
+
+.cat-item.ativo {
+  background: rgba(29, 84, 230, 0.08);
+}
+
+.cat-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
+  border-radius: 11px;
+}
+
+.cat-main:hover {
+  color: var(--ink, #10151f);
+}
+
+.cat-item.ativo .cat-main {
+  color: var(--wtorre, #1d54e6);
+}
+
+.cat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--panel-2, #f6f8fc);
+  color: var(--ink-dim, #8a93a8);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.cat-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cat-item.ativo .cat-icon {
+  background: rgba(29, 84, 230, 0.12);
+  color: var(--wtorre, #1d54e6);
+}
+
+.cat-item.filho .cat-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.cat-item.filho .cat-main {
+  font-size: 13px;
+}
+
+.cat-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-badge {
+  flex-shrink: 0;
+  min-width: 22px;
+  text-align: center;
+  background: var(--panel-2, #f6f8fc);
+  border: 1px solid var(--line-solid, #e2e6ee);
+  color: var(--ink-dim, #8a93a8);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.cat-item.ativo .cat-badge {
+  background: #fff;
+}
+
+.cat-chev {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--ink-dim, #8a93a8);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  margin-right: 4px;
+  transition: transform 0.2s, background 0.15s;
+}
+
+.cat-chev:hover {
+  background: var(--panel-2, #f6f8fc);
+  color: var(--ink, #10151f);
+}
+
+.cat-chev svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cat-item.expandido .cat-chev {
+  transform: rotate(90deg);
+}
+
+.cat-children {
+  margin-left: 16px;
+  padding-left: 12px;
+  border-left: 1.5px solid var(--line, #e4e8f0);
+}

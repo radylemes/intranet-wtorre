@@ -1,0 +1,104 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.docs-admin {
+  max-width: none;
+  width: 100%;
+}
+
+.docs-admin .grid-docs {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  width: 100%;
+}
+
+.btn-nova {
+  white-space: nowrap;
+  padding: 8px 14px;
+}
+
+.cat-card .card-body {
+  padding: 12px 16px 16px;
+}
+
+.cat-tree {
+  display: flex;
+  flex-direction: column;
+}
+
+.docs-panel .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.docs-panel-empty .card-body {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.doc-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-solid, #e2e6ee);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.doc-card .fileicon {
+  width: 40px;
+  height: 40px;
+  font-size: 11px;
+}
+
+.doc-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-card-info strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink, #10151f);
+}
+
+.doc-card .doc-row-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ink-dim, #8a93a8);
+}
+
+.upload-status {
+  margin-top: -8px;
+}
+
+@media (max-width: 900px) {
+  .docs-admin .grid-docs {
+    grid-template-columns: 1fr;
+  }
+
+  .doc-card {
+    flex-wrap: wrap;
+  }
+
+  .doc-card .row-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+}

@@ -1,0 +1,153 @@
+<div class="admin-page menu-admin-page">
+  <header class="page-head">
+    <h1>Gestão do Menu</h1>
+    <p>Adicione, edite, remova e reordene os itens de navegação da intranet.</p>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>Estrutura do menu</h2>
+        <p class="hint">Arraste pelo ⠿ para reordenar · clique no ▸ para expandir</p>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="linkbtn" (click)="expandirTudo()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M8 9l4-4 4 4M8 15l4 4 4-4"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Expandir tudo
+        </button>
+        <button type="button" class="linkbtn" (click)="recolherTudo()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M8 5l4 4 4-4M8 19l4-4 4 4"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Recolher tudo
+        </button>
+        <button type="button" class="btn btn-primary" (click)="novoItem()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 5v14M5 12h14"
+              stroke="#fff"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            />
+          </svg>
+          Novo item
+        </button>
+      </div>
+    </div>
+    <div class="tree">
+      @if (!menuTree().length) {
+        <p class="empty">Nenhum item cadastrado.</p>
+      } @else {
+        <app-menu-admin-node
+          [items]="menuTree()"
+          [depth]="0"
+          [parentId]="null"
+          [recolhidos]="recolhidos()"
+          [tipoUrl]="tipoUrl"
+          (action)="onNodeAction($event)"
+          (reordered)="onReordered()"
+        />
+      }
+    </div>
+  </section>
+</div>
+
+<app-admin-drawer
+  [open]="drawerAberto()"
+  [title]="tituloDrawer()"
+  [salvando]="salvando()"
+  (save)="salvar()"
+  (cancel)="fecharDrawer()"
+>
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <div class="field">
+      <label for="menu-label">Rótulo</label>
+      <input id="menu-label" formControlName="label" placeholder="Portal RH" />
+    </div>
+    <div class="field">
+      <label for="menu-tipo">Tipo de destino</label>
+      <select id="menu-tipo" formControlName="tipo_destino">
+        <option value="interna">Página interna</option>
+        <option value="externa">Link externo</option>
+        <option value="agrupador">Sem link (agrupador)</option>
+      </select>
+    </div>
+    @if (form.controls.tipo_destino.value === 'interna') {
+      <div class="field">
+        <label for="menu-pagina">Página interna</label>
+        <select id="menu-pagina" formControlName="pagina_interna">
+          <option value="">Selecione uma página</option>
+          @for (pagina of paginasInternas; track pagina.path) {
+            <option [value]="pagina.path">{{ pagina.label }}</option>
+          }
+        </select>
+        @if (urlLegadoInterno()) {
+          <p class="hint warn">
+            Caminho atual não listado ({{ urlLegadoInterno() }}). Selecione uma página da lista.
+          </p>
+        }
+      </div>
+    }
+    @if (form.controls.tipo_destino.value === 'externa') {
+      <div class="field">
+        <label for="menu-url-ext">URL externa</label>
+        <input id="menu-url-ext" formControlName="url_externa" placeholder="https://..." />
+      </div>
+    }
+    <div class="field">
+      <label for="menu-pai">Item pai</label>
+      <select id="menu-pai" formControlName="parent_id">
+        <option value="">Nenhum (topo)</option>
+        @for (pai of paisDisponiveis(); track pai.id) {
+          <option [value]="pai.id">{{ '— '.repeat(pai.depth) }}{{ pai.label }}</option>
+        }
+      </select>
+    </div>
+    @if (isDropdownPai()) {
+      <div class="field">
+        <label for="menu-cab">Cabeçalho do dropdown</label>
+        <input id="menu-cab" formControlName="cabecalho" placeholder="Plataformas" />
+      </div>
+    }
+    <div class="field">
+      <label for="menu-ordem">Ordem</label>
+      <input id="menu-ordem" formControlName="ordem" type="number" min="0" />
+    </div>
+    <div class="field">
+      <label for="menu-icone">Ícone (opcional)</label>
+      <input id="menu-icone" formControlName="icone" placeholder="nome-do-icone" />
+    </div>
+    <div class="field">
+      <label for="menu-perfil">Visível para perfil</label>
+      <select id="menu-perfil" formControlName="visivel_perfil">
+        <option value="">Todos</option>
+        <option value="ADMIN">Somente ADMIN</option>
+        <option value="USER">Somente USER</option>
+      </select>
+    </div>
+    @if (mostrarAbrirNovaAba()) {
+      <div class="check">
+        <input id="menu-nova-aba" type="checkbox" formControlName="abrir_nova_aba" />
+        <label for="menu-nova-aba">Abrir em nova aba</label>
+      </div>
+    }
+    <div class="check">
+      <input id="menu-ativo" type="checkbox" formControlName="ativo" />
+      <label for="menu-ativo">Ativo</label>
+    </div>
+  </form>
+</app-admin-drawer>

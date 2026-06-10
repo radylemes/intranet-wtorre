@@ -1,0 +1,36 @@
+<section class="block" appRevealOnScroll>
+  <div class="wrap layout-2">
+    <div>
+      <div class="block-head">
+        <div>
+          <div class="tag">Acesso rápido</div>
+          <h2>Sistemas Corporativos</h2>
+        </div>
+        <a class="more" href="#" (click)="$event.preventDefault()">
+          Todos
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M5 12h14M13 6l6 6-6 6"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </a>
+      </div>
+      <div class="sys-grid">
+        @for (sys of sistemas; track sys.nome) {
+          <div class="sys">
+            <span class="icn">
+              <app-sistema-icon [icon]="sys.icon" />
+            </span>
+            <span class="name">{{ sys.nome }}<small>{{ sys.subtitulo }}</small></span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <app-mural />
+  </div>
+</section>

@@ -1,0 +1,18 @@
+@if (open()) {
+  <div class="drawer-overlay" (click)="onBackdropClick()"></div>
+  <aside class="drawer-panel" role="dialog" [attr.aria-label]="title()">
+    <header class="drawer-head">
+      <h2>{{ title() }}</h2>
+      <button type="button" class="drawer-close" aria-label="Fechar" (click)="onCancel()">×</button>
+    </header>
+    <div class="drawer-body">
+      <ng-content />
+    </div>
+    <footer class="drawer-foot">
+      <button type="button" class="btn-primary" [disabled]="salvando()" (click)="onSave()">
+        {{ salvando() ? 'Salvando...' : saveLabel() }}
+      </button>
+      <button type="button" class="btn-ghost" (click)="onCancel()">Cancelar</button>
+    </footer>
+  </aside>
+}

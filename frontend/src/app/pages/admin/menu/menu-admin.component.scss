@@ -1,0 +1,99 @@
+.menu-admin-page {
+  max-width: 1080px;
+}
+
+.menu-admin-page .page-head h1 {
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+}
+
+.menu-admin-page .page-head p {
+  font-size: 14.5px;
+}
+
+.menu-admin-page .card-head {
+  flex-wrap: wrap;
+  padding: 20px 22px;
+}
+
+.menu-admin-page .card-head .hint {
+  font-size: 12.5px;
+  margin-top: 3px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.linkbtn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+}
+
+.linkbtn:hover {
+  color: var(--wtorre, #1d54e6);
+}
+
+.linkbtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.menu-admin-page .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.18s;
+}
+
+.menu-admin-page .btn-primary {
+  background: linear-gradient(135deg, #2f6bff, #1538b8);
+  color: #fff;
+  box-shadow: 0 12px 26px -14px rgba(47, 107, 255, 0.7);
+}
+
+.menu-admin-page .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  opacity: 1;
+}
+
+.menu-admin-page .btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.tree {
+  padding: 10px 12px 14px;
+}
+
+.tree .empty {
+  padding: 16px 12px;
+}
+
+.hint.warn {
+  margin-top: 8px;
+  color: var(--danger, #d8453d);
+}

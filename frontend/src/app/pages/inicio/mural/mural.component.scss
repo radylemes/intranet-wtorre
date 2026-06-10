@@ -1,0 +1,172 @@
+.block-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.block-head .tag {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.block-head .tag::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--wtorre);
+}
+
+.mural-head {
+  margin-bottom: 18px;
+}
+
+.titulo-menor {
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -0.01em;
+}
+
+.panel-card {
+  background: var(--panel);
+  border: 1px solid var(--line-solid);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: 0 12px 30px -22px rgba(28, 42, 82, 0.3);
+}
+
+.panel-card + .panel-card {
+  margin-top: 20px;
+}
+
+.news-item {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-solid);
+}
+
+.news-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.news-item:first-child {
+  padding-top: 0;
+}
+
+.news-item .date {
+  flex-shrink: 0;
+  text-align: center;
+  width: 48px;
+}
+
+.news-item .date .d {
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.news-item .date .m {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  margin-top: 3px;
+}
+
+.news-item .body .cat {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.news-item .body .t {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  transition: 0.2s;
+}
+
+.news-item:hover .body .t {
+  color: var(--wtorre);
+}
+
+.cat.ev {
+  color: var(--base);
+}
+.cat.rh {
+  color: var(--nubank);
+}
+.cat.ti {
+  color: var(--wtorre);
+}
+.cat.com {
+  color: var(--gold);
+}
+
+.eventos-head {
+  margin-bottom: 14px;
+}
+
+.titulo-eventos {
+  font-size: 18px;
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+}
+
+.event {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line-solid);
+}
+
+.event:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.event .ev-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(138, 5, 190, 0.1);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.event .ev-t {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.event .ev-s {
+  font-size: 11.5px;
+  color: var(--ink-dim);
+  margin-top: 2px;
+}
+
+.event .ev-tag {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1c9e62;
+  border: 1px solid rgba(28, 158, 98, 0.3);
+  background: rgba(28, 158, 98, 0.08);
+  padding: 4px 9px;
+  border-radius: 20px;
+}

@@ -1,0 +1,100 @@
+<div class="cat-branch">
+  <div
+    class="cat-item"
+    [class.ativo]="ativoId() === item().id"
+    [class.filho]="depth() > 0"
+    [class.expandido]="temFilhos() && !recolhido()"
+  >
+    <button type="button" class="cat-main" (click)="select.emit(item())">
+      <span class="cat-icon" [attr.data-icon]="iconFor(item())">
+        @switch (iconFor(item())) {
+          @case ('shield') {
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+          @case ('file') {
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M8 4h6l4 4v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+              <path d="M14 4v4h4" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+          }
+          @case ('brand') {
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6" />
+              <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+          }
+          @case ('cap') {
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 10l8-4 8 4-8 4-8-4zM6 12v4c0 1 2.5 2 6 2s6-1 6-2v-4"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+          @default {
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M3 7a2 2 0 012-2h5l2 2h9a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+        }
+      </span>
+      <span class="cat-name">{{ item().nome }}</span>
+      @if (!temFilhos() && item().documentos_count != null && item().documentos_count! > 0) {
+        <span class="cat-badge">{{ item().documentos_count }}</span>
+      }
+    </button>
+    @if (temFilhos()) {
+      <button
+        type="button"
+        class="cat-chev"
+        [attr.aria-expanded]="!recolhido()"
+        [attr.aria-label]="recolhido() ? 'Expandir' : 'Recolher'"
+        (click)="toggle.emit(item().id); $event.stopPropagation()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M9 6l6 6-6 6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    }
+  </div>
+
+  @if (temFilhos() && !recolhido()) {
+    <div class="cat-children">
+      @for (child of item().children; track child.id) {
+        <app-doc-sidebar-node
+          [item]="child"
+          [depth]="depth() + 1"
+          [ativoId]="ativoId()"
+          [recolhidos]="recolhidos()"
+          (select)="select.emit($event)"
+          (toggle)="toggle.emit($event)"
+        />
+      }
+    </div>
+  }
+</div>

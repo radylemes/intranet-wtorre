@@ -1,0 +1,45 @@
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Bem-vindo de volta, {{ auth.getPrimeiroNome() }}</div>
+      <h1>Um só grupo.<br /><span class="grad">Quatro grandes destinos.</span></h1>
+      <p class="lead">
+        Sua central única de acesso aos sistemas, documentos e serviços do Grupo WTorre —
+        conectando equipes do Nubank Parque, Base Coworking e Novo Anhangabaú.
+      </p>
+
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+          <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <input type="text" placeholder="Buscar ramal, documento, sistema ou colega..." />
+        <button type="button">Buscar</button>
+      </div>
+      <div class="quicktags">
+        @for (tag of quicktags; track tag) {
+          <a href="#" (click)="$event.preventDefault()">{{ tag }}</a>
+        }
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="glass-tower">
+        <div class="tower-light tl1"></div>
+        <div class="tower-light tl2"></div>
+      </div>
+      <div class="stat-float sf1">
+        <div class="n">4</div>
+        <div class="l">Unidades de negócio</div>
+      </div>
+      <div class="stat-float sf3">
+        <div class="n">42</div>
+        <div class="l">Sistemas integrados</div>
+      </div>
+      <div class="stat-float sf2">
+        <div class="n">1.8k</div>
+        <div class="l">Colaboradores ativos</div>
+      </div>
+    </div>
+  </div>
+</section>

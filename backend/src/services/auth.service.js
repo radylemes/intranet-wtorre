@@ -1,0 +1,184 @@
+const bcrypt = require('bcrypt');
+const usersRepo = require('../repositories/users.repository');
+const refreshRepo = require('../repositories/refreshTokens.repository');
+const auditRepo = require('../repositories/auditLog.repository');
+const tenantsRepo = require('../repositories/tenants.repository');
+const jwtService = require('./jwt.service');
+const graphService = require('./graph.service');
+
+function toPublicUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    nome_completo: user.nome_completo,
+    email: user.email,
+    perfil: user.perfil,
+    is_ad_user: user.is_ad_user,
+  };
+}
+
+function refreshExpiresAt() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d;
+}
+
+async function issueTokens(user, meta = {}) {
+  const payload = { sub: user.id, email: user.email, perfil: user.perfil };
+  const accessToken = jwtService.signAccess(payload);
+  const refreshToken = jwtService.signRefresh(payload);
+  await refreshRepo.create(user.id, refreshToken, refreshExpiresAt(), meta.deviceInfo);
+  const usuario = toPublicUser(user);
+  return {
+    auth: true,
+    accessToken,
+    refreshToken,
+    token: accessToken,
+    usuario,
+    user: usuario,
+  };
+}
+
+async function loginLocal(email, senha, meta) {
+  const row = await usersRepo.findByEmailWithHash(email);
+  if (!row) {
+    const err = new Error('Credenciais inválidas.');
+    err.status = 401;
+    throw err;
+  }
+  if (row.is_ad_user) {
+    const err = new Error('Use Entrar com Microsoft.');
+    err.status = 400;
+    throw err;
+  }
+  if (!row.ativo) {
+    const err = new Error('Usuário inativo.');
+    err.status = 403;
+    throw err;
+  }
+  const ok = row.senha_hash && (await bcrypt.compare(senha, row.senha_hash));
+  if (!ok) {
+    const err = new Error('Credenciais inválidas.');
+    err.status = 401;
+    throw err;
+  }
+
+  const user = usersRepo.mapUser(row);
+  await auditRepo.log({
+    userId: user.id,
+    action: 'LOGIN_LOCAL',
+    provider: 'local',
+    email: user.email,
+    requestId: meta.requestId,
+    ip: meta.ip,
+  });
+  return issueTokens(user, meta);
+}
+
+async function loginMicrosoft(azureUser, meta) {
+  const oid = azureUser.oid;
+  const email =
+    azureUser.preferred_username || azureUser.upn || azureUser.email || azureUser.unique_name;
+  const nome = azureUser.name || azureUser.displayName || email;
+
+  if (!oid || !email) {
+    const err = new Error('Token Microsoft inválido: faltam oid ou email.');
+    err.status = 400;
+    throw err;
+  }
+
+  const tenant = await tenantsRepo.findByTid(azureUser.tid);
+  const profile = await graphService.getUserProfile(tenant, oid);
+  const departamento = graphService.extractDepartment(profile);
+  const nomeCompleto = profile.displayName || nome;
+
+  if (!departamento) {
+    const err = new Error(
+      'Acesso negado: é necessário ter departamento cadastrado no Azure AD para usar a intranet.'
+    );
+    err.status = 403;
+    throw err;
+  }
+
+  let user = await usersRepo.findByMicrosoftId(oid);
+  if (!user) {
+    const byEmail = await usersRepo.findByEmail(email);
+    if (byEmail) {
+      user = await usersRepo.linkMicrosoft(byEmail.id, oid, nomeCompleto, departamento);
+    } else {
+      user = await usersRepo.createMicrosoftUser({
+        email,
+        nome: nomeCompleto,
+        departamento,
+        microsoftId: oid,
+        username: email.split('@')[0],
+      });
+    }
+  } else {
+    user = await usersRepo.updateProfile(user.id, nomeCompleto, departamento);
+  }
+
+  if (!user.ativo) {
+    const err = new Error('Usuário inativo.');
+    err.status = 403;
+    throw err;
+  }
+
+  await auditRepo.log({
+    userId: user.id,
+    action: 'LOGIN_MICROSOFT',
+    provider: 'microsoft',
+    email: user.email,
+    requestId: meta.requestId,
+    ip: meta.ip,
+  });
+
+  return issueTokens(user, meta);
+}
+
+async function refresh(refreshToken) {
+  let payload;
+  try {
+    payload = jwtService.verifyRefresh(refreshToken);
+  } catch {
+    const err = new Error('Refresh token inválido ou expirado.');
+    err.status = 401;
+    throw err;
+  }
+
+  const stored = await refreshRepo.findValid(refreshToken);
+  if (!stored) {
+    const err = new Error('Refresh token revogado ou expirado.');
+    err.status = 401;
+    throw err;
+  }
+
+  const user = await usersRepo.findById(payload.sub);
+  if (!user || !user.ativo) {
+    const err = new Error('Usuário inválido.');
+    err.status = 401;
+    throw err;
+  }
+
+  const accessToken = jwtService.signAccess({
+    sub: user.id,
+    email: user.email,
+    perfil: user.perfil,
+  });
+
+  return {
+    auth: true,
+    accessToken,
+    token: accessToken,
+    user: toPublicUser(user),
+  };
+}
+
+async function logout(refreshToken) {
+  if (refreshToken) {
+    await refreshRepo.revoke(refreshToken);
+  }
+  return { ok: true };
+}
+
+module.exports = { loginLocal, loginMicrosoft, refresh, logout, toPublicUser, issueTokens };

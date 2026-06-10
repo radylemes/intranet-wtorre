@@ -1,0 +1,139 @@
+@if (temFilhos(item)) {
+  @if (depth === 0) {
+    <div
+      class="bar-item"
+      [class.expandido]="mobile && mobileExpandido"
+      [class.aberto]="!mobile && aberto()"
+    >
+      <button
+        #triggerBtn
+        type="button"
+        class="bar-trigger"
+        [attr.aria-haspopup]="true"
+        [attr.aria-expanded]="mobile ? mobileExpandido : aberto()"
+        (mouseenter)="onMouseEnter()"
+        (mouseleave)="onMouseLeave()"
+        (click)="onTriggerClick($event)"
+        (keydown)="onTriggerKeydown($event)"
+      >
+        {{ item.label }}
+        <svg class="chev" viewBox="0 0 12 12" aria-hidden="true">
+          <path
+            d="M2 4l4 4 4-4"
+            stroke="currentColor"
+            stroke-width="1.8"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      <div
+        class="submenu-panel dropdown" [style.--menu-depth]="depth"
+        role="menu"
+        [class.open]="!mobile && aberto()"
+        [class.mobile-open]="mobile && mobileExpandido"
+        (mouseenter)="onMouseEnter()"
+        (mouseleave)="onMouseLeave()"
+      >
+        @if (item.cabecalho) {
+          <div class="dd-head">{{ item.cabecalho }}</div>
+        }
+        @for (child of item.children; track child.id) {
+          <app-menu-node
+            [item]="child"
+            [depth]="depth + 1"
+            [mobile]="mobile"
+            [expandedIds]="expandedIds"
+            [onToggleMobile]="onToggleMobile"
+            [onCloseMenu]="onCloseMenu"
+          />
+        }
+      </div>
+    </div>
+  } @else {
+    <div
+      class="menu-entry has-flyout"
+      [class.aberto]="!mobile && aberto()"
+      [class.expandido]="mobile && mobileExpandido"
+      [class.flip]="flipFlyout()"
+      (mouseenter)="onMouseEnter()"
+      (mouseleave)="onMouseLeave()"
+    >
+      <button
+        #triggerBtn
+        type="button"
+        class="entry-trigger"
+        role="menuitem"
+        [attr.aria-haspopup]="true"
+        [attr.aria-expanded]="mobile ? mobileExpandido : aberto()"
+        (click)="onTriggerClick($event)"
+        (keydown)="onTriggerKeydown($event)"
+      >
+        <span class="ic"></span>
+        <span class="entry-label">{{ item.label }}</span>
+        <span class="flyout-arrow" aria-hidden="true">›</span>
+      </button>
+      <div
+        #flyoutPanel
+        class="submenu-panel flyout" [style.--menu-depth]="depth"
+        role="menu"
+        [class.open]="!mobile && aberto()"
+        [class.mobile-open]="mobile && mobileExpandido"
+        (mouseenter)="onMouseEnter()"
+        (mouseleave)="onMouseLeave()"
+      >
+        @for (child of item.children; track child.id) {
+          <app-menu-node
+            [item]="child"
+            [depth]="depth + 1"
+            [mobile]="mobile"
+            [expandedIds]="expandedIds"
+            [onToggleMobile]="onToggleMobile"
+            [onCloseMenu]="onCloseMenu"
+          />
+        }
+      </div>
+    </div>
+  }
+} @else {
+  @if (depth === 0) {
+    <div class="bar-item bar-leaf">
+      @if (isInterno(item.url)) {
+        <a class="bar-link" [routerLink]="item.url!" (click)="onCloseMenu()">{{ item.label }}</a>
+      } @else if (isExterno(item.url)) {
+        <a
+          class="bar-link"
+          [href]="item.url!"
+          target="_blank"
+          rel="noopener noreferrer"
+          (click)="onCloseMenu()"
+        >{{ item.label }}</a>
+      } @else {
+        <a class="bar-link" href="#" (click)="$event.preventDefault(); onCloseMenu()">{{ item.label }}</a>
+      }
+    </div>
+  } @else {
+    @if (isInterno(item.url)) {
+      <a class="entry-link" role="menuitem" [routerLink]="item.url!" (click)="onCloseMenu()" (keydown)="onLeafKeydown($event)">
+        <span class="ic"></span>{{ item.label }}
+      </a>
+    } @else if (isExterno(item.url)) {
+      <a
+        class="entry-link"
+        role="menuitem"
+        [href]="item.url!"
+        target="_blank"
+        rel="noopener noreferrer"
+        (click)="onCloseMenu()"
+        (keydown)="onLeafKeydown($event)"
+      >
+        <span class="ic"></span>{{ item.label }}
+      </a>
+    } @else {
+      <a class="entry-link" role="menuitem" href="#" (click)="$event.preventDefault(); onCloseMenu()" (keydown)="onLeafKeydown($event)">
+        <span class="ic"></span>{{ item.label }}
+      </a>
+    }
+  }
+}
