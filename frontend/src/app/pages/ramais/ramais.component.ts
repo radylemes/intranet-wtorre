@@ -2,8 +2,7 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TopbarComponent } from '../../shared/topbar/topbar.component';
-import { HeaderComponent } from '../../shared/header/header.component';
+import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { ToastComponent } from '../../shared/toast/toast.component';
 import { ToastService } from '../../shared/toast/toast.service';
@@ -24,8 +23,7 @@ const MARCA_CORES: Record<string, string> = {
   selector: 'app-ramais',
   standalone: true,
   imports: [
-    TopbarComponent,
-    HeaderComponent,
+    PublicChromeComponent,
     FooterComponent,
     ToastComponent,
     FormsModule,

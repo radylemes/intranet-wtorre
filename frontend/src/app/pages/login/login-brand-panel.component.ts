@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
-import { LogoWComponent } from '../../shared/logo-w/logo-w.component';
+import { GRUPO_LOGOS_LOGIN } from '../../data/grupo-logos.data';
 
 @Component({
   selector: 'app-login-brand-panel',
   standalone: true,
-  imports: [LogoWComponent],
   templateUrl: './login-brand-panel.component.html',
   styleUrl: './login-brand-panel.component.scss',
 })
-export class LoginBrandPanelComponent {}
+export class LoginBrandPanelComponent {
+  readonly logos = GRUPO_LOGOS_LOGIN;
+}

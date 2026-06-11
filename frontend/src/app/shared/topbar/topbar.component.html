@@ -1,16 +1,17 @@
 <div class="topbar">
-  <div class="wrap">
-    <div class="crumbs">
-      <span class="live">
-        <span class="dot"></span>
-        <b>Sistemas operando normalmente</b>
-      </span>
-      <span class="datetime">{{ dataHora() }}</span>
+  <div class="wrap topbar-row">
+    <div class="grupo-logos" aria-label="Empresas do grupo">
+      @for (logo of logos; track logo.id) {
+        <img
+          [src]="logo.logoSrc"
+          [alt]="logo.alt"
+          [title]="logo.nome"
+          class="grupo-logo logo-{{ logo.id }}"
+          loading="lazy"
+        />
+      }
     </div>
-    <div class="util">
-      <span>Suporte: ramal 4040</span>
-      <span>🌐 PT · EN</span>
-      <span>Acessibilidade</span>
-    </div>
+
+    <span class="suporte">CCO: Ramal 6673 TEL.: (11) 4800 - 6673</span>
   </div>
 </div>

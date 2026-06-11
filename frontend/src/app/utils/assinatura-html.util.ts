@@ -23,12 +23,24 @@ function resolverConfig(sig: AssinaturaPayload) {
   return resolverDominio(sig.email);
 }
 
-export function buildAssinaturaHtml(sig: AssinaturaPayload): string | null {
+const OWA_FONT_FALLBACK = 'Helvetica,Arial,sans-serif';
+
+function resolveFontForOwa(font: string, wNome: string, wResto: string): { font: string; wNome: string; wResto: string } {
+  if (font.includes('NuSansDisplay')) {
+    return { font: OWA_FONT_FALLBACK, wNome: 'bold', wResto: 'normal' };
+  }
+  return { font, wNome, wResto };
+}
+
+function buildAssinaturaHtmlInternal(sig: AssinaturaPayload, forOwa: boolean): string | null {
   const cfg = resolverConfig(sig);
   if (!cfg) return null;
 
-  const { cor, font, entidade, banner, wNome, wResto, fontFace } = cfg;
-  const fontFaceBlock = fontFace ? buildFontFace() : '';
+  let { cor, font, entidade, banner, wNome, wResto, fontFace } = cfg;
+  if (forOwa) {
+    ({ font, wNome, wResto } = resolveFontForOwa(font, wNome, wResto));
+  }
+  const fontFaceBlock = !forOwa && fontFace ? buildFontFace() : '';
   const icoMail = buildIconSpan(cor, '&#x2709;');
   const icoPhone = buildIconSpan(cor, '&#x260E;');
 
@@ -80,4 +92,13 @@ export function buildAssinaturaHtml(sig: AssinaturaPayload): string | null {
 </table>
 <p style="font-size:7.5pt;font-family:Verdana,sans-serif;color:#BABABA;font-style:italic;margin:6px 0 0 0">O conteúdo do presente e-mail, incluindo eventuais arquivos anexados, foi enviado pela <b>${entidade}</b> para uso exclusivo do(s) destinatário(s) e envolve informações confidenciais protegidas por contratos e/ou por lei. Seu conteúdo não deve ser compartilhado, distribuído ou copiado sem o consentimento da mesma, na figura do remetente do presente e-mail.</p>
 <p style="font-size:7.5pt;font-family:Verdana,sans-serif;color:#BABABA;font-style:italic;margin:4px 0 0 0">The content of this email, including any attachments, was sent by <b>${entidade}</b> for the exclusive use of the recipient(s) and involve confidential information protected by contracts and/or by law. Its content should not be shared, distributed or copied without the consent of <b>${entidade}</b>, through the authorization by the sender of this e-mail.</p>`;
+}
+
+export function buildAssinaturaHtml(sig: AssinaturaPayload): string | null {
+  return buildAssinaturaHtmlInternal(sig, false);
+}
+
+/** Variante sem @font-face e com fontes web-safe — compatível com colagem no Outlook Web. */
+export function buildAssinaturaHtmlForOwa(sig: AssinaturaPayload): string | null {
+  return buildAssinaturaHtmlInternal(sig, true);
 }

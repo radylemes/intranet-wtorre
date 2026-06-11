@@ -1,7 +1,6 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { TopbarComponent } from '../../shared/topbar/topbar.component';
-import { HeaderComponent } from '../../shared/header/header.component';
+import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { HeroComponent } from './hero/hero.component';
 import { EmpresasComponent } from './empresas/empresas.component';
 import { SistemasComponent } from './sistemas/sistemas.component';
@@ -13,8 +12,7 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-inicio',
   standalone: true,
   imports: [
-    TopbarComponent,
-    HeaderComponent,
+    PublicChromeComponent,
     HeroComponent,
     EmpresasComponent,
     SistemasComponent,

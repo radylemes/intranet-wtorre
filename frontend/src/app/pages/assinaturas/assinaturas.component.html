@@ -1,14 +1,13 @@
 <div class="pagina pagina-assinaturas">
-  <app-topbar />
-  <app-header />
-
+  <app-public-chrome>
   <div class="page-head">
     <div class="wrap">
       <div class="crumb">Início › <span>Assinaturas de E-mail</span></div>
       <h1>Assinaturas de E-mail</h1>
       <p>
         Gere e instale assinaturas padronizadas para todos os seus aliases e caixas
-        compartilhadas. Selecione as assinaturas desejadas e baixe o script de instalação.
+        compartilhadas. Use o instalador para Outlook desktop (Windows) ou copie o HTML
+        para o Outlook Web.
       </p>
     </div>
   </div>
@@ -54,10 +53,57 @@
           </button>
         </div>
       </div>
-      <p class="instrucao">
-        Após baixar, execute o arquivo .bat com duplo clique. Reinicie o Outlook após a
-        instalação.
-      </p>
+      <div class="instalacao-opcoes">
+        <div class="instalacao-bloco">
+          <h3 class="instalacao-titulo">Outlook desktop (Windows)</h3>
+          <p class="instrucao">
+            Selecione as assinaturas desejadas, marque a padrão e baixe o instalador.
+            Após baixar, execute o arquivo .bat com duplo clique. Reinicie o Outlook após a
+            instalação.
+          </p>
+        </div>
+        <div class="instalacao-bloco instalacao-bloco--owa">
+          <div class="instalacao-bloco-head">
+            <h3 class="instalacao-titulo">Outlook Web</h3>
+            <button
+              type="button"
+              class="btn-instrucoes-owa"
+              (click)="toggleInstrucoesOwa()"
+            >
+              {{ instrucoesOwaAbertas() ? 'Ocultar instruções' : 'Como instalar' }}
+            </button>
+          </div>
+          <p class="instrucao">
+            No Outlook Web a assinatura é configurada manualmente. Use o botão
+            <strong>Copiar para Outlook Web</strong> em cada card e siga as instruções abaixo.
+          </p>
+          @if (instrucoesOwaAbertas()) {
+            <ol class="instrucoes-owa">
+              <li>
+                Abra
+                <a href="https://outlook.office.com" target="_blank" rel="noopener noreferrer">outlook.office.com</a>.
+              </li>
+              <li>
+                Clique na engrenagem (Configurações) → <strong>Ver todas as configurações do Outlook</strong>.
+              </li>
+              <li>
+                Acesse <strong>Correio</strong> → <strong>Compor e responder</strong> →
+                <strong>Assinatura de e-mail</strong>.
+              </li>
+              <li>Cole a assinatura copiada com Ctrl+V no editor.</li>
+              <li>
+                Marque <strong>Incluir assinatura em novas mensagens</strong> e
+                <strong>Incluir assinatura em mensagens encaminhadas/respondidas</strong>.
+              </li>
+              <li>
+                Para <strong>caixas compartilhadas</strong>, repita o processo ao compor com o
+                endereço &quot;De&quot; da caixa — o Outlook Web não aplica automaticamente
+                múltiplas assinaturas como o instalador desktop.
+              </li>
+            </ol>
+          }
+        </div>
+      </div>
 
       @if (!carregando() && !erroMsal() && pessoais().length === 0 && compartilhadas().length === 0) {
         <div class="state-box">Nenhuma assinatura encontrada. Adicione caixas compartilhadas se necessário.</div>
@@ -70,6 +116,7 @@
             [isPadrao]="isEmailPadrao(item.email)"
             (itemChange)="atualizarPessoal(item.id, $event)"
             (padraoChange)="definirPadrao(item.email)"
+            (copiarOwa)="copiarParaOutlookWeb(item)"
           />
         }
         @for (item of compartilhadas(); track item.id) {
@@ -79,6 +126,7 @@
             (itemChange)="atualizarCompartilhada(item.id, $event)"
             (padraoChange)="definirPadrao(item.email)"
             (remover)="removerCaixa(item.id)"
+            (copiarOwa)="copiarParaOutlookWeb(item)"
           />
         }
       </div>
@@ -153,4 +201,5 @@
 
   <app-footer />
   <app-toast />
+  </app-public-chrome>
 </div>

@@ -2,6 +2,8 @@ const https = require('https');
 const graphService = require('../services/assinatura-graph.service');
 const scriptService = require('../services/assinatura-script.service');
 const configService = require('../services/assinatura-config.service');
+const { buildAssinaturaHtmlForOwa } = require('../utils/assinatura-html.util');
+const { isDominioMapeado, isEmailPermitido } = require('../utils/assinatura-domains');
 
 const BLOB_BASE = 'https://nubankparqueassets.blob.core.windows.net/email-assets';
 const FONTES_PERMITIDAS = new Set(['NuSansDisplay-Medium.otf', 'NuSansDisplay-Regular.otf']);
@@ -79,4 +81,44 @@ function servirFonte(req, res) {
     .on('error', () => res.status(502).json({ mensagem: 'Erro ao obter fonte.' }));
 }
 
-module.exports = { me, gerarScript, obterConfig, obterScriptBase, servirFonte };
+function normalizarEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+async function paraEmail(req, res) {
+  try {
+    const email = normalizarEmail(req.params.email);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ mensagem: 'E-mail inválido.' });
+    }
+    if (!isEmailPermitido(email) || !isDominioMapeado(email)) {
+      return res.status(400).json({ mensagem: 'Domínio sem template de assinatura.' });
+    }
+
+    const profile = await graphService.fetchMeProfile(req.graphToken);
+    const aliases = new Set(profile.aliases.map(normalizarEmail));
+    if (!aliases.has(email)) {
+      return res.status(403).json({ mensagem: 'E-mail não pertence ao perfil autenticado.' });
+    }
+
+    const html = buildAssinaturaHtmlForOwa({
+      email,
+      tipo: 'pessoal',
+      nome: profile.nome,
+      cargo: profile.cargo,
+      telefone: profile.telefone,
+      celular: profile.celular,
+    });
+
+    if (!html) {
+      return res.status(400).json({ mensagem: 'Não foi possível gerar a assinatura.' });
+    }
+
+    return res.json({ email, html });
+  } catch (err) {
+    const status = err.status || 400;
+    return res.status(status).json({ mensagem: err.message });
+  }
+}
+
+module.exports = { me, gerarScript, obterConfig, obterScriptBase, servirFonte, paraEmail };

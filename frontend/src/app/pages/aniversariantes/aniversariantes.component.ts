@@ -1,7 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TopbarComponent } from '../../shared/topbar/topbar.component';
-import { HeaderComponent } from '../../shared/header/header.component';
+import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { ColaboradoresService } from '../../services/colaboradores.service';
 import { Aniversariante } from '../../models/colaborador.model';
@@ -11,7 +10,7 @@ import { MESES, mesLabel } from './aniversariantes.util';
 @Component({
   selector: 'app-aniversariantes',
   standalone: true,
-  imports: [TopbarComponent, HeaderComponent, FooterComponent, AniversariantesCardComponent],
+  imports: [PublicChromeComponent, FooterComponent, AniversariantesCardComponent],
   templateUrl: './aniversariantes.component.html',
   styleUrl: './aniversariantes.component.scss',
 })

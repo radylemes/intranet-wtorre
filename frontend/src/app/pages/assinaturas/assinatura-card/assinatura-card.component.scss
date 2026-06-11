@@ -139,6 +139,32 @@
   min-width: 0;
 }
 
+.sig-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sig-copy-owa {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--wtorre);
+  background: #fff;
+  color: var(--wtorre);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.15s;
+}
+
+.sig-copy-owa:hover {
+  background: var(--wtorre);
+  color: #fff;
+}
+
 .sig-preview-label {
   font-size: 11px;
   font-weight: 600;

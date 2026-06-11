@@ -1,8 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TopbarComponent } from '../../shared/topbar/topbar.component';
-import { HeaderComponent } from '../../shared/header/header.component';
+import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { ToastComponent } from '../../shared/toast/toast.component';
 import { ToastService } from '../../shared/toast/toast.service';
@@ -15,6 +14,8 @@ import {
 } from '../../utils/assinatura-domains';
 import { AssinaturaCardComponent } from './assinatura-card/assinatura-card.component';
 import { AdminModalComponent } from '../../shared/admin/admin-modal/admin-modal.component';
+import { buildAssinaturaHtmlForOwa } from '../../utils/assinatura-html.util';
+import { copyAssinaturaHtmlToClipboard } from '../../utils/assinatura-clipboard.util';
 
 let idSeq = 0;
 
@@ -27,8 +28,7 @@ function nextId(): string {
   selector: 'app-assinaturas',
   standalone: true,
   imports: [
-    TopbarComponent,
-    HeaderComponent,
+    PublicChromeComponent,
     FooterComponent,
     ToastComponent,
     FormsModule,
@@ -58,6 +58,7 @@ export class AssinaturasComponent implements OnInit {
   readonly dominiosAceitos = listarDominios().join(', ');
   readonly emailPadrao = signal('');
   readonly modalCompartilhadaAberto = signal(false);
+  readonly instrucoesOwaAbertas = signal(false);
 
   readonly selecionadasValidas = computed(() =>
     [...this.pessoais(), ...this.compartilhadas()].filter(
@@ -277,6 +278,51 @@ export class AssinaturasComponent implements OnInit {
         this.normalizarEmail(a.email) === norm ? { ...a, selecionada: true } : a
       )
     );
+  }
+
+  toggleInstrucoesOwa(): void {
+    this.instrucoesOwaAbertas.update((v) => !v);
+  }
+
+  private itemToPayload(item: AssinaturaItem): AssinaturaPayload {
+    return {
+      email: item.email,
+      tipo: item.tipo,
+      nome: item.nome,
+      cargo: item.cargo,
+      telefone: item.telefone,
+      celular: item.celular,
+      dominioEstilo: item.dominioEstilo,
+    };
+  }
+
+  async copiarParaOutlookWeb(item: AssinaturaItem): Promise<void> {
+    if (!this.itemValido(item)) {
+      this.toast.error('Este domínio não possui template de assinatura.');
+      return;
+    }
+
+    const html = buildAssinaturaHtmlForOwa(this.itemToPayload(item));
+    if (!html) {
+      this.toast.error('Não foi possível gerar o HTML da assinatura.');
+      return;
+    }
+
+    try {
+      const mode = await copyAssinaturaHtmlToClipboard(html);
+      if (mode === 'html') {
+        this.toast.success(`Assinatura de ${item.email} copiada. Cole no Outlook Web (Ctrl+V).`);
+      } else {
+        this.toast.success(
+          `HTML copiado como texto. Cole no editor de assinatura do Outlook Web com Ctrl+V.`
+        );
+      }
+      if (!this.instrucoesOwaAbertas()) {
+        this.instrucoesOwaAbertas.set(true);
+      }
+    } catch {
+      this.toast.error('Não foi possível copiar. Verifique as permissões do navegador.');
+    }
   }
 
   baixarScript(): void {

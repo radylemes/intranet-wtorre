@@ -1,13 +1,5 @@
 <header class="main">
   <div class="wrap navrow">
-    <a routerLink="/inicio" class="brandmark" (click)="fecharMenu()">
-      <app-logo-w class="logo-wrap" />
-      <span class="txt">
-        <div class="grp">GRUPO WTORRE</div>
-        <div class="sub">Intranet Corporativa</div>
-      </span>
-    </a>
-
     <nav class="menu" [class.aberto]="menuAberto()">
       @for (item of menuItems(); track item.id) {
         <app-menu-node

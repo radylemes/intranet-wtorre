@@ -1,7 +1,7 @@
 header.main {
   position: sticky;
   top: 0;
-  z-index: 25;
+  z-index: 30;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line-solid);
@@ -12,40 +12,6 @@ header.main {
   align-items: center;
   gap: 34px;
   height: 74px;
-}
-
-.brandmark {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  flex-shrink: 0;
-}
-
-.logo-wrap {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  background: linear-gradient(140deg, #2f6bff, #173a8f);
-  box-shadow: 0 8px 22px -8px rgba(47, 107, 255, 0.7);
-}
-
-.brandmark .txt {
-  line-height: 1;
-}
-
-.brandmark .grp {
-  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: 0.02em;
-}
-
-.brandmark .sub {
-  font-size: 10.5px;
-  letter-spacing: 0.34em;
-  color: var(--ink-dim);
-  text-transform: uppercase;
-  margin-top: 4px;
 }
 
 nav.menu {

@@ -1,0 +1,109 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json",
+  "manifestVersion": "devPreview",
+  "version": "1.0.0",
+  "id": "00000000-0000-0000-0000-000000000001",
+  "localizationInfo": {
+    "defaultLanguageTag": "pt-BR",
+    "additionalLanguages": []
+  },
+  "developer": {
+    "name": "WTorre",
+    "websiteUrl": "https://intranet.wtorre.com.br",
+    "privacyUrl": "https://intranet.wtorre.com.br",
+    "termsOfUseUrl": "https://intranet.wtorre.com.br"
+  },
+  "name": {
+    "short": "Assinaturas WTorre",
+    "full": "Assinaturas de E-mail WTorre"
+  },
+  "description": {
+    "short": "Insere assinatura corporativa ao compor e-mails.",
+    "full": "Add-in da Intranet WTorre que insere automaticamente a assinatura corporativa correta ao compor novos e-mails no Outlook Web e novo Outlook."
+  },
+  "icons": {
+    "outline": "assets/icon-32.png",
+    "color": "assets/icon-64.png"
+  },
+  "accentColor": "#005399",
+  "validDomains": [
+    "intranet.wtorre.com.br",
+    "graph.microsoft.com",
+    "login.microsoftonline.com"
+  ],
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "MailboxItem.ReadWrite.User",
+          "type": "Delegated"
+        }
+      ]
+    }
+  },
+  "extensions": [
+    {
+      "requirements": {
+        "scopes": ["mail"],
+        "capabilities": [
+          {
+            "name": "Mailbox",
+            "minVersion": "1.10"
+          }
+        ]
+      },
+      "runtimes": [
+        {
+          "requirements": {
+            "capabilities": [
+              {
+                "name": "Mailbox",
+                "minVersion": "1.10"
+              }
+            ]
+          },
+          "id": "AutorunRuntime",
+          "type": "general",
+          "code": {
+            "page": "https://intranet.wtorre.com.br/outlook-addin/autorun.html"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "onNewMessageCompose",
+              "type": "executeFunction",
+              "displayName": "Inserir assinatura (novo e-mail)"
+            },
+            {
+              "id": "onMessageFromChanged",
+              "type": "executeFunction",
+              "displayName": "Atualizar assinatura (troca De)"
+            }
+          ]
+        }
+      ],
+      "autoRunEvents": [
+        {
+          "requirements": {
+            "capabilities": [
+              {
+                "name": "Mailbox",
+                "minVersion": "1.10"
+              }
+            ]
+          },
+          "events": [
+            {
+              "type": "newMessageComposeCreated",
+              "actionId": "onNewMessageCompose"
+            },
+            {
+              "type": "messageFromChanged",
+              "actionId": "onMessageFromChanged"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LogoWComponent } from '../logo-w/logo-w.component';
 import { AuthService } from '../../services/auth.service';
 import { MenuService } from '../../services/menu.service';
 import { MenuItem } from '../../models/menu.model';
@@ -10,7 +9,7 @@ import { MenuNodeComponent } from './menu-node/menu-node.component';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterLink, LogoWComponent, MenuNodeComponent],
+  imports: [RouterLink, MenuNodeComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
   encapsulation: ViewEncapsulation.None,

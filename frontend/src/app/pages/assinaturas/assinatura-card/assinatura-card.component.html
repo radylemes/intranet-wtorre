@@ -75,7 +75,18 @@
 
     @if (payload(); as p) {
       <div class="sig-preview">
-        <span class="sig-preview-label">Preview</span>
+        <div class="sig-preview-head">
+          <span class="sig-preview-label">Preview</span>
+          @if (!dominioDesconhecido()) {
+            <button
+              type="button"
+              class="sig-copy-owa"
+              (click)="onCopiarOwa()"
+            >
+              Copiar para Outlook Web
+            </button>
+          }
+        </div>
         <app-assinatura-preview [assinatura]="p" />
       </div>
     }

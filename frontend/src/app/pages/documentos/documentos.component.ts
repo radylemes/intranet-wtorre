@@ -4,8 +4,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TopbarComponent } from '../../shared/topbar/topbar.component';
-import { HeaderComponent } from '../../shared/header/header.component';
+import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { DocumentosService } from '../../services/documentos.service';
 import { AuthService } from '../../services/auth.service';
@@ -19,7 +18,7 @@ import {
 @Component({
   selector: 'app-documentos',
   standalone: true,
-  imports: [TopbarComponent, HeaderComponent, FooterComponent, FormsModule, DocSidebarNodeComponent],
+  imports: [PublicChromeComponent, FooterComponent, FormsModule, DocSidebarNodeComponent],
   templateUrl: './documentos.component.html',
   styleUrl: './documentos.component.scss',
 })

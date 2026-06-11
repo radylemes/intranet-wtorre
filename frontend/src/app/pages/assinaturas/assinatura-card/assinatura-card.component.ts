@@ -30,6 +30,7 @@ export class AssinaturaCardComponent {
   @Output() selecaoChange = new EventEmitter<boolean>();
   @Output() padraoChange = new EventEmitter<void>();
   @Output() remover = new EventEmitter<void>();
+  @Output() copiarOwa = new EventEmitter<void>();
 
   readonly dominioCfg = computed(() => {
     const it = this.itemSig();
@@ -77,5 +78,9 @@ export class AssinaturaCardComponent {
 
   onRemover(): void {
     this.remover.emit();
+  }
+
+  onCopiarOwa(): void {
+    this.copiarOwa.emit();
   }
 }
