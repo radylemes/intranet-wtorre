@@ -1,0 +1,40 @@
+---
+description: Regras de segurança da intranet WTorre — autorização, segredos, Azure por Managed Identity, auth. Sempre em contexto.
+alwaysApply: true
+---
+
+# Segurança — intranet WTorre
+
+Regras obrigatórias, derivadas do código real. Em caso de dúvida, o lado mais restritivo vence.
+
+## Autorização (o backend é a fonte da verdade)
+- `requireJwt` carrega o usuário **do banco** (`findById`), bloqueia com 401 se `!user.ativo`, e anexa `req.user` (perfil **do banco**, não do token) e `req.userModulos` (`resolveModulos`, cache de 60s).
+- **Não confiar em claims do token para autorização** além da identidade (`sub`). `perfil` e `modulos` vêm do banco a cada request → mudanças (demição, revogação) valem quase na hora.
+- **Permissões nunca embutidas no JWT.** Resolver por request + cache curto, invalidando o cache em toda escrita de permissão.
+- `requireModulo`: `ADMIN` passa sempre; senão exige o módulo em `req.userModulos`.
+
+## Super-admin (ADMIN)
+- `ADMIN` é gerenciado **fora da UI** (seed/banco). Nenhuma rota concede/revoga `usuarios.perfil`.
+- Rotas de gestão de perfis/acessos: `requireAdmin`. Rejeitar payload que tente alterar `perfil`; **nunca** desativar/alterar um `ADMIN` pela tela de acessos.
+
+## Segredos
+- Cifrar em repouso com **AES-256-GCM** via `crypto.service` (`ENCRYPTION_KEY` em hex, no `.env`). **Nunca** segredo em texto puro no banco.
+- Campos de segredo são **write-only** na API (o GET nunca retorna o valor; só status/hint).
+- **Nunca logar** segredos, connection strings ou URLs com token SAS.
+
+## Azure Blob — somente Managed Identity
+- `DefaultAzureCredential` (identidade gerenciada da VM). **Proibido** connection string / account key em env, banco ou UI.
+- Acesso a vídeo por **user delegation SAS** de curta duração; container **privado**. Cachear a user delegation key (vale horas).
+- Erros do Azure passam por `mapAzureBlobError` (403→503 com dica de RBAC; 404 claro).
+
+## Autenticação
+- Senha local: `bcrypt`. Login local só para não-AD (`is_ad_user` falso); usuários AD entram por Microsoft.
+- `loginMicrosoft`: casar por `microsoft_id` (oid) **primeiro**; só vincular local por e-mail quando `!microsoft_id`. Exigir `departamento` (Graph) para acesso.
+  - Tratar explicitamente o caso **mesmo e-mail com oid diferente** (não criar cegamente outro usuário) — multi-tenant.
+- Refresh tokens persistidos e revogáveis; `refresh` revalida `user.ativo`.
+
+## Plataforma
+- SQL sempre **parametrizado** (`pool.execute('?', [...])`).
+- Allowlist/validação de entrada: códigos de módulo, categorias, nome de container.
+- Rate limit nas rotas de auth; CORS por allowlist (`env.corsOrigins`); `trust proxy` ligado.
+- Handler global devolve 500 genérico (não vazar stack/detalhes ao cliente). Mensagens ao usuário em pt-BR.

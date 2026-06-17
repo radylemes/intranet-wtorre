@@ -1,0 +1,45 @@
+---
+description: Convenções de backend (Express + MySQL) da intranet WTorre — migrations, repositories, controllers, rotas, auth. Aplicar ao criar/alterar qualquer código em backend/src.
+globs:
+  - backend/src/**
+alwaysApply: false
+---
+
+# Convenções de backend — intranet WTorre
+
+Derivado do código real. Siga estes padrões ao criar/alterar backend.
+
+## Migrations (`backend/src/db/migrations/NNN_*.sql`)
+- Sempre `CREATE TABLE IF NOT EXISTS`; seed com `INSERT IGNORE`. **Nunca `ALTER` incremental** (o migrate reexecuta todos os `.sql`). ALTER de produção é manual e fora da migration.
+- Usar o **próximo número livre** (última hoje: `008_perfis_acesso.sql`). Confirmar antes de criar.
+- Índices/colunas dentro do `CREATE`. FKs com `ON DELETE CASCADE` em tabelas de vínculo.
+
+## Acesso a dados (`repositories/*.repository.js`)
+- `const { getPool } = require('../db/pool')`; sempre `pool.execute('... ?', [params])` — **SQL parametrizado**, nunca concatenação.
+- Cada repo tem `mapX(row)` que devolve o objeto de domínio. **Nunca** exponha `senha_hash`, segredos ou tokens nos objetos mapeados públicos.
+- Transações com `pool.getConnection()` + `beginTransaction/commit/rollback/finally release` (ver `permissoes.repository.setModulosDoPerfil`).
+
+## Controllers (`controllers/*.controller.js`)
+- `async function (req, res)` com `try/catch`.
+- Erros esperados: lançar `Error` com `.status` (400/401/403/404/409) e `mensagem` em pt-BR; no catch: `res.status(err.status || 500).json({ mensagem: err.message })`.
+- Conflitos de unicidade: tratar `err.code === 'ER_DUP_ENTRY'` → 409 com mensagem clara.
+- Validar entrada no controller (campos obrigatórios, tipos, arrays). Validar códigos de módulo via catálogo (`config/modulos-admin`).
+- Toda escrita sensível registra auditoria: `auditRepo.log({ userId, action, email, requestId, ip })`, `action` em UPPER_SNAKE.
+
+## Rotas (`routes/*.routes.js`) e `server.js`
+- Rotas finas; montar em `server.js` sob `/api/v1/<recurso>`.
+- Cadeia: `requireJwt` → `requireModulo('<codigo>')` para áreas administrativas por módulo; **gestão sensível** (perfis/acessos) usa `requireAdmin`.
+- **Rotas estáticas antes de paramétricas** (`/admin`, `/config` antes de `/:id`).
+- Mensagens de erro sempre em pt-BR no campo `mensagem`.
+
+## Config e ambiente (`config/env.js`)
+- Adicionar novas variáveis no objeto `env` com default sensato; segredos sem default.
+- `validateEnv()` falha no startup se faltar obrigatória (hoje: `JWT_SECRET`>=32, `ENCRYPTION_KEY`>=64, `AZURE_STORAGE_ACCOUNT`).
+
+## Auth/JWT
+- `jwt.service`: `signAccess`/`signRefresh` (HS256, `env.jwtSecret`); access ~30m, refresh ~7d.
+- Refresh tokens persistidos e **revogáveis** (`refreshTokens.repository`); `logout` revoga; `refresh` valida assinatura + presença no banco + `user.ativo`.
+- `toPublicUser` inclui `modulos` resolvidos (nunca segredos).
+
+## Azure Blob
+- Sempre via `services/blob.service.js` (Managed Identity). Erros traduzidos por `utils/azure-blob.errors.mapAzureBlobError`. Ver regra de segurança.

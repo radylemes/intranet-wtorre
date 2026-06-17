@@ -1,0 +1,36 @@
+---
+description: Padrão de design/frontend WTorre (Angular) — shell admin, modal de cadastro, SweetAlert2, tokens. Aplicar ao criar/alterar UI.
+globs:
+  - frontend/src/**
+alwaysApply: false
+---
+
+# Design / Frontend — intranet WTorre
+
+Ao criar ou alterar qualquer UI, siga a especificação completa em
+@docs/padrao-modulos-admin.md. Resumo dos inegociáveis:
+
+## Shell e navegação
+- Telas administrativas dentro de `app-admin-layout` (sidebar escura agrupada + conteúdo claro). Páginas internas usam `<app-public-chrome>`. **Não** duplicar topbar/header/sidebar.
+- Link na sidebar no grupo certo, visível por `auth.hasModulo('<codigo>')` / `isAdmin()`. Rota com `moduloGuard('<codigo>')` (ou `superAdminGuard` para gestão sensível). Landing de `/admin` via `admin-redirect` (ADMIN → menu; senão `primeiraRotaAdmin()`).
+
+## Cadastros e alertas
+- **Cadastro/edição SEMPRE em modal** `AdminModalComponent` (header ícone+título+X, labels ACIMA dos campos, toggles switch, segredos mascarados, validação inline, footer Salvar/Cancelar com estado carregando). Atribuição de relacionamentos → **drawer lateral** no mesmo padrão.
+- **Todos os alertas/confirmações via `AlertasService` (SweetAlert2):** `confirmarExclusao`, `confirmar`, `sucesso`/toast, `erro` com a mensagem do servidor (inclui 409). PROIBIDO `window.alert`/`window.confirm` ou toast caseiro.
+- Após salvar/excluir: recarregar a lista da fonte + toast.
+
+## Estrutura da página
+- `page-head` (título + subtítulo) → toolbar (busca com debounce + botão “Novo …”) → card(s).
+- Tabela: cabeçalho em maiúsculas/cinza, ações por ícone no hover, badge de status (ATIVO/INATIVO), empty/loading state.
+
+## Tokens (não redefinir)
+- Conteúdo: `--bg:#f4f5f8` `--panel:#fff` `--line:#e2e6ee` `--ink:#10151f` `--ink-soft:#48536a` `--ink-dim:#8a93a8` `--accent:#1d54e6`; status `--ok:#1c9e62` `--warn:#e0a52e` `--danger:#d8456e`; raio 16px.
+- Sidebar escura: `--adm-bg:#0d1424` `--adm-ink:#e8edf6` `--adm-dim:#7b88a3`.
+- Fontes: `Archivo`/`Archivo Expanded` (títulos) + `Hanken Grotesk` (texto).
+
+## Estado e dados
+- Componentes standalone com **signals**; `computed` para listas derivadas (filtro/destaque).
+- Serviços HTTP por recurso; upload com `reportProgress: true, observe: 'events'` e barra de progresso.
+- AuthService: `modulos()`, `hasModulo()`, `temAcessoAdmin()`, `primeiraRotaAdmin()` — usados para guards e visibilidade (UX; o backend é quem autoriza de fato).
+
+Antes de gerar um módulo admin, leia @docs/padrao-modulos-admin.md e cumpra o checklist final do documento.

@@ -1,0 +1,33 @@
+---
+description: Padrão obrigatório para módulos administrativos (layout, modal de cadastro, SweetAlert2). Aplicar ao criar ou alterar qualquer tela/rota administrativa.
+globs:
+  - frontend/src/app/pages/admin/**
+  - frontend/src/app/shared/admin/**
+  - frontend/src/app/guards/**
+  - backend/src/routes/**
+  - backend/src/controllers/**
+  - backend/src/db/migrations/**
+alwaysApply: true
+---
+
+# Padrão de módulos administrativos
+
+Ao criar ou alterar **qualquer módulo administrativo**, siga integralmente a especificação em
+@docs/padrao-modulos-admin.md.
+
+## Inegociáveis (resumo — o detalhe está no doc)
+
+- **Shell:** renderizar dentro de `app-admin-layout`. Não duplicar sidebar/topbar. Link na sidebar no grupo certo, visível por `hasModulo('<codigo>')` / `isAdmin()`. Rota com `moduloGuard('<codigo>')` (ou `superAdminGuard` para gestão sensível).
+- **Cadastro/edição:** SEMPRE em modal `AdminModalComponent` (header ícone+título+X, labels ACIMA dos campos, toggles switch, segredos mascarados, validação inline, footer Salvar/Cancelar com estado carregando). Atribuição de relacionamentos → drawer lateral no mesmo padrão.
+- **Alertas:** SEMPRE via `AlertasService` (SweetAlert2): `confirmarExclusao`, `confirmar`, `sucesso`/toast, `erro` com a mensagem do servidor (inclui 409). PROIBIDO `window.alert`/`window.confirm` ou toast caseiro.
+- **Após salvar/excluir:** recarregar a lista da fonte + toast.
+- **Página:** page-head (título + subtítulo) + toolbar (busca com debounce + botão “Novo …”) + card(s); tabela com cabeçalho cinza, ações por ícone no hover, badge de status e empty/loading state.
+- Não redefinir tokens/sidebar/modal/alertas — reutilizar os existentes.
+
+## Backend (convenções já firmadas no projeto)
+
+- Migrations: `CREATE TABLE IF NOT EXISTS` + colunas/índices no CREATE. **Nunca `ALTER` incremental** (o migrate reexecuta os `.sql`); ALTER de produção é manual e documentado. Usar o **próximo número livre** de migração.
+- Autorização real no backend (`requireModulo`); resolver módulos por request com cache curto, nunca embutidos no JWT.
+- Segredos nunca no banco/UI/logs; Azure por Managed Identity quando aplicável.
+
+Antes de gerar código de um módulo admin, leia @docs/padrao-modulos-admin.md e confirme o checklist final do documento.
