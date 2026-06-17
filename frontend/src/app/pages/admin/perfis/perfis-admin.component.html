@@ -1,0 +1,110 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Perfis de Acesso</h1>
+    <p>Crie perfis nomeados com conjuntos de módulos administrativos.</p>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Perfis cadastrados</h2>
+      <button type="button" class="btn-primary btn-sm" (click)="novoPerfil()">Novo perfil</button>
+    </div>
+    <div class="card-body">
+      @if (!perfis().length) {
+        <p class="empty">Nenhum perfil cadastrado.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Módulos</th>
+              <th>Usuários</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of perfis(); track p.id) {
+              <tr>
+                <td>
+                  <strong>{{ p.nome }}</strong>
+                  @if (p.descricao) {
+                    <div class="sub">{{ p.descricao }}</div>
+                  }
+                </td>
+                <td class="mono small">{{ modulosLabel(p) }}</td>
+                <td>{{ p.usuarios_vinculados ?? 0 }}</td>
+                <td>
+                  <span class="status-badge" [class.on]="p.ativo" [class.off]="!p.ativo">
+                    {{ p.ativo ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td class="row-actions">
+                  <button type="button" class="btn-ghost btn-sm" (click)="abrirModulos(p)">Módulos</button>
+                  <button type="button" class="iconbtn" title="Editar" (click)="editar(p)">✎</button>
+                  <button type="button" class="iconbtn del" title="Remover" (click)="excluir(p)">✕</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </section>
+</div>
+
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="tituloModal()"
+  [subtitle]="subtituloModal()"
+  icon="tenant"
+  [salvando]="salvando()"
+  saveLabel="Salvar perfil"
+  (save)="salvar()"
+  (cancel)="fecharModal()"
+>
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <div class="field">
+      <label for="perfil-nome">Nome</label>
+      <input id="perfil-nome" formControlName="nome" type="text" placeholder="Ex.: Gestor de Conteúdo" />
+    </div>
+    <div class="field">
+      <label for="perfil-desc">Descrição</label>
+      <input id="perfil-desc" formControlName="descricao" type="text" placeholder="Opcional" />
+    </div>
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Perfil ativo</div>
+        <div class="ts">Perfis inativos não concedem módulos aos usuários vinculados</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="ativo" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </form>
+</app-admin-modal>
+
+<app-admin-modal
+  [open]="modalModulosAberto()"
+  title="Módulos do perfil"
+  subtitle="Selecione os módulos administrativos deste perfil"
+  icon="tenant"
+  [salvando]="salvando()"
+  saveLabel="Salvar módulos"
+  (save)="salvarModulos()"
+  (cancel)="fecharModalModulos()"
+>
+  <div class="modulos-grid">
+    @for (m of modulos(); track m.codigo) {
+      <label class="modulo-check">
+        <input
+          type="checkbox"
+          [checked]="modulosSelecionados().includes(m.codigo)"
+          (change)="toggleModulo(m.codigo)"
+        />
+        <span>{{ m.nome }}</span>
+      </label>
+    }
+  </div>
+</app-admin-modal>

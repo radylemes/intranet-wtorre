@@ -1,0 +1,28 @@
+.badge-padrao {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wtorre);
+  background: rgba(29, 84, 230, 0.1);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.field-error {
+  color: #c0392b;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-solid);
+  border-radius: 10px;
+  resize: vertical;
+}

@@ -70,6 +70,41 @@ async function updateProfile(id, nome, departamento) {
   return findById(id);
 }
 
+async function setAtivo(id, ativo) {
+  const pool = getPool();
+  await pool.execute('UPDATE usuarios SET ativo = ?, atualizado_em = NOW() WHERE id = ?', [
+    ativo ? 1 : 0,
+    id,
+  ]);
+  return findById(id);
+}
+
+async function listComPermissoes() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT u.id, u.username, u.nome_completo, u.email, u.departamento,
+            u.perfil, u.microsoft_id, u.is_ad_user, u.ativo
+     FROM usuarios u
+     WHERE u.perfil != 'ADMIN'
+       AND (
+         EXISTS (SELECT 1 FROM usuario_perfis up WHERE up.usuario_id = u.id)
+         OR EXISTS (SELECT 1 FROM usuario_modulos_extra ume WHERE ume.usuario_id = u.id)
+       )
+     ORDER BY u.nome_completo ASC`
+  );
+
+  const permissoesRepo = require('./permissoes.repository');
+  const result = [];
+  for (const row of rows) {
+    const user = mapUser(row);
+    const perfis = await permissoesRepo.listarPerfisDoUsuario(user.id);
+    const modulos_extra = await permissoesRepo.listarModulosExtraDoUsuario(user.id);
+    const modulos = await permissoesRepo.resolverModulosDoUsuario(user.id);
+    result.push({ ...user, perfis, modulos_extra, modulos });
+  }
+  return result;
+}
+
 module.exports = {
   mapUser,
   findByEmail,
@@ -79,4 +114,6 @@ module.exports = {
   linkMicrosoft,
   createMicrosoftUser,
   updateProfile,
+  setAtivo,
+  listComPermissoes,
 };

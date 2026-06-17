@@ -5,8 +5,10 @@ const auditRepo = require('../repositories/auditLog.repository');
 const tenantsRepo = require('../repositories/tenants.repository');
 const jwtService = require('./jwt.service');
 const graphService = require('./graph.service');
+const permissoesService = require('./permissoes.service');
 
-function toPublicUser(user) {
+async function toPublicUser(user) {
+  const modulos = await permissoesService.resolveModulos(user);
   return {
     id: user.id,
     username: user.username,
@@ -14,6 +16,8 @@ function toPublicUser(user) {
     email: user.email,
     perfil: user.perfil,
     is_ad_user: user.is_ad_user,
+    ativo: user.ativo,
+    modulos,
   };
 }
 
@@ -28,7 +32,7 @@ async function issueTokens(user, meta = {}) {
   const accessToken = jwtService.signAccess(payload);
   const refreshToken = jwtService.signRefresh(payload);
   await refreshRepo.create(user.id, refreshToken, refreshExpiresAt(), meta.deviceInfo);
-  const usuario = toPublicUser(user);
+  const usuario = await toPublicUser(user);
   return {
     auth: true,
     accessToken,
@@ -101,19 +105,20 @@ async function loginMicrosoft(azureUser, meta) {
   }
 
   let user = await usersRepo.findByMicrosoftId(oid);
-  if (!user) {
+  if (!user && email) {
     const byEmail = await usersRepo.findByEmail(email);
-    if (byEmail) {
+    if (byEmail && !byEmail.microsoft_id) {
       user = await usersRepo.linkMicrosoft(byEmail.id, oid, nomeCompleto, departamento);
-    } else {
-      user = await usersRepo.createMicrosoftUser({
-        email,
-        nome: nomeCompleto,
-        departamento,
-        microsoftId: oid,
-        username: email.split('@')[0],
-      });
     }
+  }
+  if (!user) {
+    user = await usersRepo.createMicrosoftUser({
+      email,
+      nome: nomeCompleto,
+      departamento,
+      microsoftId: oid,
+      username: email.split('@')[0],
+    });
   } else {
     user = await usersRepo.updateProfile(user.id, nomeCompleto, departamento);
   }
@@ -170,7 +175,7 @@ async function refresh(refreshToken) {
     auth: true,
     accessToken,
     token: accessToken,
-    user: toPublicUser(user),
+    user: await toPublicUser(user),
   };
 }
 

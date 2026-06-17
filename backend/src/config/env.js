@@ -1,4 +1,5 @@
 require('dotenv').config();
+const os = require('os');
 const path = require('path');
 
 function requireEnv(name, minLength = 1) {
@@ -42,11 +43,17 @@ const env = {
   colaboradoresFotosDir:
     process.env.COLABORADORES_FOTOS_DIR ||
     path.join(__dirname, '..', '..', 'storage', 'colaboradores-fotos'),
+  azureStorageAccount: process.env.AZURE_STORAGE_ACCOUNT,
+  treinamentosContainer: process.env.TREINAMENTOS_CONTAINER || 'treinamentos',
+  treinamentosSasTtlMin: Number(process.env.TREINAMENTOS_SAS_TTL_MIN) || 120,
+  treinamentosMaxMb: Number(process.env.TREINAMENTOS_MAX_MB) || 1024,
+  treinamentosTmpDir: process.env.TREINAMENTOS_TMP_DIR || os.tmpdir(),
 };
 
 function validateEnv() {
   requireEnv('JWT_SECRET', 32);
   requireEnv('ENCRYPTION_KEY', 64);
+  requireEnv('AZURE_STORAGE_ACCOUNT');
 }
 
 module.exports = { env, validateEnv, requireEnv };

@@ -1,0 +1,71 @@
+.busca-lista {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.busca-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: none;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border, #eee);
+
+  &:hover {
+    background: #f8f9fa;
+  }
+
+  .nome {
+    font-weight: 600;
+  }
+
+  .email {
+    color: var(--ink-dim, #666);
+    font-size: 0.85rem;
+  }
+
+  .badge {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--ink-dim, #888);
+  }
+}
+
+.drawer-section {
+  margin-bottom: 1.25rem;
+
+  h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+  }
+
+  .hint {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+    color: var(--ink-dim, #666);
+  }
+}
+
+.checks {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.small {
+  font-size: 0.8rem;
+}

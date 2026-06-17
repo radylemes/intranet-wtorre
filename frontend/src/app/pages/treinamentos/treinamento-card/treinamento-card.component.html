@@ -1,0 +1,50 @@
+@if (modo === 'featured') {
+  <div class="thumb featured-thumb" [ngStyle]="thumbStyle()">
+    <span class="cat">{{ catLabel() }}</span>
+    <span class="dur">{{ duracao() }}</span>
+    <span class="play">
+      <svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
+    </span>
+  </div>
+  <div class="meta">
+    <div class="tagrow">
+      <span class="tag">{{ catLabel() }}</span>
+      @if (video.destaque) {
+        <span class="novo">Destaque</span>
+      }
+    </div>
+    <h2>{{ video.titulo }}</h2>
+    @if (video.descricao) {
+      <p>{{ video.descricao }}</p>
+    }
+    <div class="info">
+      <span>{{ duracao() }}</span>
+      @if (video.area) {
+        <span> · {{ video.area }}</span>
+      }
+    </div>
+  </div>
+} @else {
+  <div class="vcard" (click)="onClick()" role="button" tabindex="0" (keyup.enter)="onClick()">
+    <div class="thumb" [ngStyle]="thumbStyle()">
+      <span class="cat">{{ catLabel() }}</span>
+      <span class="dur">{{ duracao() }}</span>
+      <span class="play">
+        <svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
+      </span>
+    </div>
+    <div class="vbody">
+      <h3>{{ video.titulo }}</h3>
+      <div class="vmeta">
+        @if (video.area) {
+          <span class="area">{{ video.area }}</span>
+          <span> · </span>
+        }
+        <span>{{ duracao() }}</span>
+        @if (video.destaque) {
+          <span class="novo">Destaque</span>
+        }
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,45 @@
+.badge-destaque {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--green);
+  background: rgba(28, 158, 98, 0.12);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+textarea,
+select {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-solid);
+  border-radius: 10px;
+}
+
+.upload-progress {
+  margin-top: 12px;
+  background: var(--panel-2);
+  border-radius: 8px;
+  height: 28px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.upload-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(29, 84, 230, 0.2);
+  transition: width 0.2s;
+}

@@ -14,12 +14,28 @@
     </nav>
 
     <div class="header-cta">
-      <button class="btn-chamado" type="button">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
-        </svg>
-        <span>Abrir Chamado</span>
-      </button>
+      @if (mostrarBotaoChamado()) {
+        @if (isChamadoExterno()) {
+          <a
+            class="btn-chamado"
+            [href]="chamadoConfig()!.url!"
+            [attr.target]="chamadoConfig()!.abrir_nova_aba ? '_blank' : null"
+            [attr.rel]="chamadoConfig()!.abrir_nova_aba ? 'noopener noreferrer' : null"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+            <span>{{ chamadoConfig()!.label }}</span>
+          </a>
+        } @else {
+          <a class="btn-chamado" [routerLink]="chamadoConfig()!.url!">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+            <span>{{ chamadoConfig()!.label }}</span>
+          </a>
+        }
+      }
       <div class="avatar-wrap">
         <button
           class="avatar"
@@ -39,10 +55,8 @@
               {{ auth.usuario()?.nome_completo ?? auth.usuario()?.nome }}
             </div>
             <div class="avatar-menu-email">{{ auth.usuario()?.email }}</div>
-            @if (auth.isAdmin()) {
-              <a routerLink="/admin/menu" (click)="fecharAvatarMenu()">Gestão do Menu</a>
-              <a routerLink="/admin/tenants" (click)="fecharAvatarMenu()">Tenants Azure</a>
-              <a routerLink="/admin/documentos" (click)="fecharAvatarMenu()">Documentos</a>
+            @if (auth.temAcessoAdmin()) {
+              <a [routerLink]="['/admin']" (click)="fecharAvatarMenu()">Administração</a>
             }
             <button type="button" (click)="sair()">Sair</button>
           </div>

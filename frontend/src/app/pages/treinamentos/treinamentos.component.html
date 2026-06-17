@@ -1,0 +1,152 @@
+<div class="pagina">
+  <app-public-chrome>
+    <div class="page-head">
+      <div class="wrap">
+        <div class="crumb">Início › <span>Treinamentos</span></div>
+        <div class="ph-row">
+          <span class="headic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M3 9l9-5 9 5-9 5-9-5z"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M7 11.5V16c2.5 1.6 7.5 1.6 10 0v-4.5"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path d="M21 9v5" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <div>
+            <h1>Treinamentos</h1>
+            <p>Vídeos de capacitação, onboarding e procedimentos do Grupo WTorre.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap trein-body">
+      @if (erro()) {
+        <p class="erro-msg">{{ erro() }}</p>
+      }
+
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+            <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Buscar treinamento por título, tema ou área..."
+            [ngModel]="q()"
+            (ngModelChange)="q.set($event)"
+          />
+        </div>
+      </div>
+
+      <div class="chips">
+        <button
+          type="button"
+          class="chip"
+          [class.active]="!catFiltro()"
+          (click)="selecionarCat('')"
+        >
+          Todas as categorias
+        </button>
+        @for (c of categorias; track c.slug) {
+          <button
+            type="button"
+            class="chip"
+            [class.active]="catFiltro() === c.slug"
+            (click)="selecionarCat(c.slug)"
+          >
+            <span class="cd" [style.background]="c.cor"></span>
+            {{ c.label }}
+          </button>
+        }
+      </div>
+
+      @if (destaque(); as d) {
+        <div class="sec-label">Em destaque</div>
+        <div class="featured" (click)="abrir(d)" role="button" tabindex="0" (keyup.enter)="abrir(d)">
+          <app-treinamento-card [video]="d" [modo]="'featured'" />
+        </div>
+      }
+
+      <div class="sec-label">
+        Todos os treinamentos
+        <span class="ct">{{ filtrados().length }} {{ filtrados().length === 1 ? 'vídeo' : 'vídeos' }}</span>
+      </div>
+
+      @if (carregando()) {
+        <p class="empty">Carregando treinamentos…</p>
+      } @else if (!filtrados().length) {
+        <div class="empty">Nenhum treinamento encontrado.</div>
+      } @else {
+        <div class="grid">
+          @for (v of gridLista(); track v.id) {
+            <app-treinamento-card [video]="v" (play)="abrir(v)" />
+          }
+        </div>
+      }
+    </div>
+  </app-public-chrome>
+
+  <app-footer />
+</div>
+
+<div
+  class="overlay"
+  [class.open]="playerAberto()"
+  (click)="onOverlayClick($event)"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-hidden]="!playerAberto()"
+>
+  @if (videoAtivo(); as v) {
+    <div class="player" (click)="$event.stopPropagation()">
+      <div class="stage" [style.background]="catGrad(v.categoria)">
+        <button type="button" class="closex" aria-label="Fechar" (click)="fecharPlayer()">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+        @if (sasUrl()) {
+          <video
+            class="video-el"
+            [src]="sasUrl()!"
+            controls
+            autoplay
+            playsinline
+          ></video>
+        } @else if (playerCarregando()) {
+          <div class="loading-play">Carregando vídeo…</div>
+        }
+      </div>
+      <div class="pbody">
+        <div class="tagrow">
+          <span class="tag" [style.background]="catCor(v.categoria)">{{ catLabel(v.categoria) }}</span>
+          @if (v.destaque) {
+            <span class="novo">Destaque</span>
+          }
+        </div>
+        <h2>{{ v.titulo }}</h2>
+        @if (v.descricao) {
+          <p>{{ v.descricao }}</p>
+        }
+        <div class="info">
+          <span>Duração: <b>{{ duracao(v) }}</b></span>
+          @if (v.area) {
+            <span>Área: <b>{{ v.area }}</b></span>
+          }
+          <span>Categoria: <b>{{ catLabel(v.categoria) }}</b></span>
+        </div>
+      </div>
+    </div>
+  }
+</div>

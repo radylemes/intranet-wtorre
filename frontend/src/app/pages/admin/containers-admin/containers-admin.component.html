@@ -1,0 +1,137 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Containers de armazenamento</h1>
+    <p>
+      Gerencie containers Blob privados na conta Azure (autenticação por Managed Identity — sem credenciais na UI).
+    </p>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Cadastrados</h2>
+      <button type="button" class="btn-primary btn-sm" (click)="novo()">Adicionar container</button>
+    </div>
+    <div class="card-body">
+      @if (!containers().length) {
+        <p class="empty">Nenhum container cadastrado.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Rótulo</th>
+              <th>Nome no Azure</th>
+              <th>Vídeos</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of containers(); track c.id) {
+              <tr>
+                <td>
+                  <strong>{{ c.rotulo }}</strong>
+                  @if (c.padrao) {
+                    <span class="badge-padrao">Padrão</span>
+                  }
+                </td>
+                <td class="mono">{{ c.nome }}</td>
+                <td>{{ qtdVideos(c) }}</td>
+                <td>
+                  <span class="status-badge" [class.on]="c.ativo" [class.off]="!c.ativo">
+                    {{ c.ativo ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td class="row-actions">
+                  <button type="button" class="iconbtn" title="Editar" (click)="editar(c)">✎</button>
+                  <button type="button" class="iconbtn del" title="Remover cadastro" (click)="excluir(c)">✕</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </section>
+</div>
+
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="tituloModal()"
+  [subtitle]="subtituloModal()"
+  icon="folder"
+  [salvando]="salvando()"
+  saveLabel="Salvar"
+  (save)="salvar()"
+  (cancel)="fecharModal()"
+>
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    @if (!editandoId()) {
+      <div class="field mono">
+        <label for="c-nome">Nome do container (Azure)</label>
+        <input
+          id="c-nome"
+          formControlName="nome"
+          type="text"
+          placeholder="treinamentos"
+          (blur)="validarNome()"
+        />
+        <div class="help">
+          Minúsculas, 3–63 caracteres, letras/números/hífens; sem hífens duplos.
+        </div>
+        @if (nomeErro()) {
+          <div class="field-error">{{ nomeErro() }}</div>
+        }
+      </div>
+
+      <div class="toggle-field">
+        <div>
+          <div class="tt">Criar no Azure se não existir</div>
+          <div class="ts">Cria o container privado na conta configurada</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" formControlName="criarNoAzure" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    } @else {
+      <div class="field mono">
+        <label>Nome no Azure</label>
+        <input type="text" [value]="form.controls.nome.value" disabled />
+      </div>
+    }
+
+    <div class="field">
+      <label for="c-rotulo">Rótulo</label>
+      <input id="c-rotulo" formControlName="rotulo" type="text" placeholder="Nome amigável" />
+    </div>
+
+    <div class="field">
+      <label for="c-desc">Descrição (opcional)</label>
+      <textarea id="c-desc" formControlName="descricao" rows="2"></textarea>
+    </div>
+
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Definir como padrão</div>
+        <div class="ts">Usado em novos uploads quando nenhum container for escolhido</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="padrao" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    @if (editandoId()) {
+      <div class="toggle-field">
+        <div>
+          <div class="tt">Ativo</div>
+          <div class="ts">Containers inativos não aparecem no select de upload</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" formControlName="ativo" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    }
+  </form>
+</app-admin-modal>

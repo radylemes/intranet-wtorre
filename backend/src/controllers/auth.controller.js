@@ -65,7 +65,7 @@ async function logout(req, res) {
 }
 
 async function me(req, res) {
-  return res.json(authService.toPublicUser(req.user));
+  return res.json(await authService.toPublicUser(req.user));
 }
 
 async function profilePhoto(req, res) {

@@ -1,0 +1,21 @@
+.sub {
+  font-size: 0.85rem;
+  color: var(--ink-dim, #666);
+  margin-top: 0.15rem;
+}
+
+.small {
+  font-size: 0.8rem;
+}
+
+.modulos-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.modulo-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}

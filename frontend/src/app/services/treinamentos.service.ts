@@ -1,0 +1,71 @@
+import { HttpClient, HttpEvent } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import { environment } from '../../environments/environment';
+import {
+  PlaybackResp,
+  Treinamento,
+  TreinamentoAdmin,
+  TreinamentoDetalhe,
+} from '../models/treinamento.model';
+import { mapTreinamentoApi } from '../utils/treinamento-categoria.util';
+
+@Injectable({ providedIn: 'root' })
+export class TreinamentosService {
+  private readonly http = inject(HttpClient);
+
+  private api(path: string): string {
+    return `${environment.apiBaseUrl}${path}`;
+  }
+
+  listar(): Observable<Treinamento[]> {
+    return this.http
+      .get<Record<string, unknown>[]>(this.api('/treinamentos'))
+      .pipe(map((rows) => rows.map(mapTreinamentoApi)));
+  }
+
+  listarAdmin(): Observable<TreinamentoAdmin[]> {
+    return this.http.get<TreinamentoAdmin[]>(this.api('/treinamentos/admin')).pipe(
+      map((rows) =>
+        rows.map((r) => ({
+          ...mapTreinamentoApi(r as unknown as Record<string, unknown>),
+          container: r.container,
+          ativo: r.ativo,
+          ordem: r.ordem,
+          criado_em: r.criado_em,
+          atualizado_em: r.atualizado_em,
+        }))
+      )
+    );
+  }
+
+  obter(id: number): Observable<TreinamentoDetalhe> {
+    return this.http.get<TreinamentoDetalhe>(this.api(`/treinamentos/${id}`));
+  }
+
+  playback(id: number): Observable<PlaybackResp> {
+    return this.http.get<PlaybackResp>(this.api(`/treinamentos/${id}/playback`));
+  }
+
+  thumbUrl(id: number): Observable<PlaybackResp> {
+    return this.http.get<PlaybackResp>(this.api(`/treinamentos/${id}/thumb`));
+  }
+
+  criar(formData: FormData): Observable<HttpEvent<TreinamentoDetalhe>> {
+    return this.http.post<TreinamentoDetalhe>(this.api('/treinamentos'), formData, {
+      reportProgress: true,
+      observe: 'events',
+    });
+  }
+
+  atualizar(id: number, formData: FormData): Observable<HttpEvent<TreinamentoDetalhe>> {
+    return this.http.put<TreinamentoDetalhe>(this.api(`/treinamentos/${id}`), formData, {
+      reportProgress: true,
+      observe: 'events',
+    });
+  }
+
+  remover(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(this.api(`/treinamentos/${id}`));
+  }
+}

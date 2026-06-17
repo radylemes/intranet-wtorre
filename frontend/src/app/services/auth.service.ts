@@ -5,6 +5,7 @@ import { Observable, tap, catchError, of, throwError, firstValueFrom } from 'rxj
 import { environment } from '../../environments/environment';
 import { LoginResposta, Usuario } from '../models/usuario.model';
 import { MsalConfigService } from './msal-config.service';
+import { ADMIN_MODULO_ROTAS } from '../data/admin-modulos';
 
 const CHAVE_ACCESS = 'intranet_wtorre_access';
 const CHAVE_REFRESH = 'intranet_wtorre_refresh';
@@ -20,6 +21,7 @@ export class AuthService {
   private accessMemoria: string | null = null;
   private refreshMemoria: string | null = null;
   readonly usuario = signal<Usuario | null>(null);
+  readonly modulos = signal<string[]>([]);
   readonly msalBusy = signal(false);
 
   constructor() {
@@ -31,7 +33,9 @@ export class AuthService {
   }
 
   private mapUsuario(u: Usuario): Usuario {
-    return { ...u, nome: u.nome_completo };
+    const mapped = { ...u, nome: u.nome_completo };
+    this.modulos.set(u.modulos ?? []);
+    return mapped;
   }
 
   loginLocal(email: string, senha: string, manterConectado = true): Observable<LoginResposta> {
@@ -150,6 +154,7 @@ export class AuthService {
     this.accessMemoria = null;
     this.refreshMemoria = null;
     this.usuario.set(null);
+    this.modulos.set([]);
     localStorage.removeItem(CHAVE_ACCESS);
     localStorage.removeItem(CHAVE_REFRESH);
     localStorage.removeItem(CHAVE_USUARIO);
@@ -180,7 +185,13 @@ export class AuthService {
   carregarPerfil(): Observable<Usuario | null> {
     if (!this.estaLogado()) return of(null);
     return this.http.get<Usuario>(this.api('/auth/me')).pipe(
-      tap((u) => this.usuario.set(this.mapUsuario(u))),
+      tap((u) => {
+        const mapped = this.mapUsuario(u);
+        this.usuario.set(mapped);
+        const storage =
+          localStorage.getItem(CHAVE_ACCESS) != null ? localStorage : sessionStorage;
+        storage.setItem(CHAVE_USUARIO, JSON.stringify({ ...mapped, modulos: this.modulos() }));
+      }),
       catchError((err: HttpErrorResponse) => {
         if (err.status === 401) {
           this.logout(true, false);
@@ -212,6 +223,27 @@ export class AuthService {
     return this.usuario()?.perfil === 'ADMIN';
   }
 
+  hasModulo(codigo: string): boolean {
+    return this.isAdmin() || this.modulos().includes(codigo);
+  }
+
+  temAcessoAdmin(): boolean {
+    return this.isAdmin() || this.modulos().length > 0;
+  }
+
+  primeiraRotaAdmin(): string | null {
+    if (this.isAdmin()) {
+      return 'menu';
+    }
+    const mods = this.modulos();
+    for (const { codigo, rota } of ADMIN_MODULO_ROTAS) {
+      if (mods.includes(codigo)) {
+        return rota;
+      }
+    }
+    return null;
+  }
+
   private persistirSessao(res: LoginResposta, manterConectado: boolean): void {
     const raw = res.usuario ?? res.user;
     if (!raw) {
@@ -225,7 +257,7 @@ export class AuthService {
     const storage = manterConectado ? localStorage : sessionStorage;
     storage.setItem(CHAVE_ACCESS, res.accessToken);
     storage.setItem(CHAVE_REFRESH, res.refreshToken);
-    storage.setItem(CHAVE_USUARIO, JSON.stringify(user));
+    storage.setItem(CHAVE_USUARIO, JSON.stringify({ ...user, modulos: this.modulos() }));
 
     const other = manterConectado ? sessionStorage : localStorage;
     other.removeItem(CHAVE_ACCESS);
@@ -247,9 +279,14 @@ export class AuthService {
       try {
         const u = JSON.parse(usuarioJson) as Usuario;
         this.usuario.set(this.mapUsuario(u));
+        if (access && (!u.modulos || u.modulos.length === 0) && u.perfil !== 'ADMIN') {
+          void firstValueFrom(this.carregarPerfil()).catch(() => null);
+        }
       } catch {
         /* ignora */
       }
+    } else if (access) {
+      void firstValueFrom(this.carregarPerfil()).catch(() => null);
     }
   }
 }

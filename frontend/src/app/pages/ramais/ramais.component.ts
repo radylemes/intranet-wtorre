@@ -89,8 +89,8 @@ export class RamaisComponent implements OnInit, OnDestroy {
     this.document.body.classList.remove('pagina-inicio');
   }
 
-  isAdmin(): boolean {
-    return this.auth.isAdmin();
+  podeSincronizar(): boolean {
+    return this.auth.hasModulo('colaboradores');
   }
 
   carregar(force = false): void {

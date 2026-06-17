@@ -1,5 +1,6 @@
 const jwtService = require('../services/jwt.service');
 const usersRepo = require('../repositories/users.repository');
+const permissoesService = require('../services/permissoes.service');
 
 async function requireJwt(req, res, next) {
   const header = req.headers.authorization;
@@ -16,6 +17,7 @@ async function requireJwt(req, res, next) {
     }
     req.user = user;
     req.jwtPayload = payload;
+    req.userModulos = await permissoesService.resolveModulos(user);
     next();
   } catch {
     return res.status(401).json({ mensagem: 'Token inválido ou expirado.' });

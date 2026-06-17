@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { guestGuard } from './guards/guest.guard';
+import { moduloGuardFromRoute } from './guards/modulo.guard';
+import { superAdminGuard } from './guards/super-admin.guard';
 
 export const routes: Routes = [
   {
@@ -51,6 +53,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'treinamentos',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/treinamentos/treinamentos.component').then(
+        (m) => m.TreinamentosComponent
+      ),
+  },
+  {
     path: 'admin',
     canActivate: [authGuard, adminGuard],
     loadComponent: () =>
@@ -59,13 +69,22 @@ export const routes: Routes = [
       ),
     children: [
       {
+        path: '',
+        loadComponent: () =>
+          import('./pages/admin/admin-redirect/admin-redirect.component').then(
+            (m) => m.AdminRedirectComponent
+          ),
+      },
+      {
         path: 'menu',
+        canActivate: [moduloGuardFromRoute],
         loadComponent: () =>
           import('./pages/admin/menu/menu-admin.component').then((m) => m.MenuAdminComponent),
         data: { adminTitle: 'Gestão do Menu' },
       },
       {
         path: 'documentos',
+        canActivate: [moduloGuardFromRoute],
         loadComponent: () =>
           import('./pages/admin/documentos/documentos-admin.component').then(
             (m) => m.DocumentosAdminComponent
@@ -74,13 +93,58 @@ export const routes: Routes = [
       },
       {
         path: 'tenants',
+        canActivate: [moduloGuardFromRoute],
         loadComponent: () =>
           import('./pages/admin/tenants/tenants-admin.component').then(
             (m) => m.TenantsAdminComponent
           ),
         data: { adminTitle: 'Tenants Azure' },
       },
-      { path: '', redirectTo: 'menu', pathMatch: 'full' },
+      {
+        path: 'treinamentos',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/treinamentos-admin/treinamentos-admin.component').then(
+            (m) => m.TreinamentosAdminComponent
+          ),
+        data: { adminTitle: 'Treinamentos' },
+      },
+      {
+        path: 'containers',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/containers-admin/containers-admin.component').then(
+            (m) => m.ContainersAdminComponent
+          ),
+        data: { adminTitle: 'Containers' },
+      },
+      {
+        path: 'configuracoes',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/configuracoes/configuracoes-admin.component').then(
+            (m) => m.ConfiguracoesAdminComponent
+          ),
+        data: { adminTitle: 'Configurações' },
+      },
+      {
+        path: 'perfis',
+        canActivate: [superAdminGuard],
+        loadComponent: () =>
+          import('./pages/admin/perfis/perfis-admin.component').then(
+            (m) => m.PerfisAdminComponent
+          ),
+        data: { adminTitle: 'Perfis de Acesso' },
+      },
+      {
+        path: 'acessos',
+        canActivate: [superAdminGuard],
+        loadComponent: () =>
+          import('./pages/admin/acessos/acessos-admin.component').then(
+            (m) => m.AcessosAdminComponent
+          ),
+        data: { adminTitle: 'Gestão de Acessos' },
+      },
     ],
   },
   { path: '', redirectTo: 'inicio', pathMatch: 'full' },

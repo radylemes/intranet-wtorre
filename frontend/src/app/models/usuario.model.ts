@@ -5,6 +5,8 @@ export interface Usuario {
   email: string;
   perfil: 'ADMIN' | 'USER';
   is_ad_user: boolean;
+  ativo?: boolean;
+  modulos?: string[];
   /** Compatibilidade com templates que usam `nome` */
   nome?: string;
 }

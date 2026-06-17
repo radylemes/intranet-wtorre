@@ -1,0 +1,150 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Treinamentos</h1>
+    <p>Cadastre vídeos de capacitação e envie para o Azure Blob (container privado).</p>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Biblioteca</h2>
+      <button type="button" class="btn-primary btn-sm" (click)="novo()">Novo treinamento</button>
+    </div>
+    <div class="card-body">
+      @if (!treinamentos().length) {
+        <p class="empty">Nenhum treinamento cadastrado.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>Categoria</th>
+              <th>Container</th>
+              <th>Duração</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of treinamentos(); track t.id) {
+              <tr>
+                <td>
+                  <strong>{{ t.titulo }}</strong>
+                  @if (t.destaque) {
+                    <span class="badge-destaque">Destaque</span>
+                  }
+                </td>
+                <td>{{ t.categoria }}</td>
+                <td class="mono">{{ t.container }}</td>
+                <td>{{ duracaoLabel(t) }}</td>
+                <td>
+                  <span class="status-badge" [class.on]="t.ativo" [class.off]="!t.ativo">
+                    {{ t.ativo ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td class="row-actions">
+                  <button type="button" class="iconbtn" title="Editar" (click)="editar(t)">✎</button>
+                  <button type="button" class="iconbtn del" title="Excluir" (click)="excluir(t)">✕</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </section>
+</div>
+
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="tituloModal()"
+  [subtitle]="subtituloModal()"
+  icon="folder"
+  [salvando]="salvando()"
+  [saveLabel]="salvando() ? 'Enviando…' : 'Salvar'"
+  (save)="salvar()"
+  (cancel)="fecharModal()"
+>
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <div class="field">
+      <label for="t-titulo">Título</label>
+      <input id="t-titulo" formControlName="titulo" type="text" />
+    </div>
+
+    <div class="field">
+      <label for="t-desc">Descrição</label>
+      <textarea id="t-desc" formControlName="descricao" rows="3"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="t-cat">Categoria</label>
+      <select id="t-cat" formControlName="categoria">
+        @for (c of categorias; track c.slug) {
+          <option [value]="c.slug">{{ c.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="t-area">Área</label>
+      <input id="t-area" formControlName="area" type="text" placeholder="Ex.: RH, Tecnologia" />
+    </div>
+
+    <div class="field">
+      <label for="t-dur">Duração (MM:SS)</label>
+      <input id="t-dur" formControlName="duracao" type="text" placeholder="08:12" />
+    </div>
+
+    <div class="field">
+      <label for="t-container">Container</label>
+      <select id="t-container" formControlName="container">
+        @for (c of containers(); track c.id) {
+          <option [value]="c.nome">
+            {{ c.rotulo }} ({{ c.nome }}){{ c.padrao ? ' — Padrão' : '' }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Destaque</div>
+        <div class="ts">Exibir em destaque na página de treinamentos</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="destaque" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    @if (editandoId()) {
+      <div class="toggle-field">
+        <div>
+          <div class="tt">Ativo</div>
+          <div class="ts">Treinamentos inativos não aparecem na biblioteca</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" formControlName="ativo" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    }
+
+    <div class="field">
+      <label for="t-video">Vídeo {{ editandoId() ? '(opcional — substituir)' : '' }}</label>
+      <input id="t-video" type="file" accept="video/mp4,video/webm,video/quicktime" (change)="onVideoSelected($event)" />
+      <div class="help">MP4, WebM ou QuickTime.</div>
+    </div>
+
+    <div class="field">
+      <label for="t-thumb">Thumbnail (opcional)</label>
+      <input id="t-thumb" type="file" accept="image/jpeg,image/png,image/webp" (change)="onThumbSelected($event)" />
+    </div>
+
+    @if (salvando() && uploadProgress() > 0) {
+      <div class="upload-progress">
+        <div class="upload-bar" [style.width.%]="uploadProgress()"></div>
+        <span>{{ uploadProgress() }}%</span>
+      </div>
+    }
+  </form>
+</app-admin-modal>

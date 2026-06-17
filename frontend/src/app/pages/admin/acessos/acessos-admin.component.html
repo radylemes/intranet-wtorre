@@ -1,0 +1,132 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Gestão de Acessos</h1>
+    <p>Busque colaboradores do Azure AD e atribua perfis e módulos extras.</p>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Buscar colaborador</h2>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <input
+          type="search"
+          placeholder="Nome ou e-mail (mín. 2 caracteres)..."
+          [ngModel]="buscaTexto()"
+          (ngModelChange)="onBuscaInput($event)"
+        />
+      </div>
+      @if (resultadosBusca().length) {
+        <ul class="busca-lista">
+          @for (c of resultadosBusca(); track c.id) {
+            <li>
+              <button type="button" class="busca-item" (click)="abrirColaborador(c)">
+                <span class="nome">{{ c.nome }}</span>
+                <span class="email">{{ c.email }}</span>
+                @if (c.ja_cadastrado) {
+                  <span class="badge">já cadastrado</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Usuários com permissões</h2>
+    </div>
+    <div class="card-body">
+      @if (!usuarios().length) {
+        <p class="empty">Nenhum usuário com permissões configuradas.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Perfis</th>
+              <th>Módulos efetivos</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of usuarios(); track u.id) {
+              <tr>
+                <td><strong>{{ u.nome_completo }}</strong></td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.perfis.map(p => p.nome).join(', ') || '—' }}</td>
+                <td class="mono small">{{ modulosLabel(u) }}</td>
+                <td>
+                  <span class="status-badge" [class.on]="u.ativo" [class.off]="!u.ativo">
+                    {{ u.ativo ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" class="btn-ghost btn-sm" (click)="abrirUsuario(u)">Editar</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </section>
+</div>
+
+<app-admin-drawer
+  [open]="drawerAberto()"
+  [title]="drawerTitulo()"
+  [salvando]="salvando()"
+  saveLabel="Salvar acessos"
+  (save)="salvar()"
+  (cancel)="fecharDrawer()"
+>
+  <div class="drawer-section">
+    <h3>Perfis</h3>
+    <div class="checks">
+      @for (p of perfis(); track p.id) {
+        <label class="check-row">
+          <input
+            type="checkbox"
+            [checked]="perfisSelecionados().includes(p.id)"
+            (change)="togglePerfil(p.id)"
+          />
+          <span>{{ p.nome }}</span>
+        </label>
+      }
+    </div>
+  </div>
+
+  <div class="drawer-section">
+    <h3>Módulos extras</h3>
+    <p class="hint">Somados aos módulos dos perfis selecionados.</p>
+    <div class="checks">
+      @for (m of modulos(); track m.codigo) {
+        <label class="check-row">
+          <input
+            type="checkbox"
+            [checked]="modulosExtra().includes(m.codigo)"
+            (change)="toggleModuloExtra(m.codigo)"
+          />
+          <span>{{ m.nome }}</span>
+        </label>
+      }
+    </div>
+  </div>
+
+  <div class="drawer-section toggle-field">
+    <div>
+      <div class="tt">Conta ativa</div>
+      <div class="ts">Desativar bloqueia o acesso inteiro à intranet (não só o admin).</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" [ngModel]="usuarioAtivo()" (ngModelChange)="usuarioAtivo.set($event)" />
+      <span class="slider"></span>
+    </label>
+  </div>
+</app-admin-drawer>

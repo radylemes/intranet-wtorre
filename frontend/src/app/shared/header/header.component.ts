@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ConfiguracoesService } from '../../services/configuracoes.service';
+import { HeaderChamadoConfig } from '../../models/configuracoes.model';
 import { MenuService } from '../../services/menu.service';
 import { MenuItem } from '../../models/menu.model';
 import { MenuNodeComponent } from './menu-node/menu-node.component';
@@ -17,6 +19,7 @@ import { MenuNodeComponent } from './menu-node/menu-node.component';
 export class HeaderComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly menuService = inject(MenuService);
+  private readonly configService = inject(ConfiguracoesService);
   readonly auth = inject(AuthService);
   readonly menuItems = signal<MenuItem[]>([]);
   readonly menuAberto = signal(false);
@@ -24,6 +27,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   readonly mobile = signal(false);
   readonly avatarMenuAberto = signal(false);
   readonly fotoUrl = signal<string | null>(null);
+  readonly chamadoConfig = signal<HeaderChamadoConfig | null>(null);
 
   private mediaQuery?: MediaQueryList;
   private readonly onMediaChange = (e: MediaQueryListEvent) => this.mobile.set(e.matches);
@@ -33,6 +37,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
       if (items.length) this.menuItems.set(items);
     });
     this.menuService.carregarMenu().subscribe();
+
+    this.configService.getHeaderChamado().subscribe({
+      next: (cfg) => this.chamadoConfig.set(cfg),
+      error: () => this.chamadoConfig.set(null),
+    });
 
     if (typeof window !== 'undefined') {
       this.mediaQuery = window.matchMedia('(max-width: 760px)');
@@ -87,5 +96,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
   sair(): void {
     this.fecharAvatarMenu();
     this.auth.logout();
+  }
+
+  mostrarBotaoChamado(): boolean {
+    const c = this.chamadoConfig();
+    return !!(c?.ativo && c.url);
+  }
+
+  isChamadoExterno(): boolean {
+    const url = this.chamadoConfig()?.url;
+    return !!url && /^https?:\/\//i.test(url);
   }
 }

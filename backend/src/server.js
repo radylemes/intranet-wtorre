@@ -13,6 +13,10 @@ const documentosRoutes = require('./routes/documentos.routes');
 const colaboradoresRoutes = require('./routes/colaboradores.routes');
 const aniversariantesRoutes = require('./routes/aniversariantes.routes');
 const assinaturasRoutes = require('./routes/assinaturas.routes');
+const storageContainersRoutes = require('./routes/storage-containers.routes');
+const treinamentosRoutes = require('./routes/treinamentos.routes');
+const perfisAcessoRoutes = require('./routes/perfis-acesso.routes');
+const configuracoesRoutes = require('./routes/configuracoes.routes');
 const assinaturasController = require('./controllers/assinaturas.controller');
 const { agendarSincronizacaoColaboradores } = require('./services/colaboradores.sync');
 const { ensureFotosDir } = require('./controllers/colaboradores.controller');
@@ -48,6 +52,10 @@ app.use('/api/v1/doc-categorias', docCategoriasRoutes);
 app.use('/api/v1/documentos', documentosRoutes);
 app.use('/api/v1/colaboradores', colaboradoresRoutes);
 app.use('/api/v1/aniversariantes', aniversariantesRoutes);
+app.use('/api/v1/containers', storageContainersRoutes);
+app.use('/api/v1/treinamentos', treinamentosRoutes);
+app.use('/api/v1/perfis-acesso', perfisAcessoRoutes);
+app.use('/api/v1/configuracoes', configuracoesRoutes);
 
 // Rotas públicas de assinaturas (sem JWT — usadas pelo instalador antes de qualquer login)
 app.get('/api/v1/assinaturas/script/instalar', assinaturasController.obterScriptBase);

@@ -17,6 +17,7 @@ export const NAV_LINKS: NavItem[] = [
   { label: 'Agendas' },
   { label: 'Ramais', href: '/ramais' },
   { label: 'Aniversariantes', href: '/aniversariantes' },
+  { label: 'Treinamentos', href: '/treinamentos' },
   { label: 'Assinaturas de E-mail', href: '/assinaturas' },
   { label: 'TI' },
   { label: 'BI' },

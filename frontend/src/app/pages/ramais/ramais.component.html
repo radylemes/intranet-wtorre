@@ -27,7 +27,7 @@
             </svg>
             Sincronizado há {{ tempoDesdeSync() }}
           </span>
-          @if (isAdmin()) {
+          @if (podeSincronizar()) {
             <button
               type="button"
               class="btn-sync"
