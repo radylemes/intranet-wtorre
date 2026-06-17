@@ -79,12 +79,34 @@ async function removerBlob(container, blobName) {
   );
 }
 
+// Cache da user delegation key: vale por horas e assina várias SAS.
+// Evita uma ida ao Entra a cada playback/thumbnail.
+let _udkCache = null; // { udk, expiraEmMs }
+
+async function getDelegationKey() {
+  const agora = Date.now();
+  // A chave precisa cobrir QUALQUER SAS que ainda será assinada:
+  // renovar enquanto o tempo restante for menor que o TTL da SAS + folga.
+  const margemMs = env.treinamentosSasTtlMin * 60 * 1000 + 10 * 60 * 1000;
+  if (!_udkCache || _udkCache.expiraEmMs - agora < margemMs) {
+    // Janela da chave bem maior que a margem, para não renovar a toda hora.
+    const vidaMs = Math.max(8 * 60 * 60 * 1000, margemMs + 60 * 60 * 1000);
+    const startsOn = new Date(agora - 5 * 60 * 1000);
+    const expiresOn = new Date(agora + vidaMs);
+    _udkCache = {
+      udk: await svc.getUserDelegationKey(startsOn, expiresOn),
+      expiraEmMs: expiresOn.getTime(),
+    };
+  }
+  return _udkCache.udk;
+}
+
 async function gerarSasLeitura(container, blobName) {
   return withBlobError(async () => {
     const now = new Date();
     const startsOn = new Date(now.getTime() - 5 * 60 * 1000);
     const expiresOn = new Date(now.getTime() + env.treinamentosSasTtlMin * 60 * 1000);
-    const udk = await svc.getUserDelegationKey(startsOn, expiresOn);
+    const udk = await getDelegationKey();
     const sas = generateBlobSASQueryParameters(
       {
         containerName: container,

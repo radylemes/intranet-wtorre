@@ -107,8 +107,17 @@ async function loginMicrosoft(azureUser, meta) {
   let user = await usersRepo.findByMicrosoftId(oid);
   if (!user && email) {
     const byEmail = await usersRepo.findByEmail(email);
-    if (byEmail && !byEmail.microsoft_id) {
-      user = await usersRepo.linkMicrosoft(byEmail.id, oid, nomeCompleto, departamento);
+    if (byEmail) {
+      if (byEmail.microsoft_id && byEmail.microsoft_id !== oid) {
+        const err = new Error(
+          'Este e-mail já está vinculado a outra identidade Microsoft. Contate o administrador.'
+        );
+        err.status = 409;
+        throw err;
+      }
+      if (!byEmail.microsoft_id) {
+        user = await usersRepo.linkMicrosoft(byEmail.id, oid, nomeCompleto, departamento);
+      }
     }
   }
   if (!user) {
