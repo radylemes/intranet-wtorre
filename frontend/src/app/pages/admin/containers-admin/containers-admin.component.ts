@@ -2,7 +2,7 @@ import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
-import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast.service';
+import { AlertasService } from '../../../services/alertas.service';
 import { ContainersService } from '../../../services/containers.service';
 import { StorageContainer } from '../../../models/storage-container.model';
 import { validarNomeContainer } from '../../../utils/treinamento-categoria.util';
@@ -17,7 +17,7 @@ import { validarNomeContainer } from '../../../utils/treinamento-categoria.util'
 export class ContainersAdminComponent implements OnInit {
   private readonly containersService = inject(ContainersService);
   private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(AdminToastService);
+  private readonly alertas = inject(AlertasService);
 
   readonly containers = signal<StorageContainer[]>([]);
   readonly mensagem = signal('');
@@ -39,11 +39,11 @@ export class ContainersAdminComponent implements OnInit {
   constructor() {
     effect(() => {
       const msg = this.mensagem();
-      if (msg) this.toast.success(msg);
+      if (msg) this.alertas.sucesso(msg);
     });
     effect(() => {
       const err = this.erro();
-      if (err) this.toast.error(err);
+      if (err) this.alertas.erro(err);
     });
   }
 
@@ -155,15 +155,12 @@ export class ContainersAdminComponent implements OnInit {
     });
   }
 
-  excluir(c: StorageContainer): void {
+  async excluir(c: StorageContainer): Promise<void> {
     if (c.id == null) return;
-    if (
-      !confirm(
-        `Remover o cadastro do container "${c.rotulo}"?\n\nIsso NÃO apaga o container nem os arquivos no Azure — apenas o registro na intranet.`
-      )
-    ) {
-      return;
-    }
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Remover o cadastro do container "${c.rotulo}"?\n\nIsso NÃO apaga o container nem os arquivos no Azure — apenas o registro na intranet.`,
+    });
+    if (!ok) return;
     this.containersService.remover(c.id).subscribe({
       next: () => {
         this.mensagem.set('Cadastro removido.');

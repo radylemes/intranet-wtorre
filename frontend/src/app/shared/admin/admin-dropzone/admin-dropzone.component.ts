@@ -8,17 +8,37 @@ import { Component, ElementRef, input, output, viewChild } from '@angular/core';
 })
 export class AdminDropzoneComponent {
   readonly disabled = input(false);
+  readonly multiple = input(false);
+  readonly accept = input('image/jpeg,image/png,image/webp,image/gif');
   readonly hint = input('Arraste arquivos aqui ou');
   readonly hintLink = input('clique para selecionar');
   readonly subhint = input('');
 
   readonly fileSelected = output<File>();
+  readonly filesSelected = output<File[]>();
 
   readonly dragOver = output<boolean>();
 
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
   isDragover = false;
+
+  private resetInput(): void {
+    const input = this.fileInput()?.nativeElement;
+    if (input) input.value = '';
+  }
+
+  private emitFiles(files: FileList | File[] | null | undefined): void {
+    const list = files ? Array.from(files) : [];
+    if (!list.length) return;
+
+    if (this.multiple()) {
+      this.filesSelected.emit(list);
+    } else {
+      this.fileSelected.emit(list[0]);
+    }
+    this.resetInput();
+  }
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
@@ -37,8 +57,7 @@ export class AdminDropzoneComponent {
     this.isDragover = false;
     this.dragOver.emit(false);
     if (this.disabled()) return;
-    const file = event.dataTransfer?.files?.[0];
-    if (file) this.fileSelected.emit(file);
+    this.emitFiles(event.dataTransfer?.files);
   }
 
   onClick(): void {
@@ -47,7 +66,6 @@ export class AdminDropzoneComponent {
   }
 
   onInputChange(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) this.fileSelected.emit(file);
+    this.emitFiles((event.target as HTMLInputElement).files);
   }
 }

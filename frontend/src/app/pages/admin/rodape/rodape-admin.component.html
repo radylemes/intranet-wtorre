@@ -1,0 +1,241 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Rodapé</h1>
+    <p>Configure o conteúdo exibido no rodapé de todas as páginas da intranet.</p>
+  </header>
+
+  @if (carregando()) {
+    <p class="empty">Carregando...</p>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="salvar()" class="rodape-form">
+      <section class="card">
+        <div class="card-head">
+          <h2>Marca</h2>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <label for="marca-titulo">Título</label>
+            <input
+              id="marca-titulo"
+              formControlName="marca_titulo"
+              type="text"
+              placeholder="GRUPO WTORRE"
+              [class.field-invalid]="campoInvalido(form.controls.marca_titulo)"
+            />
+            @if (campoInvalido(form.controls.marca_titulo)) {
+              <div class="field-error">{{ erroCampo(form.controls.marca_titulo) }}</div>
+            }
+          </div>
+          <div class="field">
+            <label for="marca-descricao">Descrição</label>
+            <textarea
+              id="marca-descricao"
+              formControlName="marca_descricao"
+              rows="3"
+              placeholder="Texto descritivo da intranet"
+            ></textarea>
+          </div>
+        </div>
+      </section>
+
+      <div formArrayName="colunas">
+        @for (coluna of colunasArray().controls; track coluna.value.id; let ci = $index) {
+          <section class="card" [formGroupName]="ci">
+            <div class="card-head">
+              <h2>Coluna {{ colunaLabel(coluna.value.id) }}</h2>
+              <button type="button" class="btn-ghost btn-sm" (click)="adicionarLink(ci)">
+                + Adicionar link
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="field">
+                <label [for]="'col-titulo-' + ci">Título da coluna</label>
+                <input
+                  [id]="'col-titulo-' + ci"
+                  formControlName="titulo"
+                  type="text"
+                  [class.field-invalid]="campoInvalido(coluna.get('titulo'))"
+                />
+                @if (campoInvalido(coluna.get('titulo'))) {
+                  <div class="field-error">{{ erroCampo(coluna.get('titulo')) }}</div>
+                }
+              </div>
+
+              <div class="links-list" formArrayName="links">
+                @for (link of linksArray(ci).controls; track $index; let li = $index) {
+                  <div class="link-row" [formGroupName]="li">
+                    <div class="link-row-head">
+                      <span class="link-num">Link {{ li + 1 }}</span>
+                      <button
+                        type="button"
+                        class="btn-icon danger"
+                        title="Remover link"
+                        (click)="removerLink(ci, li)"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div class="field">
+                      <label [for]="'link-label-' + ci + '-' + li">Rótulo</label>
+                      <input
+                        [id]="'link-label-' + ci + '-' + li"
+                        formControlName="label"
+                        type="text"
+                        [class.field-invalid]="campoInvalido(link.get('label'))"
+                      />
+                      @if (campoInvalido(link.get('label'))) {
+                        <div class="field-error">{{ erroCampo(link.get('label')) }}</div>
+                      }
+                    </div>
+                    <div class="field">
+                      <label [for]="'link-tipo-' + ci + '-' + li">Tipo de destino</label>
+                      <select [id]="'link-tipo-' + ci + '-' + li" formControlName="tipo_destino">
+                        <option value="interna">Página interna</option>
+                        <option value="externa">Link externo</option>
+                      </select>
+                    </div>
+                    @if (tipoDestino(link) === 'interna') {
+                      <div class="field">
+                        <label [for]="'link-pagina-' + ci + '-' + li">Página interna</label>
+                        <select
+                          [id]="'link-pagina-' + ci + '-' + li"
+                          formControlName="pagina_interna"
+                          [class.field-invalid]="campoInvalido(link.get('pagina_interna'))"
+                        >
+                          <option value="">Sem destino</option>
+                          @for (p of paginasInternas(); track p.path) {
+                            <option [value]="p.path">{{ p.label }}</option>
+                          }
+                        </select>
+                        @if (campoInvalido(link.get('pagina_interna'))) {
+                          <div class="field-error">{{ erroCampo(link.get('pagina_interna')) }}</div>
+                        }
+                      </div>
+                    }
+                    @if (tipoDestino(link) === 'externa') {
+                      <div class="field">
+                        <label [for]="'link-url-' + ci + '-' + li">URL externa</label>
+                        <input
+                          [id]="'link-url-' + ci + '-' + li"
+                          formControlName="url_externa"
+                          type="url"
+                          placeholder="https://..."
+                          [class.field-invalid]="campoInvalido(link.get('url_externa'))"
+                        />
+                        @if (campoInvalido(link.get('url_externa'))) {
+                          <div class="field-error">{{ erroCampo(link.get('url_externa')) }}</div>
+                        }
+                      </div>
+                    }
+                    <div class="toggle-field">
+                      <div>
+                        <div class="tt">Abrir em nova aba</div>
+                      </div>
+                      <label class="switch">
+                        <input type="checkbox" formControlName="nova_aba" />
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="empty-hint">Nenhum link nesta coluna.</p>
+                }
+              </div>
+            </div>
+          </section>
+        }
+      </div>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Barra de empresas</h2>
+          <button type="button" class="btn-ghost btn-sm" (click)="adicionarSponsor()">
+            + Adicionar empresa
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="hint hint-top">
+            Nomes exibidos na faixa horizontal acima do rodapé legal. Informe a URL externa para
+            tornar o nome clicável.
+          </p>
+          <div class="sponsors-list" formArrayName="sponsors">
+            @for (sponsor of sponsorsArray().controls; track $index; let si = $index) {
+              <div class="sponsor-row sponsor-row-block" [formGroupName]="si">
+                <div class="sponsor-row-head">
+                  <span class="link-num">Empresa {{ si + 1 }}</span>
+                  <button
+                    type="button"
+                    class="btn-icon danger"
+                    title="Remover empresa"
+                    (click)="removerSponsor(si)"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div class="field">
+                  <label [for]="'sponsor-label-' + si">Nome</label>
+                  <input
+                    [id]="'sponsor-label-' + si"
+                    formControlName="label"
+                    type="text"
+                    placeholder="WTORRE"
+                    [class.field-invalid]="campoInvalido(sponsor.get('label'))"
+                  />
+                  @if (campoInvalido(sponsor.get('label'))) {
+                    <div class="field-error">{{ erroCampo(sponsor.get('label')) }}</div>
+                  }
+                </div>
+                <div class="field">
+                  <label [for]="'sponsor-url-' + si">URL externa</label>
+                  <input
+                    [id]="'sponsor-url-' + si"
+                    formControlName="url_externa"
+                    type="url"
+                    placeholder="https://..."
+                    [class.field-invalid]="campoInvalido(sponsor.get('url_externa'))"
+                  />
+                  @if (campoInvalido(sponsor.get('url_externa'))) {
+                    <div class="field-error">{{ erroCampo(sponsor.get('url_externa')) }}</div>
+                  }
+                </div>
+                <div class="toggle-field">
+                  <div>
+                    <div class="tt">Abrir em nova aba</div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" formControlName="nova_aba" />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            } @empty {
+              <p class="empty-hint">Nenhuma empresa na barra.</p>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Rodapé legal</h2>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <label for="legal-copyright">Copyright</label>
+            <input id="legal-copyright" formControlName="legal_copyright" type="text" />
+          </div>
+          <div class="field">
+            <label for="legal-links">Links legais (texto)</label>
+            <input id="legal-links" formControlName="legal_links_texto" type="text" />
+          </div>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="salvando()">
+          {{ salvando() ? 'Salvando...' : 'Salvar' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

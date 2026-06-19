@@ -7,7 +7,14 @@
   (dragleave)="onDragLeave()"
   (drop)="onDrop($event)"
 >
-  <input #fileInput type="file" hidden (change)="onInputChange($event)" />
+  <input
+    #fileInput
+    type="file"
+    hidden
+    [multiple]="multiple()"
+    [accept]="accept()"
+    (change)="onInputChange($event)"
+  />
   <div class="dropzone-icon">
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path

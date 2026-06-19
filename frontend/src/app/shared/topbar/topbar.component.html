@@ -1,17 +1,37 @@
 <div class="topbar">
   <div class="wrap topbar-row">
     <div class="grupo-logos" aria-label="Empresas do grupo">
-      @for (logo of logos; track logo.id) {
-        <img
-          [src]="logo.logoSrc"
-          [alt]="logo.alt"
-          [title]="logo.nome"
-          class="grupo-logo logo-{{ logo.id }}"
-          loading="lazy"
-        />
+      @for (logo of logos(); track logo.id) {
+        @if (logo.link_url) {
+          <a
+            class="grupo-logo-link"
+            [href]="logo.link_url"
+            [attr.target]="logo.nova_aba ? '_blank' : null"
+            [attr.rel]="logo.nova_aba ? 'noopener noreferrer' : null"
+            [title]="logo.nome"
+          >
+            <div class="grupo-logo-slot">
+              <img
+                [src]="logo.imagem_url"
+                [alt]="logo.alt"
+                class="grupo-logo"
+                loading="lazy"
+              />
+            </div>
+          </a>
+        } @else {
+          <div class="grupo-logo-slot" [title]="logo.nome">
+            <img
+              [src]="logo.imagem_url"
+              [alt]="logo.alt"
+              class="grupo-logo"
+              loading="lazy"
+            />
+          </div>
+        }
       }
     </div>
 
-    <span class="suporte">CCO: Ramal 6673 TEL.: (11) 4800 - 6673</span>
+    <span class="suporte">{{ suporteTexto() }}</span>
   </div>
 </div>

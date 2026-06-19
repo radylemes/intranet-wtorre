@@ -1,0 +1,88 @@
+<div class="pagina">
+  <app-public-chrome>
+    <section class="doc-section">
+      <div class="wrap">
+        <nav class="breadcrumb" aria-label="Navegação">
+          <a routerLink="/documentos">Documentos</a>
+          @if (categoria(); as cat) {
+            <span class="sep">/</span>
+            <span class="current">{{ cat.nome }}</span>
+          }
+        </nav>
+
+        @if (categoria(); as cat) {
+          <header class="page-head">
+            <h1>{{ cat.nome }}</h1>
+            @if (cat.descricao) {
+              <p class="lead">{{ cat.descricao }}</p>
+            }
+          </header>
+
+          <div class="search-bar">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+              <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Buscar documento..."
+              [ngModel]="busca()"
+              (ngModelChange)="busca.set($event)"
+            />
+          </div>
+        }
+
+        @if (erro()) {
+          <div class="alert err">{{ erro() }}</div>
+        }
+
+        @if (carregando()) {
+          <p class="loading">Carregando documentos...</p>
+        } @else if (!temResultados()) {
+          <div class="empty">
+            <p>Nenhum documento nesta categoria.</p>
+          </div>
+        } @else {
+          <div class="doc-content">
+            @if (docsRaizFiltrados().length) {
+              <section class="subcategoria-section">
+                @if (secoes().length) {
+                  <h2 class="section-title">Geral</h2>
+                }
+                <app-documento-list
+                  [documentos]="docsRaizFiltrados()"
+                  (visualizar)="visualizar($event)"
+                  (baixar)="baixar($event)"
+                />
+              </section>
+            }
+
+            @for (secao of secoesFiltradas(); track secao.categoria.id) {
+              <section class="subcategoria-section">
+                <h2 class="section-title">{{ secao.categoria.nome }}</h2>
+                @if (secao.categoria.descricao) {
+                  <p class="section-desc">{{ secao.categoria.descricao }}</p>
+                }
+                <app-documento-list
+                  [documentos]="secao.documentos"
+                  (visualizar)="visualizar($event)"
+                  (baixar)="baixar($event)"
+                />
+              </section>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <app-footer />
+  </app-public-chrome>
+</div>
+
+<app-documento-preview-modal
+  [aberto]="modalAberto()"
+  [titulo]="modalTitulo()"
+  [url]="modalUrl()"
+  [carregando]="modalCarregando()"
+  (fechar)="fecharModal()"
+/>

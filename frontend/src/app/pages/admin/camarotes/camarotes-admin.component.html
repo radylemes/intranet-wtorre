@@ -1,0 +1,187 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Gestão de Camarotes</h1>
+    <p>
+      Dashboard operacional sincronizado com a planilha SharePoint.
+      Atualizado em <strong>{{ ultimaSyncLabel() }}</strong>.
+    </p>
+  </header>
+
+  @if (carregando() && !dashboard()) {
+    <p class="empty">Carregando dashboard…</p>
+  }
+
+  @if (dashboard(); as d) {
+    <div class="metrics-grid">
+      <section class="card metric-card">
+        <div class="card-head"><h2>Disponíveis por setor</h2></div>
+        <div class="card-body">
+          @for (setor of setores; track setor) {
+            <div class="setor-row">
+              <span class="setor-label">{{ setor }}</span>
+              <span class="setor-count">{{ totalSetor(d, setor) }}</span>
+              <span class="setor-nums">{{ numerosSetor(d, setor) }}</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Alertas</h2></div>
+        <div class="card-body alert-grid">
+          <div class="alert-stat danger"><span>{{ d.camarotes.alertas.vencidos }}</span><small>Vencidos</small></div>
+          <div class="alert-stat warn"><span>{{ d.camarotes.alertas.vence_breve }}</span><small>Vence em breve</small></div>
+          <div class="alert-stat ok"><span>{{ d.camarotes.alertas.vagos }}</span><small>Vagos</small></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-head"><h2>Métricas financeiras</h2></div>
+      <div class="card-body fin-grid">
+        <div><small>Receita anual</small><strong>{{ moeda(d.camarotes.metricas.receita_anual) }}</strong></div>
+        <div><small>Ticket médio anual</small><strong>{{ moeda(d.camarotes.metricas.ticket_medio_anual) }}</strong></div>
+        <div><small>Valor médio contrato</small><strong>{{ moeda(d.camarotes.metricas.valor_medio_contrato) }}</strong></div>
+        <div><small>Capacidade total</small><strong>{{ d.camarotes.metricas.capacidade_total }}</strong></div>
+        <div><small>Média p/ unidade</small><strong>{{ d.camarotes.metricas.media_por_unidade | number:'1.1-1' }}</strong></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Tipo cessionário</h2></div>
+      <div class="card-body">
+        <table>
+          <thead>
+            <tr><th>Tipo</th><th>Qtd</th><th>Valor total</th></tr>
+          </thead>
+          <tbody>
+            @for (tipo of tiposCessionarioKeys(d.camarotes.tipo_cessionario.resumo); track tipo) {
+              <tr>
+                <td>{{ tipo }}</td>
+                <td>{{ d.camarotes.tipo_cessionario.resumo[tipo].quantidade }}</td>
+                <td>{{ moeda(d.camarotes.tipo_cessionario.resumo[tipo].valor_total) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (andaresEntries(d.camarotes.tipo_cessionario.por_andar).length) {
+          <h3 class="sub-title">Por andar</h3>
+          @for (a of andaresEntries(d.camarotes.tipo_cessionario.por_andar); track a.andar) {
+            <div class="andar-block">
+              <strong>{{ a.andar }}</strong>:
+              @for (t of a.tipos; track t.nome) {
+                <span class="tag">{{ t.nome }} ({{ t.qtd }})</span>
+              }
+            </div>
+          }
+        }
+      </div>
+    </section>
+
+    <div class="metrics-grid">
+      <section class="card">
+        <div class="card-head"><h2>Pack30</h2></div>
+        <div class="card-body alert-grid">
+          <div class="alert-stat"><span>{{ d.camarotes.pack30.com_pack30 }}</span><small>Com Pack30</small></div>
+          <div class="alert-stat muted"><span>{{ d.camarotes.pack30.sem_pack30 }}</span><small>Sem Pack30</small></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Vagas VVIP</h2></div>
+        <div class="card-body fin-grid">
+          <div><small>Total vagas</small><strong>{{ d.camarotes.vagas_vvip.total_vagas }}</strong></div>
+          <div><small>Valor total</small><strong>{{ moeda(d.camarotes.vagas_vvip.valor_total) }}</strong></div>
+        </div>
+      </section>
+    </div>
+  }
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Configuração e ações</h2>
+      <div class="actions">
+        <button type="button" class="btn-ghost btn-sm" [disabled]="sincronizando()" (click)="sincronizar()">
+          {{ sincronizando() ? 'Sincronizando…' : 'Sincronizar agora' }}
+        </button>
+        <button type="button" class="btn-ghost btn-sm" [disabled]="enviando()" (click)="previewResumo()">
+          Pré-visualizar
+        </button>
+        <button type="button" class="btn-primary btn-sm" [disabled]="enviando()" (click)="enviarResumo()">
+          Enviar resumo
+        </button>
+      </div>
+    </div>
+    <div class="card-body config-grid">
+      <div class="field">
+        <label for="emails">E-mails de alerta (um por linha, domínios internos)</label>
+        <textarea id="emails" rows="4" [ngModel]="emailsTexto()" (ngModelChange)="emailsTexto.set($event)"></textarea>
+      </div>
+      <div class="field">
+        <label for="dias">Dias "vence em breve"</label>
+        <input id="dias" type="number" min="1" max="365" [ngModel]="diasVenceBreve()" (ngModelChange)="diasVenceBreve.set(+$event)" />
+      </div>
+      <div class="field">
+        <label for="cadencia">Cadência</label>
+        <select id="cadencia" [ngModel]="cadencia()" (ngModelChange)="cadencia.set($event)">
+          <option value="diaria">Diária</option>
+          <option value="semanal">Semanal</option>
+        </select>
+      </div>
+      <div class="field toggle-row">
+        <label>
+          <input type="checkbox" [ngModel]="envioAtivo()" (ngModelChange)="envioAtivo.set($event)" />
+          Envio automático ativo
+        </label>
+      </div>
+      <div class="field">
+        <button type="button" class="btn-primary" [disabled]="salvandoConfig()" (click)="salvarConfig()">
+          {{ salvandoConfig() ? 'Salvando…' : 'Salvar configuração' }}
+        </button>
+      </div>
+      @if (config()?.ultimo_envio) {
+        <p class="hint">Último envio: {{ config()!.ultimo_envio | date:'dd/MM/yyyy HH:mm' }}</p>
+      }
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Histórico de sincronizações</h2></div>
+    <div class="card-body">
+      @if (!syncLogs().length) {
+        <p class="empty">Nenhuma sincronização registrada.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Status</th>
+              <th>Lidas</th>
+              <th>Gravadas</th>
+              <th>Duração</th>
+              <th>Erro</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of syncLogs(); track log.id) {
+              <tr>
+                <td>{{ log.executado_em | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ log.tipo_unidade }}</td>
+                <td>
+                  <span class="status-badge" [class.on]="log.status === 'ok'" [class.off]="log.status === 'erro'">
+                    {{ log.status }}
+                  </span>
+                </td>
+                <td>{{ log.linhas_lidas }}</td>
+                <td>{{ log.linhas_gravadas }}</td>
+                <td>{{ log.duracao_ms }} ms</td>
+                <td class="erro-cell">{{ log.erro || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </section>
+</div>

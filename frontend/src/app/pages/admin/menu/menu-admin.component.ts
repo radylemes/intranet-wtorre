@@ -1,16 +1,19 @@
 import { Component, OnDestroy, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { MenuService } from '../../../services/menu.service';
+import { DocumentosService } from '../../../services/documentos.service';
+import { PaginasService } from '../../../services/paginas.service';
 import { MenuItem, MenuReorderItem } from '../../../models/menu.model';
 import {
   MenuAdminNodeAction,
   MenuAdminNodeComponent,
 } from './menu-admin-node.component';
-import { AdminDrawerComponent } from '../../../shared/admin/admin-drawer/admin-drawer.component';
-import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast.service';
-import { PAGINAS_INTERNAS } from '../../../data/paginas-internas';
+import { MenuTopbarAdminComponent } from './menu-topbar-admin.component';
+import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
+import { AlertasService } from '../../../services/alertas.service';
+import { PaginaInterna, buildPaginasInternasLista } from '../../../data/paginas-internas';
 import {
   TipoDestino,
   buildUrlFromDestino,
@@ -29,23 +32,25 @@ interface PaiOption {
 @Component({
   selector: 'app-menu-admin',
   standalone: true,
-  imports: [ReactiveFormsModule, MenuAdminNodeComponent, AdminDrawerComponent],
+  imports: [ReactiveFormsModule, MenuAdminNodeComponent, AdminModalComponent, MenuTopbarAdminComponent],
   templateUrl: './menu-admin.component.html',
   styleUrl: './menu-admin.component.scss',
 })
 export class MenuAdminComponent implements OnInit, OnDestroy {
   private readonly menuService = inject(MenuService);
+  private readonly documentosService = inject(DocumentosService);
+  private readonly paginasService = inject(PaginasService);
   private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(AdminToastService);
+  private readonly alertas = inject(AlertasService);
 
-  readonly paginasInternas = PAGINAS_INTERNAS;
+  readonly paginasInternas = signal<PaginaInterna[]>(buildPaginasInternasLista());
   readonly menuTree = signal<MenuItem[]>([]);
   readonly mensagem = signal('');
   readonly erro = signal('');
   readonly salvando = signal(false);
   readonly editandoId = signal<number | null>(null);
   readonly recolhidos = signal<Set<number>>(new Set());
-  readonly drawerAberto = signal(false);
+  readonly modalAberto = signal(false);
   readonly urlLegadoInterno = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
@@ -67,11 +72,11 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
   constructor() {
     effect(() => {
       const msg = this.mensagem();
-      if (msg) this.toast.success(msg);
+      if (msg) this.alertas.sucesso(msg);
     });
     effect(() => {
       const err = this.erro();
-      if (err) this.toast.error(err);
+      if (err) this.alertas.erro(err);
     });
   }
 
@@ -79,7 +84,19 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
     this.tipoDestinoSub = this.form.controls.tipo_destino.valueChanges.subscribe((tipo) =>
       this.onTipoDestinoChange(tipo)
     );
+    this.carregarPaginasInternas();
     this.carregar();
+  }
+
+  private carregarPaginasInternas(): void {
+    forkJoin({
+      categorias: this.documentosService.listarCategorias(),
+      paginas: this.paginasService.listarPublicadas(),
+    }).subscribe({
+      next: ({ categorias, paginas }) =>
+        this.paginasInternas.set(buildPaginasInternasLista(categorias, paginas)),
+      error: () => this.paginasInternas.set(buildPaginasInternasLista()),
+    });
   }
 
   ngOnDestroy(): void {
@@ -181,7 +198,7 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
 
   novoItem(): void {
     this.cancelar();
-    this.drawerAberto.set(true);
+    this.modalAberto.set(true);
   }
 
   editar(item: MenuItem, parentId: number | null = null): void {
@@ -207,7 +224,7 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
       visivel_perfil: item.visivel_perfil ?? '',
     });
     this.onTipoDestinoChange(destino.tipo);
-    this.drawerAberto.set(true);
+    this.modalAberto.set(true);
   }
 
   novoSubitem(pai: MenuItem): void {
@@ -221,11 +238,11 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
       abrir_nova_aba: false,
     });
     this.onTipoDestinoChange('agrupador');
-    this.drawerAberto.set(true);
+    this.modalAberto.set(true);
   }
 
-  fecharDrawer(): void {
-    this.drawerAberto.set(false);
+  fecharModal(): void {
+    this.modalAberto.set(false);
     this.cancelar();
   }
 
@@ -247,8 +264,14 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
     this.onTipoDestinoChange('interna');
   }
 
-  tituloDrawer(): string {
+  tituloModal(): string {
     return this.editandoId() ? 'Editar item' : 'Novo item';
+  }
+
+  subtituloModal(): string {
+    return this.editandoId()
+      ? 'Altere as propriedades do item selecionado.'
+      : 'Configure rótulo, destino e visibilidade do item de navegação.';
   }
 
   salvar(): void {
@@ -284,7 +307,7 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
     req.subscribe({
       next: () => {
         this.mensagem.set(id ? 'Item atualizado.' : 'Item criado.');
-        this.drawerAberto.set(false);
+        this.modalAberto.set(false);
         this.cancelar();
         this.carregar();
         this.salvando.set(false);
@@ -375,18 +398,19 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
     return count;
   }
 
-  excluir(item: MenuItem): void {
+  async excluir(item: MenuItem): Promise<void> {
     const childCount = this.countDescendants(item);
     const aviso =
       childCount > 0
         ? `Remover "${item.label}" e todos os ${childCount} subitens?`
         : `Remover "${item.label}"?`;
-    if (!confirm(aviso)) return;
+    const ok = await this.alertas.confirmarExclusao({ texto: aviso });
+    if (!ok) return;
 
     this.menuService.remover(item.id).subscribe({
       next: () => {
         this.mensagem.set('Item removido.');
-        if (this.editandoId() === item.id) this.fecharDrawer();
+        if (this.editandoId() === item.id) this.fecharModal();
         this.carregar();
       },
       error: (err: HttpErrorResponse) =>

@@ -17,9 +17,17 @@ const storageContainersRoutes = require('./routes/storage-containers.routes');
 const treinamentosRoutes = require('./routes/treinamentos.routes');
 const perfisAcessoRoutes = require('./routes/perfis-acesso.routes');
 const configuracoesRoutes = require('./routes/configuracoes.routes');
+const rodapeRoutes = require('./routes/rodape.routes');
+const paginasRoutes = require('./routes/paginas.routes');
+const camarotesRoutes = require('./routes/camarotes.routes');
+const brandingRoutes = require('./routes/branding.routes');
+const grupoLogosRoutes = require('./routes/grupo-logos.routes');
 const assinaturasController = require('./controllers/assinaturas.controller');
 const { agendarSincronizacaoColaboradores } = require('./services/colaboradores.sync');
+const { agendarJobsCamarotes } = require('./services/camarotes-cron.service');
+const { reconcileAll } = require('./services/doc-categoria-menu.sync');
 const { ensureFotosDir } = require('./controllers/colaboradores.controller');
+const { ensureGrupoLogosDir } = require('./config/grupo-logos-upload');
 
 try {
   validateEnv();
@@ -45,6 +53,9 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', servico: 'intranet-wtorre-api', version: 'v1' });
 });
 
+app.use('/api/v1/branding', brandingRoutes);
+app.use('/api/v1/grupo-logos', grupoLogosRoutes);
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/tenants', tenantsRoutes);
 app.use('/api/v1/menu', menuRoutes);
@@ -56,6 +67,9 @@ app.use('/api/v1/containers', storageContainersRoutes);
 app.use('/api/v1/treinamentos', treinamentosRoutes);
 app.use('/api/v1/perfis-acesso', perfisAcessoRoutes);
 app.use('/api/v1/configuracoes', configuracoesRoutes);
+app.use('/api/v1/rodape', rodapeRoutes);
+app.use('/api/v1/paginas', paginasRoutes);
+app.use('/api/v1/camarotes', camarotesRoutes);
 
 // Rotas públicas de assinaturas (sem JWT — usadas pelo instalador antes de qualquer login)
 app.get('/api/v1/assinaturas/script/instalar', assinaturasController.obterScriptBase);
@@ -82,5 +96,14 @@ app.listen(env.port, () => {
   } catch (err) {
     console.error('[colaboradores] Não foi possível criar pasta de cache de fotos:', err.message);
   }
+  try {
+    ensureGrupoLogosDir();
+  } catch (err) {
+    console.error('[topbar] Não foi possível preparar pasta de logos:', err.message);
+  }
+  reconcileAll()
+    .then((count) => console.log(`[documentos] Menu sincronizado com ${count} categoria(s) raiz.`))
+    .catch((err) => console.error('[documentos] Falha ao sincronizar menu de categorias:', err.message));
   agendarSincronizacaoColaboradores();
+  agendarJobsCamarotes();
 });

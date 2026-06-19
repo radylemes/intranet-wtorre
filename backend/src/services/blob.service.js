@@ -46,6 +46,29 @@ async function garantirContainer(nome) {
   });
 }
 
+/** Container com leitura pública anônima nos blobs (URLs diretas, sem SAS). */
+async function garantirContainerLeituraPublica(nome) {
+  const v = validarNomeContainer(nome);
+  if (!v.ok) {
+    const err = new Error(v.mensagem);
+    err.status = 400;
+    throw err;
+  }
+  return withBlobError(async () => {
+    const client = svc.getContainerClient(v.nome);
+    const created = await client.createIfNotExists({ access: 'blob' });
+    if (!created.succeeded) {
+      // Já existia — garante leitura pública nos blobs (idempotente se já estiver ok).
+      try {
+        await client.setAccessPolicy('blob');
+      } catch {
+        /* conta pode já estar correta ou política imutável */
+      }
+    }
+    return v.nome;
+  });
+}
+
 async function containerExiste(nome) {
   const v = validarNomeContainer(nome);
   if (!v.ok) return false;
@@ -124,12 +147,19 @@ async function gerarSasLeitura(container, blobName) {
   });
 }
 
+function urlBlobPublico(container, blobName) {
+  const baseUrl = svc.getContainerClient(container).getBlockBlobClient(blobName).url;
+  return baseUrl;
+}
+
 module.exports = {
   garantirContainer,
+  garantirContainerLeituraPublica,
   containerExiste,
   listarContainersDaConta,
   enviarArquivo,
   removerBlob,
   gerarSasLeitura,
+  urlBlobPublico,
   novoBlobName,
 };

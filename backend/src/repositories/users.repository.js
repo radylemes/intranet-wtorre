@@ -79,27 +79,52 @@ async function setAtivo(id, ativo) {
   return findById(id);
 }
 
+async function setPerfil(id, perfil) {
+  const pool = getPool();
+  await pool.execute('UPDATE usuarios SET perfil = ?, atualizado_em = NOW() WHERE id = ?', [
+    perfil,
+    id,
+  ]);
+  return findById(id);
+}
+
+async function countAdminsAtivos(excludeId) {
+  const pool = getPool();
+  const params = [];
+  let sql = "SELECT COUNT(*) AS total FROM usuarios WHERE perfil = 'ADMIN' AND ativo = 1";
+  if (excludeId != null) {
+    sql += ' AND id != ?';
+    params.push(excludeId);
+  }
+  const [rows] = await pool.execute(sql, params);
+  return rows[0]?.total ?? 0;
+}
+
+async function deleteById(id) {
+  const pool = getPool();
+  await pool.execute('DELETE FROM usuarios WHERE id = ?', [id]);
+}
+
 async function listComPermissoes() {
   const pool = getPool();
   const [rows] = await pool.execute(
     `SELECT u.id, u.username, u.nome_completo, u.email, u.departamento,
             u.perfil, u.microsoft_id, u.is_ad_user, u.ativo
      FROM usuarios u
-     WHERE u.perfil != 'ADMIN'
-       AND (
-         EXISTS (SELECT 1 FROM usuario_perfis up WHERE up.usuario_id = u.id)
-         OR EXISTS (SELECT 1 FROM usuario_modulos_extra ume WHERE ume.usuario_id = u.id)
-       )
+     WHERE u.perfil = 'ADMIN'
+        OR EXISTS (SELECT 1 FROM usuario_perfis up WHERE up.usuario_id = u.id)
+        OR EXISTS (SELECT 1 FROM usuario_modulos_extra ume WHERE ume.usuario_id = u.id)
      ORDER BY u.nome_completo ASC`
   );
 
   const permissoesRepo = require('./permissoes.repository');
+  const permissoesService = require('../services/permissoes.service');
   const result = [];
   for (const row of rows) {
     const user = mapUser(row);
     const perfis = await permissoesRepo.listarPerfisDoUsuario(user.id);
     const modulos_extra = await permissoesRepo.listarModulosExtraDoUsuario(user.id);
-    const modulos = await permissoesRepo.resolverModulosDoUsuario(user.id);
+    const modulos = await permissoesService.resolveModulos(user);
     result.push({ ...user, perfis, modulos_extra, modulos });
   }
   return result;
@@ -115,5 +140,8 @@ module.exports = {
   createMicrosoftUser,
   updateProfile,
   setAtivo,
+  setPerfil,
+  countAdminsAtivos,
+  deleteById,
   listComPermissoes,
 };

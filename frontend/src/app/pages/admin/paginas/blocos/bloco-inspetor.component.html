@@ -1,0 +1,149 @@
+@if (!bloco()) {
+  <p class="inspetor-empty">Selecione um bloco no canvas para editar.</p>
+} @else {
+  <form [formGroup]="form">
+  <h3 class="inspetor-title">Inspetor — {{ labelTipo(bloco()!.tipo) }}</h3>
+
+  @switch (bloco()!.tipo) {
+    @case ('texto') {
+      <div class="field">
+        <label>Título (opcional)</label>
+        <input type="text" formControlName="tituloTexto" />
+      </div>
+      <div class="field">
+        <label>Conteúdo</label>
+        <app-texto-rico-editor formControlName="html" />
+      </div>
+    }
+    @case ('imagem') {
+      <div class="field">
+        <label>Imagem</label>
+        <app-admin-dropzone
+          hint="Arraste uma imagem ou"
+          hintLink="clique para enviar"
+          subhint="JPG, PNG, WebP ou GIF — até 25 MB (comprimido automaticamente)"
+          (fileSelected)="uploadImagem($event, 'imagem')"
+        />
+        @if (form.get('url')?.value) {
+          <img class="thumb" [src]="form.get('url')?.value" alt="Prévia" />
+        }
+      </div>
+      <div class="field">
+        <label>Texto alternativo</label>
+        <input type="text" formControlName="alt" />
+      </div>
+      <div class="field">
+        <label>Legenda</label>
+        <input type="text" formControlName="legenda" />
+      </div>
+      <div class="field">
+        <label>Link (opcional)</label>
+        <input type="text" formControlName="link" placeholder="https://… ou /caminho" />
+      </div>
+    }
+    @case ('carrossel') {
+      <div class="field">
+        <label>Adicionar imagens</label>
+        <app-admin-dropzone
+          [multiple]="true"
+          hint="Arraste várias imagens ou"
+          hintLink="clique para selecionar"
+          subhint="Cada imagem vira um slide — JPG, PNG, WebP ou GIF"
+          (filesSelected)="uploadVariasParaCarrossel($event)"
+        />
+      </div>
+      <div class="slides">
+        @for (slide of slides; track $index; let i = $index) {
+          <div class="slide-card">
+            <div class="slide-head">
+              <span>Slide {{ i + 1 }}</span>
+              <button type="button" class="ib del" (click)="removerSlide(i)">✕</button>
+            </div>
+            <app-admin-dropzone
+              hint="Substituir imagem"
+              hintLink="clique para enviar"
+              (fileSelected)="uploadImagem($event, 'slide', i)"
+            />
+            @if (slide.url) {
+              <img class="thumb" [src]="slide.url" alt="" />
+            }
+            <div class="field">
+              <label>Alt</label>
+              <input
+                type="text"
+                [value]="slide.alt || ''"
+                (input)="atualizarSlideCampo(i, 'alt', $any($event.target).value)"
+              />
+            </div>
+            <div class="field">
+              <label>Legenda</label>
+              <input
+                type="text"
+                [value]="slide.legenda || ''"
+                (input)="atualizarSlideCampo(i, 'legenda', $any($event.target).value)"
+              />
+            </div>
+            <div class="field">
+              <label>Link</label>
+              <input
+                type="text"
+                [value]="slide.link || ''"
+                (input)="atualizarSlideCampo(i, 'link', $any($event.target).value)"
+              />
+            </div>
+          </div>
+        }
+        <button type="button" class="btn-ghost btn-sm" (click)="adicionarSlide()">+ Adicionar slide</button>
+      </div>
+      <div class="toggle-field">
+        <div>
+          <div class="tt">Autoplay</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" formControlName="autoplay" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label>Intervalo (ms)</label>
+        <input type="number" formControlName="intervaloMs" min="1000" max="60000" />
+      </div>
+    }
+    @case ('botao') {
+      <div class="field">
+        <label>Texto do botão</label>
+        <input type="text" formControlName="label" />
+      </div>
+      <div class="field">
+        <label>URL</label>
+        <input type="text" formControlName="urlBotao" placeholder="https://… ou /caminho" />
+      </div>
+      <div class="field">
+        <label>Estilo</label>
+        <div class="segmented">
+          <button type="button" [class.active]="form.get('estilo')?.value === 'primario'" (click)="form.patchValue({ estilo: 'primario' })">Primário</button>
+          <button type="button" [class.active]="form.get('estilo')?.value === 'secundario'" (click)="form.patchValue({ estilo: 'secundario' })">Secundário</button>
+          <button type="button" [class.active]="form.get('estilo')?.value === 'fantasma'" (click)="form.patchValue({ estilo: 'fantasma' })">Fantasma</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Alinhamento</label>
+        <div class="segmented">
+          <button type="button" [class.active]="form.get('alinhamento')?.value === 'left'" (click)="form.patchValue({ alinhamento: 'left' })">Esquerda</button>
+          <button type="button" [class.active]="form.get('alinhamento')?.value === 'center'" (click)="form.patchValue({ alinhamento: 'center' })">Centro</button>
+          <button type="button" [class.active]="form.get('alinhamento')?.value === 'right'" (click)="form.patchValue({ alinhamento: 'right' })">Direita</button>
+        </div>
+      </div>
+      <div class="toggle-field">
+        <div>
+          <div class="tt">Abrir em nova aba</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" formControlName="novaAba" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    }
+  }
+  </form>
+}

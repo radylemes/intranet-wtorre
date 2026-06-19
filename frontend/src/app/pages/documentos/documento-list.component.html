@@ -1,0 +1,47 @@
+<ul class="doc-list">
+  @for (doc of documentos(); track doc.id) {
+    <li class="doc-item">
+      <div class="doc-ico" [attr.data-type]="iconeExtensao(doc.extensao)">
+        {{ doc.extensao.toUpperCase() }}
+      </div>
+      <div class="doc-info">
+        <h3>{{ doc.titulo }}</h3>
+        @if (doc.descricao) {
+          <p class="desc">{{ doc.descricao }}</p>
+        }
+        <div class="meta">
+          <span class="meta-type">{{ doc.extensao.toUpperCase() }}</span>
+          <span class="meta-sep">·</span>
+          <span>{{ formatarTamanho(doc.tamanho_bytes) }}</span>
+          <span class="meta-sep">·</span>
+          <span>{{ formatarData(doc.criado_em) }}</span>
+        </div>
+      </div>
+      <div class="doc-actions">
+        <button type="button" class="btn-view" (click)="visualizar.emit(doc)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+              stroke="currentColor"
+              stroke-width="1.8"
+            />
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" />
+          </svg>
+          Visualizar
+        </button>
+        <button type="button" class="btn-dl" (click)="baixar.emit(doc)">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 3v12M8 11l4 4 4-4M4 19h16"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Baixar
+        </button>
+      </div>
+    </li>
+  }
+</ul>

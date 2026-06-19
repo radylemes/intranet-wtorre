@@ -22,13 +22,13 @@ export const routes: Routes = [
     path: 'documentos',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./pages/documentos/documentos.component').then((m) => m.DocumentosComponent),
+      import('./pages/documentos/documentos-index.component').then((m) => m.DocumentosIndexComponent),
   },
   {
     path: 'documentos/:slug',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./pages/documentos/documentos.component').then((m) => m.DocumentosComponent),
+      import('./pages/documentos/documento-categoria.component').then((m) => m.DocumentoCategoriaComponent),
   },
   {
     path: 'ramais',
@@ -61,6 +61,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'p/:slug',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/pagina-publica/pagina-publica.component').then(
+        (m) => m.PaginaPublicaComponent
+      ),
+  },
+  {
     path: 'admin',
     canActivate: [authGuard, adminGuard],
     loadComponent: () =>
@@ -81,6 +89,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/admin/menu/menu-admin.component').then((m) => m.MenuAdminComponent),
         data: { adminTitle: 'Gestão do Menu' },
+      },
+      {
+        path: 'rodape',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/rodape/rodape-admin.component').then((m) => m.RodapeAdminComponent),
+        data: { adminTitle: 'Rodapé' },
       },
       {
         path: 'documentos',
@@ -119,6 +134,27 @@ export const routes: Routes = [
         data: { adminTitle: 'Containers' },
       },
       {
+        path: 'paginas',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/paginas/paginas-lista.component').then((m) => m.PaginasListaComponent),
+        data: { adminTitle: 'Páginas' },
+      },
+      {
+        path: 'paginas/nova',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/paginas/pagina-editor.component').then((m) => m.PaginaEditorComponent),
+        data: { adminTitle: 'Nova página' },
+      },
+      {
+        path: 'paginas/:id/editar',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/paginas/pagina-editor.component').then((m) => m.PaginaEditorComponent),
+        data: { adminTitle: 'Editar página' },
+      },
+      {
         path: 'configuracoes',
         canActivate: [moduloGuardFromRoute],
         loadComponent: () =>
@@ -126,6 +162,15 @@ export const routes: Routes = [
             (m) => m.ConfiguracoesAdminComponent
           ),
         data: { adminTitle: 'Configurações' },
+      },
+      {
+        path: 'camarotes',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/camarotes/camarotes-admin.component').then(
+            (m) => m.CamarotesAdminComponent
+          ),
+        data: { adminTitle: 'Gestão de Camarotes' },
       },
       {
         path: 'perfis',

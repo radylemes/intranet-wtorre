@@ -3,6 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, tap, catchError, of } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { MenuItem, MenuItemPayload, MenuReorderItem } from '../models/menu.model';
+import {
+  TopbarConfig,
+  TopbarLogoUploadResponse,
+  TOPBAR_DEFAULTS,
+} from '../models/topbar.model';
 import { navDataToMenuTree } from '../data/nav.data';
 
 @Injectable({ providedIn: 'root' })
@@ -70,5 +75,30 @@ export class MenuService {
 
   getSnapshot(): MenuItem[] {
     return this.menuSubject.value;
+  }
+
+  getTopbar(): Observable<TopbarConfig> {
+    return this.http.get<TopbarConfig>(this.api('/menu/topbar')).pipe(
+      catchError(() => of(structuredClone(TOPBAR_DEFAULTS)))
+    );
+  }
+
+  getTopbarPublic(): Observable<TopbarConfig> {
+    return this.http.get<TopbarConfig>(`${environment.apiBaseUrl}/branding/topbar`).pipe(
+      catchError(() => of(structuredClone(TOPBAR_DEFAULTS)))
+    );
+  }
+
+  salvarTopbar(config: TopbarConfig): Observable<TopbarConfig> {
+    return this.http.put<TopbarConfig>(this.api('/menu/topbar'), config);
+  }
+
+  uploadLogoImagem(logoId: string, file: File): Observable<TopbarLogoUploadResponse> {
+    const form = new FormData();
+    form.append('imagem', file);
+    return this.http.post<TopbarLogoUploadResponse>(
+      this.api(`/menu/topbar/logos/${encodeURIComponent(logoId)}/imagem`),
+      form
+    );
   }
 }

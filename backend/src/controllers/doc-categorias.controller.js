@@ -1,6 +1,7 @@
 const { getPool } = require('../db/pool');
 const catRepo = require('../repositories/categorias-documentos.repository');
 const { slugify, uniqueSlug } = require('../utils/slug.util');
+const menuSync = require('../services/doc-categoria-menu.sync');
 
 async function validateParent(parentId, selfId = null) {
   if (parentId == null || parentId === '') return null;
@@ -30,8 +31,8 @@ function parseBody(body) {
 }
 
 async function getPublicTree(_req, res) {
-  const rows = await catRepo.findAllFlat();
-  const tree = catRepo.buildTree(rows, { filterActive: true });
+  const rows = await catRepo.findAllFlat(true);
+  const tree = catRepo.buildTree(rows, { filterActive: true, includeRootCounts: true });
   return res.json(tree);
 }
 
@@ -52,6 +53,7 @@ async function create(req, res) {
     const baseSlug = slugify(data.nome);
     data.slug = await uniqueSlug(pool, baseSlug);
     const item = await catRepo.create(data);
+    await menuSync.syncOnCreate(item);
     return res.status(201).json(item);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
@@ -87,6 +89,7 @@ async function update(req, res) {
     }
 
     const item = await catRepo.update(id, data);
+    await menuSync.syncOnUpdate(existing, item);
     return res.json(item);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
@@ -103,6 +106,7 @@ async function remove(req, res) {
     return res.status(404).json({ mensagem: 'Categoria não encontrada.' });
   }
   await catRepo.remove(id);
+  await menuSync.syncOnDelete(existing);
   return res.json({ ok: true });
 }
 

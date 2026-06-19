@@ -14,8 +14,13 @@ Regras obrigatórias, derivadas do código real. Em caso de dúvida, o lado mais
 - `requireModulo`: `ADMIN` passa sempre; senão exige o módulo em `req.userModulos`.
 
 ## Super-admin (ADMIN)
-- `ADMIN` é gerenciado **fora da UI** (seed/banco). Nenhuma rota concede/revoga `usuarios.perfil`.
-- Rotas de gestão de perfis/acessos: `requireAdmin`. Rejeitar payload que tente alterar `perfil`; **nunca** desativar/alterar um `ADMIN` pela tela de acessos.
+- `ADMIN` recebe todos os módulos e passa em `requireAdmin` e `requireModulo`.
+- Bootstrap inicial via seed (`ADMIN_EMAIL`/`ADMIN_PASSWORD` em `.env`).
+- Concessão/revogação de `ADMIN` **somente por outro ADMIN** via `PATCH /perfis-acesso/usuarios/:id/perfil` (rota protegida por `requireAdmin`).
+- Sempre manter **≥ 1 ADMIN ativo**; bloquear rebaixamento/desativação do último super-admin.
+- Toda alteração de perfil gera auditoria (`PERMISSOES_USUARIO_PERFIL`).
+- `PUT /usuarios/:id` não altera `perfil`; perfis/módulos RBAC não se aplicam a usuários `ADMIN`.
+- Rotas de gestão de perfis/acessos: `requireAdmin`.
 
 ## Segredos
 - Cifrar em repouso com **AES-256-GCM** via `crypto.service` (`ENCRYPTION_KEY` em hex, no `.env`). **Nunca** segredo em texto puro no banco.

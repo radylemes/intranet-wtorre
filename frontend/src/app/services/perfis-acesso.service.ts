@@ -65,4 +65,12 @@ export class PerfisAcessoService {
   patchAtivo(id: number, ativo: boolean): Observable<UsuarioAcesso> {
     return this.http.patch<UsuarioAcesso>(`${this.base}/usuarios/${id}/ativo`, { ativo });
   }
+
+  patchPerfil(id: number, perfil: 'ADMIN' | 'USER'): Observable<UsuarioAcesso> {
+    return this.http.patch<UsuarioAcesso>(`${this.base}/usuarios/${id}/perfil`, { perfil });
+  }
+
+  excluirUsuario(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/usuarios/${id}`);
+  }
 }

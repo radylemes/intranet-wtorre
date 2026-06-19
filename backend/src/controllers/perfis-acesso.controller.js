@@ -208,7 +208,7 @@ async function obterUsuario(req, res) {
 
     const perfis = await permissoesRepo.listarPerfisDoUsuario(id);
     const modulos_extra = await permissoesRepo.listarModulosExtraDoUsuario(id);
-    const modulos = await permissoesRepo.resolverModulosDoUsuario(id);
+    const modulos = await permissoesService.resolveModulos(user);
 
     return res.json({ ...user, perfis, modulos_extra, modulos });
   } catch (err) {
@@ -219,7 +219,9 @@ async function obterUsuario(req, res) {
 async function atualizarUsuario(req, res) {
   try {
     if (req.body.perfil !== undefined) {
-      return res.status(400).json({ mensagem: 'Alteração de perfil ADMIN/USER não permitida.' });
+      return res.status(400).json({
+        mensagem: 'Use PATCH /usuarios/:id/perfil para alterar o perfil ADMIN/USER.',
+      });
     }
 
     let usuarioId = Number(req.params.id);
@@ -237,7 +239,9 @@ async function atualizarUsuario(req, res) {
     }
 
     if (user.perfil === 'ADMIN') {
-      return res.status(400).json({ mensagem: 'Não é possível alterar permissões de um ADMIN.' });
+      return res.status(400).json({
+        mensagem: 'Perfis e módulos RBAC não se aplicam a super-admins. Use PATCH /perfil para rebaixar.',
+      });
     }
 
     const { perfil_ids, modulos_extra } = req.body;
@@ -259,10 +263,58 @@ async function atualizarUsuario(req, res) {
 
     const perfis = await permissoesRepo.listarPerfisDoUsuario(usuarioId);
     const extras = await permissoesRepo.listarModulosExtraDoUsuario(usuarioId);
-    const modulos = await permissoesRepo.resolverModulosDoUsuario(usuarioId);
     const atualizado = await usersRepo.findById(usuarioId);
+    const modulos = await permissoesService.resolveModulos(atualizado);
 
     return res.json({ ...atualizado, perfis, modulos_extra: extras, modulos });
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function patchPerfilUsuario(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const user = await usersRepo.findById(id);
+    if (!user) {
+      return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
+    }
+
+    const { perfil } = req.body;
+    if (perfil !== 'ADMIN' && perfil !== 'USER') {
+      return res.status(400).json({ mensagem: 'perfil deve ser ADMIN ou USER.' });
+    }
+
+    if (user.perfil === perfil) {
+      const perfis = await permissoesRepo.listarPerfisDoUsuario(id);
+      const modulos_extra = await permissoesRepo.listarModulosExtraDoUsuario(id);
+      const modulos = await permissoesService.resolveModulos(user);
+      return res.json({ ...user, perfis, modulos_extra, modulos });
+    }
+
+    if (perfil === 'USER' && user.perfil === 'ADMIN') {
+      const adminsRestantes = await usersRepo.countAdminsAtivos(id);
+      if (adminsRestantes < 1) {
+        return res.status(400).json({
+          mensagem: 'Não é possível rebaixar o último super-admin ativo do sistema.',
+        });
+      }
+    }
+
+    const atualizado = await usersRepo.setPerfil(id, perfil);
+    await permissoesService.invalidarCache(id);
+
+    await auditRepo.log({
+      ...auditMeta(req),
+      action: 'PERMISSOES_USUARIO_PERFIL',
+      email: `${user.email} → ${perfil}`,
+    });
+
+    const perfis = await permissoesRepo.listarPerfisDoUsuario(id);
+    const modulos_extra = await permissoesRepo.listarModulosExtraDoUsuario(id);
+    const modulos = await permissoesService.resolveModulos(atualizado);
+
+    return res.json({ ...atualizado, perfis, modulos_extra, modulos });
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });
   }
@@ -276,13 +328,18 @@ async function patchAtivoUsuario(req, res) {
       return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
     }
 
-    if (user.perfil === 'ADMIN') {
-      return res.status(400).json({ mensagem: 'Não é possível desativar um ADMIN por esta tela.' });
-    }
-
     const { ativo } = req.body;
     if (typeof ativo !== 'boolean') {
       return res.status(400).json({ mensagem: 'ativo deve ser boolean.' });
+    }
+
+    if (!ativo && user.perfil === 'ADMIN') {
+      const adminsRestantes = await usersRepo.countAdminsAtivos(id);
+      if (adminsRestantes < 1) {
+        return res.status(400).json({
+          mensagem: 'Não é possível desativar o último super-admin ativo do sistema.',
+        });
+      }
     }
 
     const atualizado = await usersRepo.setAtivo(id, ativo);
@@ -300,6 +357,42 @@ async function patchAtivoUsuario(req, res) {
   }
 }
 
+async function excluirUsuario(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const user = await usersRepo.findById(id);
+    if (!user) {
+      return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
+    }
+
+    if (req.user?.id === id) {
+      return res.status(400).json({ mensagem: 'Não é possível excluir o próprio usuário.' });
+    }
+
+    if (user.perfil === 'ADMIN' && user.ativo) {
+      const adminsRestantes = await usersRepo.countAdminsAtivos(id);
+      if (adminsRestantes < 1) {
+        return res.status(400).json({
+          mensagem: 'Não é possível excluir o último super-admin ativo do sistema.',
+        });
+      }
+    }
+
+    await permissoesService.invalidarCache(id);
+    await usersRepo.deleteById(id);
+
+    await auditRepo.log({
+      ...auditMeta(req),
+      action: 'PERMISSOES_USUARIO_DELETE',
+      email: user.email,
+    });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
 module.exports = {
   listarModulos,
   listarPerfis,
@@ -311,5 +404,7 @@ module.exports = {
   buscarColaboradores,
   obterUsuario,
   atualizarUsuario,
+  patchPerfilUsuario,
   patchAtivoUsuario,
+  excluirUsuario,
 };

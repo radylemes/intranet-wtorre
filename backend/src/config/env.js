@@ -48,6 +48,23 @@ const env = {
   treinamentosSasTtlMin: Number(process.env.TREINAMENTOS_SAS_TTL_MIN) || 120,
   treinamentosMaxMb: Number(process.env.TREINAMENTOS_MAX_MB) || 1024,
   treinamentosTmpDir: process.env.TREINAMENTOS_TMP_DIR || os.tmpdir(),
+  grupoLogosDir:
+    process.env.GRUPO_LOGOS_DIR ||
+    path.join(__dirname, '..', '..', 'storage', 'grupo-logos'),
+  grupoLogosUploadMaxMb: Number(process.env.GRUPO_LOGOS_UPLOAD_MAX_MB) || 2,
+  paginasImagensContainer: process.env.PAGINAS_IMAGENS_CONTAINER || 'paginas',
+  /** Tamanho máximo do arquivo enviado ao Blob (após compressão). */
+  paginasImagensMaxMb: Number(process.env.PAGINAS_IMAGENS_MAX_MB) || 5,
+  /** Limite do upload HTTP (antes da compressão no servidor). */
+  paginasImagensUploadMaxMb: Number(process.env.PAGINAS_IMAGENS_UPLOAD_MAX_MB) || 25,
+  paginasImagensTmpDir: process.env.PAGINAS_IMAGENS_TMP_DIR || os.tmpdir(),
+  camarotesFileShareUrl: process.env.CAMAROTES_FILE_SHARE_URL || '',
+  camarotesSheetCamarote: process.env.CAMAROTES_SHEET_CAMAROTE || 'Camarotes',
+  camarotesMailer: process.env.CAMAROTES_MAILER || 'microservice',
+  camarotesMailServiceUrl: process.env.CAMAROTES_MAIL_SERVICE_URL || '',
+  camarotesMailFrom: process.env.CAMAROTES_MAIL_FROM || '',
+  camarotesMailBatchSize: Number(process.env.CAMAROTES_MAIL_BATCH_SIZE) || 10,
+  camarotesMailBatchDelayMs: Number(process.env.CAMAROTES_MAIL_BATCH_DELAY_MS) || 2000,
 };
 
 function validateEnv() {

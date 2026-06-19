@@ -29,6 +29,13 @@ footer {
   transition: 0.18s;
 }
 
+.foot-top .col .link-text {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 5px 0;
+}
+
 .foot-top .col a:hover {
   color: var(--ink);
 }
@@ -64,6 +71,11 @@ footer {
   letter-spacing: 0.05em;
   color: var(--ink-soft);
   font-family: 'Archivo', sans-serif;
+  text-decoration: none;
+}
+
+.sponsors a.sp:hover {
+  color: var(--ink);
 }
 
 .sponsors .sep {

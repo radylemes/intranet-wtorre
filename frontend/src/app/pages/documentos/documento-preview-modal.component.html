@@ -1,0 +1,17 @@
+@if (aberto()) {
+  <div class="modal-backdrop" (click)="fechar.emit()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h3>{{ titulo() }}</h3>
+        <button type="button" class="modal-close" (click)="fechar.emit()">✕</button>
+      </div>
+      <div class="modal-body">
+        @if (carregando()) {
+          <p class="loading">Carregando visualização...</p>
+        } @else if (url()) {
+          <iframe [src]="url()" title="Visualização do documento"></iframe>
+        }
+      </div>
+    </div>
+  </div>
+}

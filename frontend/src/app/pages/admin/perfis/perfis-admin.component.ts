@@ -2,7 +2,7 @@ import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
-import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast.service';
+import { AlertasService } from '../../../services/alertas.service';
 import { PerfisAcessoService } from '../../../services/perfis-acesso.service';
 import { ModuloAdmin, PerfilAcesso } from '../../../models/perfil-acesso.model';
 
@@ -16,7 +16,7 @@ import { ModuloAdmin, PerfilAcesso } from '../../../models/perfil-acesso.model';
 export class PerfisAdminComponent implements OnInit {
   private readonly api = inject(PerfisAcessoService);
   private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(AdminToastService);
+  private readonly alertas = inject(AlertasService);
 
   readonly perfis = signal<PerfilAcesso[]>([]);
   readonly modulos = signal<ModuloAdmin[]>([]);
@@ -38,11 +38,11 @@ export class PerfisAdminComponent implements OnInit {
   constructor() {
     effect(() => {
       const msg = this.mensagem();
-      if (msg) this.toast.success(msg);
+      if (msg) this.alertas.sucesso(msg);
     });
     effect(() => {
       const err = this.erro();
-      if (err) this.toast.error(err);
+      if (err) this.alertas.erro(err);
     });
   }
 
@@ -158,8 +158,11 @@ export class PerfisAdminComponent implements OnInit {
     });
   }
 
-  excluir(p: PerfilAcesso): void {
-    if (!confirm(`Excluir perfil "${p.nome}"?`)) return;
+  async excluir(p: PerfilAcesso): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Excluir perfil "${p.nome}"?`,
+    });
+    if (!ok) return;
     this.api.excluirPerfil(p.id).subscribe({
       next: () => {
         this.mensagem.set('Perfil removido.');

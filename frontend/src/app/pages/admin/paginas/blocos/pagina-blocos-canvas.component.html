@@ -1,0 +1,30 @@
+<div
+  class="canvas-list"
+  cdkDropList
+  [cdkDropListData]="blocos()"
+  (cdkDropListDropped)="onDrop($event)"
+>
+  @if (!blocos().length) {
+    <p class="canvas-empty">Adicione blocos pela paleta ao lado.</p>
+  }
+  @for (bloco of blocos(); track bloco.id; let i = $index) {
+    <div
+      class="canvas-item"
+      [class.selected]="selecionadoId() === bloco.id"
+      cdkDrag
+      (click)="selecionar.emit(bloco.id)"
+    >
+      <span class="grip" cdkDragHandle title="Arrastar">⋮⋮</span>
+      <div class="info">
+        <span class="tipo">{{ labelTipo(bloco.tipo) }}</span>
+        <span class="preview">{{ previewBloco(bloco) }}</span>
+      </div>
+      <div class="acts" (click)="$event.stopPropagation()">
+        <button type="button" class="ib" title="Subir" [disabled]="i === 0" (click)="mover(i, -1)">↑</button>
+        <button type="button" class="ib" title="Descer" [disabled]="i === blocos().length - 1" (click)="mover(i, 1)">↓</button>
+        <button type="button" class="ib" title="Duplicar" (click)="duplicar.emit(bloco.id)">⧉</button>
+        <button type="button" class="ib del" title="Remover" (click)="remover.emit(bloco.id)">✕</button>
+      </div>
+    </div>
+  }
+</div>

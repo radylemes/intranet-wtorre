@@ -1,11 +1,14 @@
 const MODULOS = [
   { codigo: 'menu', nome: 'Gestão do Menu', ordem: 1 },
-  { codigo: 'documentos', nome: 'Documentos', ordem: 2 },
-  { codigo: 'treinamentos', nome: 'Treinamentos', ordem: 3 },
-  { codigo: 'containers', nome: 'Containers', ordem: 4 },
-  { codigo: 'tenants', nome: 'Tenants Azure', ordem: 5 },
-  { codigo: 'colaboradores', nome: 'Sincronização AD', ordem: 6 },
-  { codigo: 'configuracoes', nome: 'Configurações', ordem: 7 },
+  { codigo: 'rodape', nome: 'Rodapé', ordem: 2 },
+  { codigo: 'documentos', nome: 'Documentos', ordem: 3 },
+  { codigo: 'treinamentos', nome: 'Treinamentos', ordem: 4 },
+  { codigo: 'containers', nome: 'Containers', ordem: 5 },
+  { codigo: 'tenants', nome: 'Tenants Azure', ordem: 6 },
+  { codigo: 'colaboradores', nome: 'Sincronização AD', ordem: 7 },
+  { codigo: 'configuracoes', nome: 'Configurações', ordem: 8 },
+  { codigo: 'paginas', nome: 'Páginas', ordem: 9 },
+  { codigo: 'camarotes', nome: 'Gestão de Camarotes', ordem: 10 },
 ];
 
 const CODIGOS = new Set(MODULOS.map((m) => m.codigo));

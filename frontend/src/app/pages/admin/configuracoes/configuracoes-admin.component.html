@@ -31,7 +31,7 @@
               <label for="cfg-pagina">Página interna</label>
               <select id="cfg-pagina" formControlName="pagina_interna">
                 <option value="">Selecione uma página</option>
-                @for (p of paginasInternas; track p.path) {
+                @for (p of paginasInternas(); track p.path) {
                   <option [value]="p.path">{{ p.label }}</option>
                 }
               </select>

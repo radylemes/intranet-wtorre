@@ -45,12 +45,7 @@ export const NAV_DROPDOWNS: NavDropdown[] = [
     label: 'Documentos',
     head: 'Repositórios',
     href: '/documentos',
-    items: [
-      { label: 'Compliance', href: '/documentos/compliance' },
-      { label: 'Políticas e Procedimentos', href: '/documentos/politicas-procedimentos' },
-      { label: 'Manuais de Marca', href: '/documentos/manuais-marca' },
-      { label: 'Treinamento', href: '/documentos/treinamento' },
-    ],
+    items: [],
   },
 ];
 

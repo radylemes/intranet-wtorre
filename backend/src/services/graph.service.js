@@ -97,4 +97,70 @@ async function listAllUsers(tenant) {
   return users;
 }
 
-module.exports = { getAppToken, getUserProfile, extractDepartment, getUserPhoto, testConnection, listAllUsers };
+function encodeDrivePath(path) {
+  return String(path || '')
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+}
+
+function encodeShareUrl(shareUrl) {
+  const base = String(shareUrl || '').trim().split('?')[0];
+  if (!base) {
+    throw new Error('URL de compartilhamento vazia.');
+  }
+  return `u!${Buffer.from(base, 'utf8').toString('base64url')}`;
+}
+
+async function downloadSharedDriveItemContent(token, shareUrl) {
+  const shareId = encodeShareUrl(shareUrl);
+  const metaUrl = `https://graph.microsoft.com/v1.0/shares/${encodeURIComponent(shareId)}/driveItem`;
+  const metaRes = await fetch(metaUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!metaRes.ok) {
+    const err = await metaRes.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'Falha ao resolver URL de compartilhamento via Graph.');
+  }
+
+  const meta = await metaRes.json();
+  return downloadDriveItemContent(token, meta.driveId, meta.id);
+}
+
+async function downloadDriveItemContent(token, driveId, fileRef) {
+  const ref = String(fileRef || '').trim();
+  if (!ref) {
+    throw new Error('Referência do arquivo SharePoint não configurada.');
+  }
+
+  const isPath = ref.includes('/') || ref.includes('\\');
+  const url = isPath
+    ? `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${encodeDrivePath(ref.replace(/\\/g, '/'))}:/content`
+    : `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${encodeURIComponent(ref)}/content`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'Falha ao baixar arquivo do SharePoint via Graph.');
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+module.exports = {
+  getAppToken,
+  getUserProfile,
+  extractDepartment,
+  getUserPhoto,
+  testConnection,
+  listAllUsers,
+  encodeShareUrl,
+  downloadSharedDriveItemContent,
+  downloadDriveItemContent,
+};

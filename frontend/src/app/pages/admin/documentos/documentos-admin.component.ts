@@ -13,7 +13,7 @@ import { DocAdminNodeAction, DocAdminNodeComponent } from './doc-admin-node.comp
 import { AdminDrawerComponent } from '../../../shared/admin/admin-drawer/admin-drawer.component';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AdminDropzoneComponent } from '../../../shared/admin/admin-dropzone/admin-dropzone.component';
-import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast.service';
+import { AlertasService } from '../../../services/alertas.service';
 
 interface PaiOption {
   id: number;
@@ -39,7 +39,7 @@ export class DocumentosAdminComponent implements OnInit {
   readonly iconesCategoria = CATEGORIA_ICONES;
   private readonly documentosService = inject(DocumentosService);
   private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(AdminToastService);
+  private readonly alertas = inject(AlertasService);
 
   readonly categorias = signal<CategoriaDocumento[]>([]);
   readonly documentos = signal<Documento[]>([]);
@@ -74,11 +74,11 @@ export class DocumentosAdminComponent implements OnInit {
   constructor() {
     effect(() => {
       const msg = this.mensagem();
-      if (msg) this.toast.success(msg);
+      if (msg) this.alertas.sucesso(msg);
     });
     effect(() => {
       const err = this.erro();
-      if (err) this.toast.error(err);
+      if (err) this.alertas.erro(err);
     });
   }
 
@@ -200,8 +200,17 @@ export class DocumentosAdminComponent implements OnInit {
       : this.documentosService.criarCategoria(payload);
 
     req.subscribe({
-      next: () => {
-        this.mensagem.set(editId ? 'Categoria atualizada.' : 'Categoria criada.');
+      next: (saved) => {
+        const isRaiz = payload.parent_id == null;
+        if (!editId && isRaiz && saved?.slug) {
+          this.mensagem.set(`Categoria criada. Página disponível em /documentos/${saved.slug}`);
+        } else if (editId && isRaiz && saved?.slug) {
+          this.mensagem.set(`Categoria atualizada. Página em /documentos/${saved.slug}`);
+        } else if (!editId && !isRaiz) {
+          this.mensagem.set('Subcategoria criada. Ela aparece na página da categoria pai.');
+        } else {
+          this.mensagem.set(editId ? 'Categoria atualizada.' : 'Categoria criada.');
+        }
         this.salvando.set(false);
         this.modalCatAberto.set(false);
         this.cancelarCategoria();
@@ -214,8 +223,11 @@ export class DocumentosAdminComponent implements OnInit {
     });
   }
 
-  excluirCategoria(item: CategoriaDocumento): void {
-    if (!confirm(`Remover a categoria "${item.nome}" e todos os documentos/subcategorias?`)) return;
+  async excluirCategoria(item: CategoriaDocumento): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Remover a categoria "${item.nome}" e todos os documentos/subcategorias?`,
+    });
+    if (!ok) return;
     this.documentosService.removerCategoria(item.id).subscribe({
       next: () => {
         this.mensagem.set('Categoria removida.');
@@ -354,8 +366,11 @@ export class DocumentosAdminComponent implements OnInit {
     });
   }
 
-  excluirDocumento(doc: Documento): void {
-    if (!confirm(`Remover o documento "${doc.titulo}"?`)) return;
+  async excluirDocumento(doc: Documento): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Remover o documento "${doc.titulo}"?`,
+    });
+    if (!ok) return;
     this.documentosService.removerDocumento(doc.id).subscribe({
       next: () => {
         this.mensagem.set('Documento removido.');

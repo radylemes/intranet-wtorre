@@ -1,46 +1,53 @@
 <footer>
   <div class="wrap foot-top">
     <div class="foot-brand">
-      <div class="grp">GRUPO WTORRE</div>
-      <p>
-        Intranet corporativa unificada. Conectando pessoas, sistemas e os destinos do grupo em uma
-        única plataforma.
-      </p>
+      <div class="grp">{{ config().marca.titulo }}</div>
+      <p>{{ config().marca.descricao }}</p>
     </div>
-    <div class="col">
-      <h4>Empresas</h4>
-      <a href="#">WTorre</a>
-      <a href="#">Nubank Parque</a>
-      <a href="#">Base Coworking</a>
-      <a href="#">Novo Anhangabaú</a>
-    </div>
-    <div class="col">
-      <h4>Atalhos</h4>
-      <a href="#">Abertura de Chamados</a>
-      <a href="#">Sistemas Corporativos</a>
-      <a href="#">Documentos</a>
-      <a href="#">Oportunidades</a>
-    </div>
-    <div class="col">
-      <h4>Suporte</h4>
-      <a href="#">Service Desk · 4040</a>
-      <a href="#">Segurança da Informação</a>
-      <a href="#">Compliance</a>
-      <a href="#">Fale com o RH</a>
-    </div>
+    @for (coluna of config().colunas; track coluna.id) {
+      <div class="col">
+        <h4>{{ coluna.titulo }}</h4>
+        @for (link of coluna.links; track link.label) {
+          @if (isInterno(link)) {
+            <a [routerLink]="link.url">{{ link.label }}</a>
+          } @else if (isExterno(link)) {
+            <a
+              [href]="link.url!"
+              [attr.target]="link.nova_aba ? '_blank' : null"
+              [attr.rel]="link.nova_aba ? 'noopener noreferrer' : null"
+            >{{ link.label }}</a>
+          } @else {
+            <span class="link-text">{{ link.label }}</span>
+          }
+        }
+      </div>
+    }
   </div>
 
-  <div class="wrap">
-    <div class="sponsors">
-      <span class="sp">WTORRE</span><span class="sep"></span>
-      <span class="sp">NUBANK PARQUE</span><span class="sep"></span>
-      <span class="sp">BASE COWORKING</span><span class="sep"></span>
-      <span class="sp">NOVO ANHANGABAÚ</span>
+  @if (config().sponsors.length) {
+    <div class="wrap">
+      <div class="sponsors">
+        @for (sp of config().sponsors; track sp.label; let last = $last) {
+          @if (sp.url) {
+            <a
+              class="sp"
+              [href]="sp.url"
+              [attr.target]="sp.nova_aba ? '_blank' : null"
+              [attr.rel]="sp.nova_aba ? 'noopener noreferrer' : null"
+            >{{ sp.label }}</a>
+          } @else {
+            <span class="sp">{{ sp.label }}</span>
+          }
+          @if (!last) {
+            <span class="sep"></span>
+          }
+        }
+      </div>
     </div>
-  </div>
+  }
 
   <div class="wrap foot-legal">
-    <span>© 2026 Grupo WTorre · Uso interno e confidencial</span>
-    <span>Política de Privacidade · Termos de Uso · v2.4</span>
+    <span>{{ config().legal.copyright }}</span>
+    <span>{{ config().legal.links_texto }}</span>
   </div>
 </footer>

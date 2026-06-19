@@ -1,0 +1,68 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Páginas</h1>
+    <p>Monte páginas internas com blocos e publique em /p/slug.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input
+        type="search"
+        placeholder="Buscar por título ou slug…"
+        (input)="onBuscaInput($any($event.target).value)"
+        aria-label="Buscar páginas"
+      />
+    </div>
+    <button type="button" class="btn-primary" (click)="nova()">Nova página</button>
+  </div>
+
+  <section class="card">
+    <div class="card-body">
+      @if (carregando()) {
+        <p class="empty">Carregando…</p>
+      } @else if (!paginasFiltradas().length) {
+        <p class="empty">
+          @if (busca()) {
+            Nenhuma página encontrada para esta busca.
+          } @else {
+            Nenhuma página cadastrada ainda.
+          }
+        </p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>URL</th>
+              <th>Status</th>
+              <th>Atualizado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of paginasFiltradas(); track p.id) {
+              <tr>
+                <td><strong>{{ p.titulo }}</strong></td>
+                <td class="mono">/p/{{ p.slug }}</td>
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.on]="p.status === 'publicada'"
+                    [class.off]="p.status !== 'publicada'"
+                  >
+                    {{ statusLabel(p.status) }}
+                  </span>
+                </td>
+                <td>{{ formatarData(p.atualizado_em) }}</td>
+                <td class="row-actions">
+                  <button type="button" class="iconbtn" title="Editar" (click)="editar(p)">✎</button>
+                  <button type="button" class="iconbtn del" title="Excluir" (click)="excluir(p)">✕</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </section>
+</div>

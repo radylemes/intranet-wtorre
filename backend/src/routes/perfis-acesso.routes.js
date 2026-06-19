@@ -18,6 +18,8 @@ router.get('/usuarios', controller.listarUsuarios);
 router.get('/usuarios/buscar', controller.buscarColaboradores);
 router.get('/usuarios/:id', controller.obterUsuario);
 router.put('/usuarios/:id', controller.atualizarUsuario);
+router.patch('/usuarios/:id/perfil', controller.patchPerfilUsuario);
 router.patch('/usuarios/:id/ativo', controller.patchAtivoUsuario);
+router.delete('/usuarios/:id', controller.excluirUsuario);
 
 module.exports = router;

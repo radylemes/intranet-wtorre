@@ -1,0 +1,46 @@
+<div class="pagina-render">
+  @for (bloco of blocos(); track bloco.id) {
+    @switch (bloco.tipo) {
+      @case ('texto') {
+        <section class="bloco bloco-texto">
+          @if (asTexto(bloco.config).titulo) {
+            <h2 class="bloco-titulo">{{ asTexto(bloco.config).titulo }}</h2>
+          }
+          <div class="rich" [innerHTML]="htmlSeguro(asTexto(bloco.config).html)"></div>
+        </section>
+      }
+      @case ('imagem') {
+        <figure class="bloco bloco-imagem">
+          @if (asImagem(bloco.config).link) {
+            <a [href]="asImagem(bloco.config).link" [attr.target]="asImagem(bloco.config).link?.startsWith('http') ? '_blank' : null" rel="noopener">
+              <img [src]="asImagem(bloco.config).url" [alt]="asImagem(bloco.config).alt || ''" loading="lazy" />
+            </a>
+          } @else {
+            <img [src]="asImagem(bloco.config).url" [alt]="asImagem(bloco.config).alt || ''" loading="lazy" />
+          }
+          @if (asImagem(bloco.config).legenda) {
+            <figcaption>{{ asImagem(bloco.config).legenda }}</figcaption>
+          }
+        </figure>
+      }
+      @case ('carrossel') {
+        <section class="bloco bloco-carrossel">
+          <app-pagina-carrossel [config]="asCarrossel(bloco.config)" />
+        </section>
+      }
+      @case ('botao') {
+        <div class="bloco bloco-botao" [class]="'align-' + asBotao(bloco.config).alinhamento">
+          <a
+            class="btn"
+            [class]="'btn-' + asBotao(bloco.config).estilo"
+            [href]="asBotao(bloco.config).url"
+            [attr.target]="asBotao(bloco.config).novaAba ? '_blank' : null"
+            [attr.rel]="asBotao(bloco.config).novaAba ? 'noopener' : null"
+          >
+            {{ asBotao(bloco.config).label }}
+          </a>
+        </div>
+      }
+    }
+  }
+</div>

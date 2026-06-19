@@ -1,0 +1,17 @@
+<div class="texto-rico">
+  <div class="toolbar" role="toolbar" aria-label="Formatação de texto">
+    <button type="button" title="Negrito" (click)="exec('bold')"><strong>B</strong></button>
+    <button type="button" title="Itálico" (click)="exec('italic')"><em>I</em></button>
+    <button type="button" title="Sublinhado" (click)="exec('underline')"><u>U</u></button>
+    <button type="button" title="Link" (click)="inserirLink()">🔗</button>
+    <button type="button" title="Lista" (click)="exec('insertUnorderedList')">• Lista</button>
+  </div>
+  <div
+    #editor
+    class="editor"
+    contenteditable="true"
+    [attr.contenteditable]="!disabled"
+    (input)="emitChange()"
+    (blur)="emitChange()"
+  ></div>
+</div>

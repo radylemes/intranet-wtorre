@@ -1,0 +1,113 @@
+<div class="admin-page editor-page">
+  <header class="editor-head">
+    <div class="head-left">
+      <a routerLink="/admin/paginas" class="back-link">← Páginas</a>
+      <h1>{{ tituloPagina() }}</h1>
+    </div>
+    <div class="head-actions">
+      <span class="status-badge" [class.on]="status() === 'publicada'" [class.off]="status() !== 'publicada'">
+        {{ status() === 'publicada' ? 'Publicada' : 'Rascunho' }}
+      </span>
+      <button type="button" class="btn-ghost" (click)="abrirPreview()">Pré-visualizar</button>
+      <button type="button" class="btn-ghost" [disabled]="salvando()" (click)="salvar(false)">
+        {{ salvando() ? 'Salvando…' : 'Salvar' }}
+      </button>
+      <button type="button" class="btn-primary" [disabled]="salvando()" (click)="publicar()">
+        Publicar
+      </button>
+    </div>
+  </header>
+
+  @if (carregando()) {
+    <p class="empty">Carregando…</p>
+  } @else {
+    <section class="meta-card card">
+      <div class="meta-grid">
+        <div class="field">
+          <label for="pg-titulo">Título</label>
+          <input
+            id="pg-titulo"
+            type="text"
+            [value]="titulo()"
+            (input)="onTituloInput($any($event.target).value)"
+          />
+        </div>
+        <div class="field">
+          <label for="pg-slug">Slug</label>
+          <div class="slug-wrap">
+            <span class="slug-prefix">/p/</span>
+            <input
+              id="pg-slug"
+              type="text"
+              [value]="slug()"
+              (input)="onSlugInput($any($event.target).value)"
+            />
+          </div>
+        </div>
+        <div class="field full">
+          <label for="pg-desc">Descrição (opcional)</label>
+          <input
+            id="pg-desc"
+            type="text"
+            [value]="descricao()"
+            (input)="descricao.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+    </section>
+
+    <div class="editor-layout">
+      <aside class="paleta card">
+        <h2>Blocos</h2>
+        <p class="hint">Clique para adicionar ao canvas</p>
+        <div class="paleta-btns">
+          <button type="button" (click)="adicionarBloco('texto')">+ Texto</button>
+          <button type="button" (click)="adicionarBloco('imagem')">+ Imagem</button>
+          <button type="button" (click)="adicionarBloco('carrossel')">+ Carrossel</button>
+          <button type="button" (click)="adicionarBloco('botao')">+ Botão</button>
+        </div>
+
+        <div class="canvas-wrap">
+          <app-pagina-blocos-canvas
+            [blocos]="blocos()"
+            [selecionadoId]="selecionadoId()"
+            (blocosChange)="onBlocosChange($event)"
+            (selecionar)="selecionadoId.set($event)"
+            (remover)="removerBloco($event)"
+            (duplicar)="duplicarBloco($event)"
+          />
+        </div>
+      </aside>
+
+      <aside class="inspetor card">
+        <app-bloco-inspetor
+          [bloco]="blocoSelecionado()"
+          (blocoChange)="onBlocoChange($event)"
+          (uploadProgress)="uploadProgress.set($event)"
+        />
+        @if (uploadProgress() > 0) {
+          <div class="upload-progress">
+            <div class="upload-bar" [style.width.%]="uploadProgress()"></div>
+            <span>{{ uploadProgress() }}%</span>
+          </div>
+        }
+      </aside>
+    </div>
+  }
+</div>
+
+<app-admin-modal
+  [open]="previewAberto()"
+  title="Pré-visualização"
+  subtitle="Como a página será exibida"
+  icon="folder"
+  [salvando]="false"
+  saveLabel="Fechar"
+  (save)="fecharPreview()"
+  (cancel)="fecharPreview()"
+>
+  <div class="preview-wrap">
+    <h2 class="preview-titulo">{{ titulo() }}</h2>
+    <app-pagina-blocos-renderer [blocos]="blocos()" [tituloPagina]="titulo()" />
+  </div>
+</app-admin-modal>

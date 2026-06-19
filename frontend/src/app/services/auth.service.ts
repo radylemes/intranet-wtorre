@@ -228,7 +228,9 @@ export class AuthService {
   }
 
   temAcessoAdmin(): boolean {
-    return this.isAdmin() || this.modulos().length > 0;
+    if (this.isAdmin()) return true;
+    const mods = this.modulos();
+    return ADMIN_MODULO_ROTAS.some(({ codigo }) => mods.includes(codigo));
   }
 
   primeiraRotaAdmin(): string | null {

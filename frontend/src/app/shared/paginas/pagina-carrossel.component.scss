@@ -1,0 +1,72 @@
+.carrossel {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg, #f4f5f8);
+  outline: none;
+}
+
+.carrossel:focus-visible {
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.25);
+}
+
+.viewport img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 480px;
+  object-fit: cover;
+}
+
+.legenda {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink-dim, #8a93a8);
+  text-align: center;
+  margin: 0;
+}
+
+.nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink, #10151f);
+}
+
+.nav.prev {
+  left: 12px;
+}
+
+.nav.next {
+  right: 12px;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: var(--line-solid, #e2e6ee);
+  cursor: pointer;
+  padding: 0;
+}
+
+.dot.active {
+  background: var(--wtorre, #2f6bff);
+}

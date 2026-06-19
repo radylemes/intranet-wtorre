@@ -14,16 +14,42 @@
       segura.
     </p>
     <div class="co-row" aria-label="Empresas do grupo">
-      @for (logo of logos; track logo.id) {
-        <span class="co-pill pill-{{ logo.id }}">
-          <img [src]="logo.logoSrc" [alt]="logo.alt" [title]="logo.nome" class="co-logo" loading="lazy" />
-        </span>
+      @for (logo of logos(); track logo.id) {
+        @if (logo.link_url) {
+          <a
+            class="co-pill co-pill-link"
+            [href]="logo.link_url"
+            [attr.target]="logo.nova_aba ? '_blank' : null"
+            [attr.rel]="logo.nova_aba ? 'noopener noreferrer' : null"
+            [title]="logo.nome"
+          >
+            <div class="co-logo-slot">
+              <img
+                [src]="logo.imagem_url"
+                [alt]="logo.alt"
+                class="co-logo"
+                loading="lazy"
+              />
+            </div>
+          </a>
+        } @else {
+          <span class="co-pill" [title]="logo.nome">
+            <div class="co-logo-slot">
+              <img
+                [src]="logo.imagem_url"
+                [alt]="logo.alt"
+                class="co-logo"
+                loading="lazy"
+              />
+            </div>
+          </span>
+        }
       }
     </div>
   </div>
 
   <div class="bs-foot">
     © 2026 Grupo WTorre · Uso interno e confidencial<br />
-    CCO: Ramal 6673 TEL.: (11) 4800 - 6673
+    {{ suporteTexto() }}
   </div>
 </aside>

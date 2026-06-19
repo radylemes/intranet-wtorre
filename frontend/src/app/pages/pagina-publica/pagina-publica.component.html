@@ -1,0 +1,26 @@
+<div class="pagina">
+  <app-public-chrome>
+    @if (carregando()) {
+      <div class="page-head">
+        <p class="loading">Carregando página…</p>
+      </div>
+    } @else if (naoEncontrada()) {
+      <div class="page-head not-found">
+        <h1>Página não encontrada</h1>
+        <p>Esta página não existe ou ainda não foi publicada.</p>
+        <a routerLink="/inicio" class="btn-link">Voltar ao início</a>
+      </div>
+    } @else if (pagina(); as p) {
+      <div class="page-head">
+        <h1>{{ p.titulo }}</h1>
+        @if (p.descricao) {
+          <p class="descricao">{{ p.descricao }}</p>
+        }
+      </div>
+      <div class="conteudo">
+        <app-pagina-blocos-renderer [blocos]="p.blocos" [tituloPagina]="p.titulo" />
+      </div>
+    }
+  </app-public-chrome>
+  <app-footer />
+</div>

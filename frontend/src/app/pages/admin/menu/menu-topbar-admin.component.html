@@ -1,0 +1,154 @@
+<section class="card topbar-card admin-page">
+  <div class="card-head">
+    <div>
+      <h2>Barra superior (logos)</h2>
+      <p class="hint">Logos exibidos no topo da intranet e na tela de login</p>
+    </div>
+    <button type="button" class="btn-ghost btn-sm" (click)="adicionarLogo()">+ Adicionar logo</button>
+  </div>
+
+  @if (carregando()) {
+    <p class="loading-hint">Carregando...</p>
+  } @else {
+    <form class="card-body" [formGroup]="form" (ngSubmit)="salvar()">
+      <div class="field">
+        <label for="topbar-suporte">Texto CCO / suporte</label>
+        <input
+          id="topbar-suporte"
+          formControlName="suporte_texto"
+          type="text"
+          placeholder="CCO: Ramal 6673 TEL.: (11) 4800 - 6673"
+          [class.field-invalid]="campoInvalido(form.controls.suporte_texto)"
+        />
+        @if (campoInvalido(form.controls.suporte_texto)) {
+          <div class="field-error">{{ erroCampo(form.controls.suporte_texto) }}</div>
+        }
+      </div>
+
+      <div class="logos-list" formArrayName="logos">
+        @for (logoGroup of logosArray().controls; track $index; let li = $index) {
+          <div class="logo-row" [formGroupName]="li">
+            <div class="logo-row-head">
+              <span class="logo-num">Logo {{ li + 1 }}</span>
+              <div class="logo-row-actions">
+                <button
+                  type="button"
+                  class="btn-icon"
+                  title="Mover para cima"
+                  [disabled]="li === 0"
+                  (click)="moverLogo(li, -1)"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon"
+                  title="Mover para baixo"
+                  [disabled]="li === logosArray().length - 1"
+                  (click)="moverLogo(li, 1)"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon danger"
+                  title="Remover logo"
+                  (click)="removerLogo(li)"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div class="logo-fields">
+              <div class="field">
+                <label [for]="'logo-id-' + li">ID (slug)</label>
+                <input
+                  [id]="'logo-id-' + li"
+                  formControlName="id"
+                  type="text"
+                  placeholder="wtorre"
+                  [class.field-invalid]="campoInvalido(logoGroup.get('id'))"
+                />
+                @if (campoInvalido(logoGroup.get('id'))) {
+                  <div class="field-error">{{ erroCampo(logoGroup.get('id')) }}</div>
+                }
+              </div>
+              <div class="field">
+                <label [for]="'logo-nome-' + li">Nome</label>
+                <input
+                  [id]="'logo-nome-' + li"
+                  formControlName="nome"
+                  type="text"
+                  [class.field-invalid]="campoInvalido(logoGroup.get('nome'))"
+                />
+                @if (campoInvalido(logoGroup.get('nome'))) {
+                  <div class="field-error">{{ erroCampo(logoGroup.get('nome')) }}</div>
+                }
+              </div>
+              <div class="field">
+                <label [for]="'logo-alt-' + li">Texto alternativo (alt)</label>
+                <input [id]="'logo-alt-' + li" formControlName="alt" type="text" />
+              </div>
+              <div class="field">
+                <label [for]="'logo-url-' + li">URL externa</label>
+                <input
+                  [id]="'logo-url-' + li"
+                  formControlName="link_url"
+                  type="url"
+                  placeholder="https://..."
+                  [class.field-invalid]="campoInvalido(logoGroup.get('link_url'))"
+                />
+                @if (campoInvalido(logoGroup.get('link_url'))) {
+                  <div class="field-error">{{ erroCampo(logoGroup.get('link_url')) }}</div>
+                }
+              </div>
+              <div class="toggle-field">
+                <div>
+                  <div class="tt">Abrir em nova aba</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" formControlName="nova_aba" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="logo-imagem">
+              @if (logoGroup.get('imagem_url')?.value) {
+                <div class="logo-preview-slot">
+                  <img
+                    [src]="logoGroup.get('imagem_url')?.value"
+                    [alt]="logoGroup.get('alt')?.value || 'Preview'"
+                    class="logo-preview-img"
+                  />
+                </div>
+              }
+              <app-admin-dropzone
+                [disabled]="estaUploadando(logoGroup.get('id')?.value)"
+                hint="Arraste a imagem ou"
+                hintLink="clique para selecionar"
+                subhint="PNG, SVG ou JPG. Imagens grandes serão compactadas automaticamente (máx. 240×60 px)."
+                (fileSelected)="onLogoFile(li, $event)"
+              />
+              @if (campoInvalido(logoGroup.get('imagem_url'))) {
+                <div class="field-error">Imagem obrigatória.</div>
+              }
+              @if (estaUploadando(logoGroup.get('id')?.value)) {
+                <p class="upload-status">Enviando imagem...</p>
+              }
+            </div>
+          </div>
+        } @empty {
+          <p class="empty-hint">Nenhum logo cadastrado.</p>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="salvando()">
+          {{ salvando() ? 'Salvando...' : 'Salvar barra superior' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

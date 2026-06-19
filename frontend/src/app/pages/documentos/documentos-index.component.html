@@ -1,0 +1,99 @@
+<div class="pagina">
+  <app-public-chrome>
+    <section class="doc-section">
+      <div class="wrap">
+        <header class="page-head">
+          <p class="eyebrow">Repositórios</p>
+          <h1>Documentos</h1>
+          <p class="lead">Acesse os documentos organizados por categoria.</p>
+        </header>
+
+        @if (erro()) {
+          <div class="alert err">{{ erro() }}</div>
+        }
+
+        @if (carregando()) {
+          <p class="loading">Carregando categorias...</p>
+        } @else if (!categorias().length) {
+          <div class="empty">
+            <p>Nenhuma categoria disponível.</p>
+          </div>
+        } @else {
+          <div class="cat-grid">
+            @for (cat of categorias(); track cat.id) {
+              <a class="cat-card" [routerLink]="['/documentos', cat.slug]">
+                <span class="cat-icon" [attr.data-icon]="iconeCategoria(cat.icone)">
+                  @switch (iconeCategoria(cat.icone)) {
+                    @case ('shield') {
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    }
+                    @case ('file') {
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M8 4h6l4 4v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                        <path d="M14 4v4h4" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                      </svg>
+                    }
+                    @case ('brand') {
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6" />
+                        <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                      </svg>
+                    }
+                    @case ('cap') {
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M4 10l8-4 8 4-8 4-8-4zM6 12v4c0 1 2.5 2 6 2s6-1 6-2v-4"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    }
+                    @default {
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M3 7a2 2 0 012-2h5l2 2h9a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    }
+                  }
+                </span>
+                <div class="cat-body">
+                  <h2>{{ cat.nome }}</h2>
+                  @if (cat.descricao) {
+                    <p>{{ cat.descricao }}</p>
+                  }
+                  @if (cat.documentos_count != null && cat.documentos_count > 0) {
+                    <span class="cat-badge">{{ cat.documentos_count }} documento(s)</span>
+                  }
+                </div>
+                <span class="cat-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </span>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <app-footer />
+  </app-public-chrome>
+</div>

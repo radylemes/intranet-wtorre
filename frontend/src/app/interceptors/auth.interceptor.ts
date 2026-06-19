@@ -1,7 +1,6 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
-import { environment } from '../../environments/environment';
 import { AuthService } from '../services/auth.service';
 
 const PUBLIC_PATHS = [
@@ -14,13 +13,21 @@ const PUBLIC_PATHS = [
   '/assinaturas/config/',
 ];
 
+function isApiRequest(url: string): boolean {
+  return url.includes('/api/v1') || url.startsWith('/api/');
+}
+
 function isPublic(url: string): boolean {
-  if (!url.includes(environment.apiBaseUrl)) return true;
+  if (!isApiRequest(url)) return true;
   return PUBLIC_PATHS.some((p) => url.includes(p));
 }
 
 function usesGraphToken(url: string): boolean {
-  return url.includes(environment.apiBaseUrl) && url.includes('/assinaturas/me');
+  return isApiRequest(url) && url.includes('/assinaturas/me');
+}
+
+function shouldAttachToken(url: string): boolean {
+  return isApiRequest(url) && !isPublic(url) && !usesGraphToken(url);
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
@@ -28,7 +35,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   let request = req;
 
   const token = auth.getToken();
-  if (token && !isPublic(req.url) && !usesGraphToken(req.url)) {
+  if (token && shouldAttachToken(req.url)) {
     request = req.clone({
       setHeaders: { Authorization: `Bearer ${token}` },
     });

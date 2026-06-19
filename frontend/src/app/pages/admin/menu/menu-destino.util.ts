@@ -1,5 +1,5 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
-import { findPaginaInterna, isPaginaInternaConhecida } from '../../../data/paginas-internas';
+import { isPaginaInternaConhecida } from '../../../data/paginas-internas';
 
 export type TipoDestino = 'interna' | 'externa' | 'agrupador';
 
@@ -59,7 +59,7 @@ export function paginaInternaValidator(): ValidatorFn {
 
     const path = String(control.value ?? '').trim();
     if (!path) return { required: true };
-    if (!findPaginaInterna(path)) return { paginaDesconhecida: true };
+    if (!isPaginaInternaConhecida(path)) return { paginaDesconhecida: true };
     return null;
   };
 }
@@ -72,6 +72,34 @@ export function urlExternaValidator(): ValidatorFn {
 
     const url = String(control.value ?? '').trim();
     if (!url) return { required: true };
+    if (!URL_EXTERNA_REGEX.test(url)) return { urlInvalida: true };
+    return null;
+  };
+}
+
+/** Página interna opcional — destino vazio é permitido (ex.: rodapé). */
+export function paginaInternaOpcionalValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const parent = control.parent;
+    if (!parent) return null;
+    if (parent.get('tipo_destino')?.value !== 'interna') return null;
+
+    const path = String(control.value ?? '').trim();
+    if (!path) return null;
+    if (!isPaginaInternaConhecida(path)) return { paginaDesconhecida: true };
+    return null;
+  };
+}
+
+/** URL externa opcional — destino vazio é permitido; valida formato se preenchida. */
+export function urlExternaOpcionalValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const parent = control.parent;
+    if (!parent) return null;
+    if (parent.get('tipo_destino')?.value !== 'externa') return null;
+
+    const url = String(control.value ?? '').trim();
+    if (!url) return null;
     if (!URL_EXTERNA_REGEX.test(url)) return { urlInvalida: true };
     return null;
   };

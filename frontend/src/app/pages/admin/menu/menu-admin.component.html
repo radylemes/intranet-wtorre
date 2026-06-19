@@ -64,14 +64,19 @@
       }
     </div>
   </section>
+
+  <app-menu-topbar-admin />
 </div>
 
-<app-admin-drawer
-  [open]="drawerAberto()"
-  [title]="tituloDrawer()"
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="tituloModal()"
+  [subtitle]="subtituloModal()"
+  icon="folder"
   [salvando]="salvando()"
+  saveLabel="Salvar item"
   (save)="salvar()"
-  (cancel)="fecharDrawer()"
+  (cancel)="fecharModal()"
 >
   <form [formGroup]="form" (ngSubmit)="salvar()">
     <div class="field">
@@ -91,14 +96,14 @@
         <label for="menu-pagina">Página interna</label>
         <select id="menu-pagina" formControlName="pagina_interna">
           <option value="">Selecione uma página</option>
-          @for (pagina of paginasInternas; track pagina.path) {
+          @for (pagina of paginasInternas(); track pagina.path) {
             <option [value]="pagina.path">{{ pagina.label }}</option>
           }
         </select>
         @if (urlLegadoInterno()) {
-          <p class="hint warn">
+          <div class="help warn">
             Caminho atual não listado ({{ urlLegadoInterno() }}). Selecione uma página da lista.
-          </p>
+          </div>
         }
       </div>
     }
@@ -128,7 +133,9 @@
       <input id="menu-ordem" formControlName="ordem" type="number" min="0" />
     </div>
     <div class="field">
-      <label for="menu-icone">Ícone (opcional)</label>
+      <label for="menu-icone">
+        Ícone <span class="label-hint">· opcional</span>
+      </label>
       <input id="menu-icone" formControlName="icone" placeholder="nome-do-icone" />
     </div>
     <div class="field">
@@ -140,14 +147,26 @@
       </select>
     </div>
     @if (mostrarAbrirNovaAba()) {
-      <div class="check">
-        <input id="menu-nova-aba" type="checkbox" formControlName="abrir_nova_aba" />
-        <label for="menu-nova-aba">Abrir em nova aba</label>
+      <div class="toggle-field">
+        <div>
+          <div class="tt">Abrir em nova aba</div>
+          <div class="ts">Abre a página interna em uma nova aba do navegador</div>
+        </div>
+        <label class="switch">
+          <input id="menu-nova-aba" type="checkbox" formControlName="abrir_nova_aba" />
+          <span class="slider"></span>
+        </label>
       </div>
     }
-    <div class="check">
-      <input id="menu-ativo" type="checkbox" formControlName="ativo" />
-      <label for="menu-ativo">Ativo</label>
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Item ativo</div>
+        <div class="ts">Itens inativos não aparecem no menu da intranet</div>
+      </div>
+      <label class="switch">
+        <input id="menu-ativo" type="checkbox" formControlName="ativo" />
+        <span class="slider"></span>
+      </label>
     </div>
   </form>
-</app-admin-drawer>
+</app-admin-modal>

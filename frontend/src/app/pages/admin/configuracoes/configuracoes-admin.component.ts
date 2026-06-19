@@ -2,8 +2,9 @@ import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ConfiguracoesService } from '../../../services/configuracoes.service';
-import { PAGINAS_INTERNAS } from '../../../data/paginas-internas';
-import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast.service';
+import { DocumentosService } from '../../../services/documentos.service';
+import { PaginaInterna, buildPaginasInternasLista } from '../../../data/paginas-internas';
+import { AlertasService } from '../../../services/alertas.service';
 
 @Component({
   selector: 'app-configuracoes-admin',
@@ -14,10 +15,11 @@ import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast
 })
 export class ConfiguracoesAdminComponent implements OnInit {
   private readonly api = inject(ConfiguracoesService);
+  private readonly documentosService = inject(DocumentosService);
   private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(AdminToastService);
+  private readonly alertas = inject(AlertasService);
 
-  readonly paginasInternas = PAGINAS_INTERNAS;
+  readonly paginasInternas = signal<PaginaInterna[]>(buildPaginasInternasLista());
   readonly mensagem = signal('');
   readonly erro = signal('');
   readonly salvando = signal(false);
@@ -35,15 +37,20 @@ export class ConfiguracoesAdminComponent implements OnInit {
   constructor() {
     effect(() => {
       const msg = this.mensagem();
-      if (msg) this.toast.success(msg);
+      if (msg) this.alertas.sucesso(msg);
     });
     effect(() => {
       const err = this.erro();
-      if (err) this.toast.error(err);
+      if (err) this.alertas.erro(err);
     });
   }
 
   ngOnInit(): void {
+    this.documentosService.listarCategorias().subscribe({
+      next: (categorias) => this.paginasInternas.set(buildPaginasInternasLista(categorias)),
+      error: () => this.paginasInternas.set(buildPaginasInternasLista()),
+    });
+
     this.api.getAdmin().subscribe({
       next: ({ header_chamado: c }) => {
         const isInterna = c.tipo_destino === 'interna';

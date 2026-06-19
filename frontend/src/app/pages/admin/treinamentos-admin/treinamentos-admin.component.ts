@@ -2,7 +2,7 @@ import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
-import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast.service';
+import { AlertasService } from '../../../services/alertas.service';
 import { TreinamentosService } from '../../../services/treinamentos.service';
 import { ContainersService } from '../../../services/containers.service';
 import { TreinamentoAdmin } from '../../../models/treinamento.model';
@@ -24,7 +24,7 @@ export class TreinamentosAdminComponent implements OnInit {
   private readonly treinamentosService = inject(TreinamentosService);
   private readonly containersService = inject(ContainersService);
   private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(AdminToastService);
+  private readonly alertas = inject(AlertasService);
 
   readonly categorias = CATEGORIAS_LISTA;
   readonly treinamentos = signal<TreinamentoAdmin[]>([]);
@@ -53,11 +53,11 @@ export class TreinamentosAdminComponent implements OnInit {
   constructor() {
     effect(() => {
       const msg = this.mensagem();
-      if (msg) this.toast.success(msg);
+      if (msg) this.alertas.sucesso(msg);
     });
     effect(() => {
       const err = this.erro();
-      if (err) this.toast.error(err);
+      if (err) this.alertas.erro(err);
     });
   }
 
@@ -202,8 +202,11 @@ export class TreinamentosAdminComponent implements OnInit {
     });
   }
 
-  excluir(t: TreinamentoAdmin): void {
-    if (!confirm(`Remover o treinamento "${t.titulo}"? O vídeo será apagado do storage.`)) return;
+  async excluir(t: TreinamentoAdmin): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Remover o treinamento "${t.titulo}"? O vídeo será apagado do storage.`,
+    });
+    if (!ok) return;
     this.treinamentosService.remover(t.id).subscribe({
       next: () => {
         this.mensagem.set('Treinamento removido.');

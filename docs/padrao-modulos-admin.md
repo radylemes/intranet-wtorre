@@ -15,8 +15,11 @@ Toda tela admin é renderizada dentro de `<app-admin-layout>`. **Não duplicar**
 - **Grupos de links** com rótulo em maiúsculas/cinza. Grupos atuais:
   - `GESTÃO DE CONTEÚDO` → Gestão do Menu, Documentos, Treinamentos, Containers
   - `ACESSOS` → Tenants Azure, Perfis de Acesso, Gestão de Acessos
+  - `SISTEMA` → Configurações
 - Cada item: ícone + label. Item ativo destacado (fundo claro translúcido + texto/accent azul).
 - **Visibilidade por permissão:** cada link só aparece se `auth.hasModulo('<codigo>')` (ou `isAdmin()`). Itens do grupo `ACESSOS` de gestão (Perfis, Gestão de Acessos) só com `isAdmin()`.
+- **`temAcessoAdmin()`** (link "Administração" no header e guard de `/admin`): `isAdmin()` ou ao menos um módulo listado em `ADMIN_MODULO_ROTAS` — ou seja, módulo com rota admin.
+- **Módulo `colaboradores` (Sincronização AD):** existe no catálogo backend para gatear a ação de sync (`POST /colaboradores/sync`), mas **não** tem rota/link admin. A funcionalidade vive na página pública **Ramais & Contatos** (`hasModulo('colaboradores')` no botão de sync). Os GET `/colaboradores/*` permanecem JWT-only de propósito — alimentam o diretório visível a toda a empresa autenticada; o módulo não restringe a visualização, apenas a escrita.
 - Rodapé da sidebar: `← Voltar à intranet`, card do usuário (avatar + nome + "Perfil ADMIN"/perfil) e botão **Sair**.
 
 ### Conteúdo (claro)

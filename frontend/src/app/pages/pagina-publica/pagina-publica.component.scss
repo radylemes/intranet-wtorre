@@ -1,0 +1,62 @@
+.pagina {
+  min-height: 100vh;
+  background: var(--bg, #f4f5f8);
+}
+
+.page-head {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 24px 16px;
+}
+
+.page-head h1 {
+  font-family: 'Archivo', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink, #10151f);
+}
+
+.descricao {
+  margin-top: 10px;
+  font-size: 16px;
+  color: var(--ink-soft, #48536a);
+  line-height: 1.5;
+}
+
+.conteudo {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 8px 24px 48px;
+}
+
+.loading {
+  color: var(--ink-dim, #8a93a8);
+  font-size: 15px;
+}
+
+.not-found {
+  text-align: center;
+  padding: 64px 24px;
+}
+
+.not-found h1 {
+  font-size: 28px;
+}
+
+.not-found p {
+  margin-top: 12px;
+  color: var(--ink-soft, #48536a);
+}
+
+.btn-link {
+  display: inline-block;
+  margin-top: 20px;
+  color: var(--wtorre, #2f6bff);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}

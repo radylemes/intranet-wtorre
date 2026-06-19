@@ -11,8 +11,9 @@ async function main() {
   const failures = [];
 
   const modulos = permissoesService.listarModulosCatalogo();
-  if (modulos.length !== 6) {
-    failures.push(`Esperado 6 módulos no catálogo, obteve ${modulos.length}`);
+  const totalModulos = todosCodigos().length;
+  if (modulos.length !== totalModulos) {
+    failures.push(`Esperado ${totalModulos} módulos no catálogo, obteve ${modulos.length}`);
   }
 
   const admin = await usersRepo.findByEmail(process.env.ADMIN_EMAIL || 'admin@grupowtorre.com');
@@ -20,8 +21,18 @@ async function main() {
     failures.push('Admin seed não encontrado');
   } else {
     const adminMods = await permissoesService.resolveModulos(admin);
-    if (adminMods.length !== todosCodigos().length) {
-      failures.push(`ADMIN deveria ter todos os módulos (${todosCodigos().length}), obteve ${adminMods.length}`);
+    if (adminMods.length !== totalModulos) {
+      failures.push(`ADMIN deveria ter todos os módulos (${totalModulos}), obteve ${adminMods.length}`);
+    }
+
+    const lista = await usersRepo.listComPermissoes();
+    if (!lista.some((u) => u.id === admin.id && u.perfil === 'ADMIN')) {
+      failures.push('listComPermissoes deveria incluir usuários ADMIN');
+    }
+
+    const outrosAdmins = await usersRepo.countAdminsAtivos(admin.id);
+    if (typeof outrosAdmins !== 'number') {
+      failures.push('countAdminsAtivos deveria retornar número');
     }
   }
 
@@ -73,6 +84,31 @@ async function main() {
     failures.push('setAtivo(false) não funcionou');
   }
 
+  await usersRepo.setAtivo(testUser.id, true);
+  const promovido = await usersRepo.setPerfil(testUser.id, 'ADMIN');
+  const modsAdmin = await permissoesService.resolveModulos(promovido);
+  if (modsAdmin.length !== totalModulos) {
+    failures.push(`USER promovido a ADMIN deveria ter ${totalModulos} módulos, obteve ${modsAdmin.length}`);
+  }
+
+  await usersRepo.setPerfil(testUser.id, 'USER');
+  const rebaixado = await usersRepo.findById(testUser.id);
+  const modsRebaixado = await permissoesService.resolveModulos(rebaixado);
+  if (!modsRebaixado.includes('menu') || !modsRebaixado.includes('documentos')) {
+    failures.push('ADMIN rebaixado deveria restaurar módulos dos perfis RBAC');
+  }
+
+  if (admin) {
+    const totalAdmins = await usersRepo.countAdminsAtivos();
+    if (totalAdmins < 1) {
+      failures.push('Deveria haver pelo menos 1 ADMIN ativo');
+    }
+    const excluindoSeed = await usersRepo.countAdminsAtivos(admin.id);
+    if (totalAdmins === 1 && excluindoSeed !== 0) {
+      failures.push('Único ADMIN ativo: countAdminsAtivos(excludeId) deveria ser 0');
+    }
+  }
+
   const vinculados = await permissoesRepo.contarUsuariosDoPerfil(perfil.id);
   if (vinculados < 1) {
     failures.push('contarUsuariosDoPerfil deveria ser >= 1');
@@ -92,7 +128,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('SMOKE OK: catálogo, ADMIN short-circuit, perfil.ativo filtro, resolução, contagem');
+  console.log('SMOKE OK: catálogo, ADMIN short-circuit, perfil.ativo filtro, resolução, contagem, promoção/rebaixamento');
 }
 
 main().catch((err) => {

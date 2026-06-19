@@ -52,6 +52,10 @@
     font-size: 0.8rem;
     color: var(--ink-dim, #666);
   }
+
+  &.toggle-field {
+    margin-bottom: 0;
+  }
 }
 
 .checks {
@@ -64,6 +68,16 @@
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+}
+
+.super-admin-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #1a3a5c;
+  color: #fff;
 }
 
 .small {

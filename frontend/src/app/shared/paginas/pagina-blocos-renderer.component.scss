@@ -1,0 +1,82 @@
+.pagina-render {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.bloco-texto .bloco-titulo {
+  font-family: 'Archivo', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--ink, #10151f);
+}
+
+.rich ::ng-deep p {
+  margin: 0 0 0.75em;
+  line-height: 1.6;
+  color: var(--ink-soft, #48536a);
+}
+
+.rich ::ng-deep h3,
+.rich ::ng-deep h4 {
+  font-family: 'Archivo', sans-serif;
+  margin: 1em 0 0.5em;
+  color: var(--ink, #10151f);
+}
+
+.bloco-imagem img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  display: block;
+}
+
+.bloco-imagem figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-dim, #8a93a8);
+  text-align: center;
+}
+
+.bloco-botao.align-left {
+  text-align: left;
+}
+
+.bloco-botao.align-center {
+  text-align: center;
+}
+
+.bloco-botao.align-right {
+  text-align: right;
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn-primario {
+  background: var(--wtorre, #2f6bff);
+  color: #fff;
+}
+
+.btn-secundario {
+  background: var(--ink, #10151f);
+  color: #fff;
+}
+
+.btn-fantasma {
+  background: transparent;
+  border: 1px solid var(--line-solid, #e2e6ee);
+  color: var(--ink-soft, #48536a);
+}

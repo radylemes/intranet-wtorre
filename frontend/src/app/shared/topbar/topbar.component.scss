@@ -12,6 +12,7 @@
   align-items: center;
   justify-content: flex-end;
   min-height: 46px;
+  height: 46px;
   padding: 6px 0;
   font-size: 12.5px;
   color: var(--ink-dim);
@@ -25,41 +26,39 @@
   align-items: center;
   justify-content: center;
   gap: 24px;
+  height: 30px;
   padding: 0 12px;
   max-width: calc(100% - 280px);
+  overflow: hidden;
+}
+
+.grupo-logo-link {
+  display: flex;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.grupo-logo-slot {
+  width: 120px;
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .grupo-logo {
-  height: 24px;
-  width: auto;
-  max-width: 120px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  object-position: center;
   opacity: 0.92;
   transition: opacity 0.2s;
 }
 
-.grupo-logo.logo-wtorre {
-  height: 20px;
-  max-width: 150px;
-  filter: invert(1);
-}
-
-.grupo-logo.logo-nubank {
-  height: 22px;
-  max-width: 130px;
-}
-
-.grupo-logo.logo-base {
-  height: 28px;
-  max-width: 70px;
-}
-
-.grupo-logo.logo-novo {
-  height: 30px;
-  max-width: 110px;
-}
-
-.grupo-logo:hover {
+.grupo-logo-slot:hover .grupo-logo,
+.grupo-logo-link:hover .grupo-logo {
   opacity: 1;
 }
 
@@ -76,24 +75,9 @@
     max-width: calc(100% - 220px);
   }
 
-  .grupo-logo.logo-wtorre {
-    height: 16px;
-    max-width: 120px;
-  }
-
-  .grupo-logo.logo-nubank {
-    height: 18px;
-    max-width: 100px;
-  }
-
-  .grupo-logo.logo-base {
-    height: 22px;
-    max-width: 56px;
-  }
-
-  .grupo-logo.logo-novo {
+  .grupo-logo-slot {
+    width: 100px;
     height: 24px;
-    max-width: 88px;
   }
 }
 

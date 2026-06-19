@@ -11,12 +11,11 @@ import { filter, map } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { LogoWComponent } from '../../logo-w/logo-w.component';
 import { AuthService } from '../../../services/auth.service';
-import { AdminToastComponent } from '../admin-toast/admin-toast.component';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoWComponent, AdminToastComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoWComponent],
   templateUrl: './admin-layout.component.html',
   styleUrl: './admin-layout.component.scss',
 })

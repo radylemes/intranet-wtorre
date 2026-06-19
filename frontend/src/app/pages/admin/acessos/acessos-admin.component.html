@@ -59,7 +59,13 @@
               <tr>
                 <td><strong>{{ u.nome_completo }}</strong></td>
                 <td>{{ u.email }}</td>
-                <td>{{ u.perfis.map(p => p.nome).join(', ') || '—' }}</td>
+                <td>
+                  @if (u.perfil === 'ADMIN') {
+                    <span class="super-admin-badge">Super Admin</span>
+                  } @else {
+                    {{ perfisLabel(u) }}
+                  }
+                </td>
                 <td class="mono small">{{ modulosLabel(u) }}</td>
                 <td>
                   <span class="status-badge" [class.on]="u.ativo" [class.off]="!u.ativo">
@@ -67,7 +73,17 @@
                   </span>
                 </td>
                 <td>
-                  <button type="button" class="btn-ghost btn-sm" (click)="abrirUsuario(u)">Editar</button>
+                  <div class="row-actions">
+                    <button type="button" class="btn-ghost btn-sm" (click)="abrirUsuario(u)">Editar</button>
+                    <button
+                      type="button"
+                      class="iconbtn del"
+                      title="Excluir"
+                      (click)="excluir(u)"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </td>
               </tr>
             }
@@ -86,38 +102,58 @@
   (save)="salvar()"
   (cancel)="fecharDrawer()"
 >
-  <div class="drawer-section">
-    <h3>Perfis</h3>
-    <div class="checks">
-      @for (p of perfis(); track p.id) {
-        <label class="check-row">
-          <input
-            type="checkbox"
-            [checked]="perfisSelecionados().includes(p.id)"
-            (change)="togglePerfil(p.id)"
-          />
-          <span>{{ p.nome }}</span>
-        </label>
-      }
+  <div class="drawer-section toggle-field">
+    <div>
+      <div class="tt">Super Admin</div>
+      <div class="ts">
+        Acesso total à administração, incluindo Gestão de Perfis e Gestão de Acessos.
+        O usuário promovido precisa fazer login novamente para ver as novas permissões.
+      </div>
     </div>
+    <label class="switch">
+      <input
+        type="checkbox"
+        [ngModel]="isSuperAdmin()"
+        (ngModelChange)="isSuperAdmin.set($event)"
+      />
+      <span class="slider"></span>
+    </label>
   </div>
 
-  <div class="drawer-section">
-    <h3>Módulos extras</h3>
-    <p class="hint">Somados aos módulos dos perfis selecionados.</p>
-    <div class="checks">
-      @for (m of modulos(); track m.codigo) {
-        <label class="check-row">
-          <input
-            type="checkbox"
-            [checked]="modulosExtra().includes(m.codigo)"
-            (change)="toggleModuloExtra(m.codigo)"
-          />
-          <span>{{ m.nome }}</span>
-        </label>
-      }
+  @if (!isSuperAdmin()) {
+    <div class="drawer-section">
+      <h3>Perfis</h3>
+      <div class="checks">
+        @for (p of perfis(); track p.id) {
+          <label class="check-row">
+            <input
+              type="checkbox"
+              [checked]="perfisSelecionados().includes(p.id)"
+              (change)="togglePerfil(p.id)"
+            />
+            <span>{{ p.nome }}</span>
+          </label>
+        }
+      </div>
     </div>
-  </div>
+
+    <div class="drawer-section">
+      <h3>Módulos extras</h3>
+      <p class="hint">Somados aos módulos dos perfis selecionados.</p>
+      <div class="checks">
+        @for (m of modulos(); track m.codigo) {
+          <label class="check-row">
+            <input
+              type="checkbox"
+              [checked]="modulosExtra().includes(m.codigo)"
+              (change)="toggleModuloExtra(m.codigo)"
+            />
+            <span>{{ m.nome }}</span>
+          </label>
+        }
+      </div>
+    </div>
+  }
 
   <div class="drawer-section toggle-field">
     <div>

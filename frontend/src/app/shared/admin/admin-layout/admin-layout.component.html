@@ -8,7 +8,7 @@
       </div>
     </div>
 
-    @if (auth.isAdmin() || auth.hasModulo('menu') || auth.hasModulo('documentos') || auth.hasModulo('treinamentos') || auth.hasModulo('containers')) {
+    @if (auth.isAdmin() || auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('documentos') || auth.hasModulo('treinamentos') || auth.hasModulo('containers') || auth.hasModulo('paginas')) {
       <div class="nav-group-label">Gestão de conteúdo</div>
       <nav class="sidebar-nav">
         @if (auth.hasModulo('menu')) {
@@ -22,6 +22,15 @@
               />
             </svg>
             Gestão do Menu
+          </a>
+        }
+        @if (auth.hasModulo('rodape')) {
+          <a routerLink="/admin/rodape" routerLinkActive="active" (click)="closeSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="16" width="18" height="4" rx="1" stroke="currentColor" stroke-width="2" />
+              <path d="M7 12h10M7 8h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Rodapé
           </a>
         }
         @if (auth.hasModulo('documentos')) {
@@ -60,6 +69,19 @@
             Containers
           </a>
         }
+        @if (auth.hasModulo('paginas')) {
+          <a routerLink="/admin/paginas" routerLinkActive="active" (click)="closeSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M6 4h12a2 2 0 012 2v14l-4-3-4 3-4-3-4 3V6a2 2 0 012-2z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Páginas
+          </a>
+        }
       </nav>
     }
 
@@ -91,6 +113,19 @@
             Gestão de Acessos
           </a>
         }
+      </nav>
+    }
+
+    @if (auth.hasModulo('camarotes')) {
+      <div class="nav-group-label">Operações</div>
+      <nav class="sidebar-nav">
+        <a routerLink="/admin/camarotes" routerLinkActive="active" (click)="closeSidebar()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" />
+            <path d="M7 9h10M7 13h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Gestão de Camarotes
+        </a>
       </nav>
     }
 
@@ -157,5 +192,3 @@
     </main>
   </div>
 </div>
-
-<app-admin-toast />

@@ -4,7 +4,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { AzureTenant } from '../../../models/usuario.model';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
-import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast.service';
+import { AlertasService } from '../../../services/alertas.service';
 
 @Component({
   selector: 'app-tenants-admin',
@@ -16,7 +16,7 @@ import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast
 export class TenantsAdminComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
-  private readonly toast = inject(AdminToastService);
+  private readonly alertas = inject(AlertasService);
 
   readonly tenants = signal<AzureTenant[]>([]);
   readonly mensagem = signal('');
@@ -38,11 +38,11 @@ export class TenantsAdminComponent implements OnInit {
   constructor() {
     effect(() => {
       const msg = this.mensagem();
-      if (msg) this.toast.success(msg);
+      if (msg) this.alertas.sucesso(msg);
     });
     effect(() => {
       const err = this.erro();
-      if (err) this.toast.error(err);
+      if (err) this.alertas.erro(err);
     });
   }
 
@@ -130,8 +130,11 @@ export class TenantsAdminComponent implements OnInit {
     });
   }
 
-  excluir(t: AzureTenant): void {
-    if (!confirm(`Excluir tenant "${t.nome}"?`)) return;
+  async excluir(t: AzureTenant): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Excluir tenant "${t.nome}"?`,
+    });
+    if (!ok) return;
     this.http.delete(`${environment.apiBaseUrl}/tenants/${t.id}`).subscribe({
       next: () => {
         this.mensagem.set('Tenant removido.');

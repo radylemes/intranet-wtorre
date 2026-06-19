@@ -1,9 +1,9 @@
 import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, of, Observable } from 'rxjs';
 import { AdminDrawerComponent } from '../../../shared/admin/admin-drawer/admin-drawer.component';
-import { AdminToastService } from '../../../shared/admin/admin-toast/admin-toast.service';
+import { AlertasService } from '../../../services/alertas.service';
 import { PerfisAcessoService } from '../../../services/perfis-acesso.service';
 import {
   ColaboradorBusca,
@@ -21,7 +21,7 @@ import {
 })
 export class AcessosAdminComponent implements OnInit {
   private readonly api = inject(PerfisAcessoService);
-  private readonly toast = inject(AdminToastService);
+  private readonly alertas = inject(AlertasService);
   private readonly busca$ = new Subject<string>();
 
   readonly usuarios = signal<UsuarioAcesso[]>([]);
@@ -39,15 +39,16 @@ export class AcessosAdminComponent implements OnInit {
   readonly perfisSelecionados = signal<number[]>([]);
   readonly modulosExtra = signal<string[]>([]);
   readonly usuarioAtivo = signal(true);
+  readonly isSuperAdmin = signal(false);
 
   constructor() {
     effect(() => {
       const msg = this.mensagem();
-      if (msg) this.toast.success(msg);
+      if (msg) this.alertas.sucesso(msg);
     });
     effect(() => {
       const err = this.erro();
-      if (err) this.toast.error(err);
+      if (err) this.alertas.erro(err);
     });
   }
 
@@ -98,6 +99,7 @@ export class AcessosAdminComponent implements OnInit {
       this.perfisSelecionados.set([]);
       this.modulosExtra.set([]);
       this.usuarioAtivo.set(true);
+      this.isSuperAdmin.set(false);
       this.drawerAberto.set(true);
     }
   }
@@ -112,6 +114,7 @@ export class AcessosAdminComponent implements OnInit {
     this.perfisSelecionados.set(u.perfis.map((p) => p.id));
     this.modulosExtra.set([...u.modulos_extra]);
     this.usuarioAtivo.set(u.ativo);
+    this.isSuperAdmin.set(u.perfil === 'ADMIN');
     this.drawerAberto.set(true);
   }
 
@@ -137,41 +140,83 @@ export class AcessosAdminComponent implements OnInit {
     const u = this.editando();
     const colab = this.colaboradorNovo();
     const id = u?.id ?? 0;
+    const eraSuperAdmin = u?.perfil === 'ADMIN';
+    const querSuperAdmin = this.isSuperAdmin();
 
     this.salvando.set(true);
-    this.api
-      .salvarUsuario(id, {
-        perfil_ids: this.perfisSelecionados(),
-        modulos_extra: this.modulosExtra(),
+
+    this.executarSalvamento(id, colab, eraSuperAdmin, querSuperAdmin).subscribe({
+      next: (salvo) => {
+        if (salvo.id && salvo.ativo !== this.usuarioAtivo()) {
+          this.api.patchAtivo(salvo.id, this.usuarioAtivo()).subscribe({
+            next: () => this.finalizarSalvamento(),
+            error: (err: HttpErrorResponse) => {
+              this.erro.set(err.error?.mensagem || 'Erro ao atualizar status.');
+              this.salvando.set(false);
+            },
+          });
+        } else {
+          this.finalizarSalvamento();
+        }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao salvar acessos.');
+        this.salvando.set(false);
+      },
+    });
+  }
+
+  private executarSalvamento(
+    id: number,
+    colab: ColaboradorBusca | null,
+    eraSuperAdmin: boolean,
+    querSuperAdmin: boolean
+  ): Observable<UsuarioAcesso> {
+    const provisionar = (): Observable<UsuarioAcesso> => {
+      if (id > 0) {
+        return of(this.editando()!);
+      }
+      return this.api.salvarUsuario(0, {
+        perfil_ids: querSuperAdmin ? [] : this.perfisSelecionados(),
+        modulos_extra: querSuperAdmin ? [] : this.modulosExtra(),
         colaborador_id: colab?.id,
-      })
-      .subscribe({
-        next: (salvo) => {
-          if (salvo.id && salvo.ativo !== this.usuarioAtivo()) {
-            this.api.patchAtivo(salvo.id, this.usuarioAtivo()).subscribe({
-              next: () => {
-                this.mensagem.set('Acessos salvos.');
-                this.fecharDrawer();
-                this.carregar();
-                this.salvando.set(false);
-              },
-              error: (err: HttpErrorResponse) => {
-                this.erro.set(err.error?.mensagem || 'Erro ao atualizar status.');
-                this.salvando.set(false);
-              },
-            });
-          } else {
-            this.mensagem.set('Acessos salvos.');
-            this.fecharDrawer();
-            this.carregar();
-            this.salvando.set(false);
-          }
-        },
-        error: (err: HttpErrorResponse) => {
-          this.erro.set(err.error?.mensagem || 'Erro ao salvar acessos.');
-          this.salvando.set(false);
-        },
       });
+    };
+
+    if (querSuperAdmin) {
+      return provisionar().pipe(
+        switchMap((salvo) => {
+          if (!eraSuperAdmin || salvo.perfil !== 'ADMIN') {
+            return this.api.patchPerfil(salvo.id, 'ADMIN');
+          }
+          return of(salvo);
+        })
+      );
+    }
+
+    if (eraSuperAdmin) {
+      return this.api.patchPerfil(id, 'USER').pipe(
+        switchMap((salvo) =>
+          this.api.salvarUsuario(salvo.id, {
+            perfil_ids: this.perfisSelecionados(),
+            modulos_extra: this.modulosExtra(),
+          })
+        )
+      );
+    }
+
+    return this.api.salvarUsuario(id, {
+      perfil_ids: this.perfisSelecionados(),
+      modulos_extra: this.modulosExtra(),
+      colaborador_id: colab?.id,
+    });
+  }
+
+  private finalizarSalvamento(): void {
+    this.mensagem.set('Acessos salvos.');
+    this.fecharDrawer();
+    this.carregar();
+    this.salvando.set(false);
   }
 
   drawerTitulo(): string {
@@ -181,7 +226,32 @@ export class AcessosAdminComponent implements OnInit {
   }
 
   modulosLabel(u: UsuarioAcesso): string {
+    if (u.perfil === 'ADMIN') return 'Todos os módulos';
     if (!u.modulos.length) return '—';
     return u.modulos.join(', ');
+  }
+
+  perfisLabel(u: UsuarioAcesso): string {
+    if (u.perfil === 'ADMIN') return 'Super Admin';
+    if (!u.perfis.length) return '—';
+    return u.perfis.map((p) => p.nome).join(', ');
+  }
+
+  async excluir(u: UsuarioAcesso): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Excluir o usuário "${u.nome_completo}"? Esta ação não pode ser desfeita.`,
+    });
+    if (!ok) return;
+    this.api.excluirUsuario(u.id).subscribe({
+      next: () => {
+        if (this.editando()?.id === u.id) {
+          this.fecharDrawer();
+        }
+        this.mensagem.set('Usuário excluído.');
+        this.carregar();
+      },
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao excluir usuário.'),
+    });
   }
 }

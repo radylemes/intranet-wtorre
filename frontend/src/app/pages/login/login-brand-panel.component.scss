@@ -117,44 +117,27 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
+.co-pill-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.co-logo-slot {
+  width: 120px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
 .co-logo {
   display: block;
-  height: 22px;
-  width: auto;
-  max-width: 120px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-}
-
-.co-pill.pill-wtorre .co-logo {
-  height: 20px;
-  max-width: 110px;
-}
-
-.co-pill.pill-nubank {
-  border-color: rgba(177, 77, 255, 0.3);
-}
-
-.co-pill.pill-nubank .co-logo {
-  height: 20px;
-  max-width: 110px;
-}
-
-.co-pill.pill-base {
-  border-color: rgba(25, 182, 201, 0.3);
-}
-
-.co-pill.pill-base .co-logo {
-  height: 22px;
-  max-width: 130px;
-}
-
-.co-pill.pill-novo {
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.co-pill.pill-novo .co-logo {
-  height: 28px;
-  max-width: 100px;
+  object-position: center;
 }
 
 .bs-foot {

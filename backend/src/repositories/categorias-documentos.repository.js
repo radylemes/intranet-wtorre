@@ -17,8 +17,16 @@ function mapCategoria(row) {
   };
 }
 
+function sumDescendantCounts(node) {
+  let total = node.documentos_count ?? 0;
+  for (const child of node.children || []) {
+    total += sumDescendantCounts(child);
+  }
+  return total;
+}
+
 function buildTree(rows, options = {}) {
-  const { filterActive = false, includeAdminFields = false } = options;
+  const { filterActive = false, includeAdminFields = false, includeRootCounts = false } = options;
   const filtered = rows.filter((row) => !(filterActive && !row.ativo));
 
   const byId = new Map();
@@ -43,18 +51,22 @@ function buildTree(rows, options = {}) {
   };
   sortChildren(roots);
 
-  const formatNodes = (items) =>
+  const formatNodes = (items, isRootLevel = false) =>
     items.map(({ parent_id, ativo, children, documentos_count, ...rest }) => {
-      const node = { ...rest, children: formatNodes(children || []) };
+      const childNodes = formatNodes(children || [], false);
+      const node = { ...rest, children: childNodes };
       if (includeAdminFields) {
         node.ativo = ativo;
         node.parent_id = parent_id;
         if (documentos_count != null) node.documentos_count = documentos_count;
+      } else if (includeRootCounts && isRootLevel) {
+        const withChildren = { ...node, documentos_count: documentos_count ?? 0, children: childNodes };
+        node.documentos_count = sumDescendantCounts(withChildren);
       }
       return node;
     });
 
-  return formatNodes(roots);
+  return formatNodes(roots, true);
 }
 
 async function findAllFlat(includeCounts = false) {

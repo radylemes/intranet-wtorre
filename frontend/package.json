@@ -21,6 +21,7 @@
     "@azure/msal-angular": "^5.2.5",
     "@azure/msal-browser": "^5.11.0",
     "rxjs": "~7.8.0",
+    "sweetalert2": "^11.26.25",
     "tslib": "^2.3.0"
   },
   "devDependencies": {

@@ -7,10 +7,13 @@ const PAGINAS_INTERNAS = [
   { path: '/assinaturas', label: 'Assinaturas de E-mail' },
 ];
 
+const DOCUMENTOS_PATH_REGEX = /^\/documentos(\/[a-z0-9-]+)?$/;
+const PAGINA_PUBLICA_REGEX = /^\/p\/[a-z0-9-]+$/;
+
 const PATHS = new Set(PAGINAS_INTERNAS.map((p) => p.path));
 
 function isPaginaInterna(path) {
-  return PATHS.has(path);
+  return PATHS.has(path) || DOCUMENTOS_PATH_REGEX.test(path) || PAGINA_PUBLICA_REGEX.test(path);
 }
 
 module.exports = { PAGINAS_INTERNAS, isPaginaInterna };
