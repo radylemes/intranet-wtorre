@@ -1,33 +1,41 @@
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 import { AlertasService } from '../../../services/alertas.service';
 import { CamarotesService } from '../../../services/camarotes.service';
+import { PerfisAcessoService } from '../../../services/perfis-acesso.service';
 import {
   CamarotesConfig,
-  CamarotesDashboard,
   CamarotesSyncLog,
+  CamarotesVisualizador,
 } from '../../../models/camarote.model';
+import { ColaboradorBusca } from '../../../models/perfil-acesso.model';
 
 @Component({
   selector: 'app-camarotes-admin',
   standalone: true,
-  imports: [FormsModule, DatePipe, DecimalPipe],
+  imports: [FormsModule, DatePipe],
   templateUrl: './camarotes-admin.component.html',
   styleUrl: './camarotes-admin.component.scss',
 })
 export class CamarotesAdminComponent implements OnInit {
   private readonly camarotesService = inject(CamarotesService);
+  private readonly perfisService = inject(PerfisAcessoService);
   private readonly alertas = inject(AlertasService);
+  private readonly busca$ = new Subject<string>();
 
-  readonly dashboard = signal<CamarotesDashboard | null>(null);
   readonly config = signal<CamarotesConfig | null>(null);
   readonly syncLogs = signal<CamarotesSyncLog[]>([]);
+  readonly visualizadores = signal<CamarotesVisualizador[]>([]);
+  readonly resultadosBusca = signal<ColaboradorBusca[]>([]);
+  readonly buscaTexto = signal('');
   readonly carregando = signal(false);
   readonly sincronizando = signal(false);
   readonly salvandoConfig = signal(false);
   readonly enviando = signal(false);
+  readonly adicionandoVisualizador = signal(false);
   readonly mensagem = signal('');
   readonly erro = signal('');
 
@@ -35,11 +43,11 @@ export class CamarotesAdminComponent implements OnInit {
   readonly diasVenceBreve = signal(90);
   readonly cadencia = signal<'diaria' | 'semanal'>('diaria');
   readonly envioAtivo = signal(true);
-
-  readonly setores = ['Oeste', 'Norte', 'Leste', 'Sul'];
+  readonly syncAutomatica = signal(true);
+  readonly syncFrequencia = signal<'1h' | '6h' | '12h' | '24h' | 'semanal'>('24h');
 
   readonly ultimaSyncLabel = computed(() => {
-    const d = this.dashboard()?.ultima_sync;
+    const d = this.config()?.ultima_sync;
     return d ? new Date(d).toLocaleString('pt-BR') : 'Nunca sincronizado';
   });
 
@@ -56,15 +64,23 @@ export class CamarotesAdminComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregarTudo();
+
+    this.busca$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((q) =>
+          q.trim().length >= 2 ? this.perfisService.buscarColaboradores(q.trim()) : of([])
+        )
+      )
+      .subscribe({
+        next: (list) => this.resultadosBusca.set(list),
+        error: () => this.erro.set('Erro na busca de colaboradores.'),
+      });
   }
 
   carregarTudo(): void {
     this.carregando.set(true);
-    this.camarotesService.dashboard().subscribe({
-      next: (d) => this.dashboard.set(d),
-      error: (err: HttpErrorResponse) =>
-        this.erro.set(err.error?.mensagem || 'Erro ao carregar dashboard.'),
-    });
     this.camarotesService.obterConfig().subscribe({
       next: (c) => {
         this.config.set(c);
@@ -72,19 +88,77 @@ export class CamarotesAdminComponent implements OnInit {
         this.diasVenceBreve.set(c.dias_vence_breve);
         this.cadencia.set(c.cadencia);
         this.envioAtivo.set(c.envio_ativo);
+        this.syncAutomatica.set(c.sync_automatica ?? true);
+        this.syncFrequencia.set(c.sync_frequencia ?? '24h');
       },
-      error: () => {},
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar configuração.'),
     });
     this.camarotesService.syncLog().subscribe({
       next: (logs) => this.syncLogs.set(logs),
-      error: () => {},
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar histórico de sincronizações.'),
+    });
+    this.camarotesService.listarVisualizadores().subscribe({
+      next: (lista) => this.visualizadores.set(lista),
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar visualizadores.'),
       complete: () => this.carregando.set(false),
     });
   }
 
-  moeda(valor: number | null | undefined): string {
-    if (valor == null) return '—';
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  onBuscaInput(valor: string): void {
+    this.buscaTexto.set(valor);
+    this.busca$.next(valor);
+  }
+
+  adicionarVisualizador(colab: ColaboradorBusca): void {
+    if (!colab.email) {
+      this.erro.set('Colaborador sem e-mail não pode receber acesso.');
+      return;
+    }
+
+    const email = colab.email.toLowerCase();
+    const jaExiste = this.visualizadores().some((v) => v.email.toLowerCase() === email);
+    if (jaExiste) {
+      this.erro.set('Este colaborador já possui acesso de visualização.');
+      return;
+    }
+
+    this.adicionandoVisualizador.set(true);
+    this.camarotesService.adicionarVisualizador({ colaborador_id: colab.id }).subscribe({
+      next: (v) => {
+        this.visualizadores.update((lista) =>
+          [...lista, v].sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR'))
+        );
+        this.buscaTexto.set('');
+        this.resultadosBusca.set([]);
+        this.mensagem.set(`${v.nome_completo} adicionado como visualizador.`);
+        this.adicionandoVisualizador.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao adicionar visualizador.');
+        this.adicionandoVisualizador.set(false);
+      },
+    });
+  }
+
+  async removerVisualizador(v: CamarotesVisualizador): Promise<void> {
+    const ok = await this.alertas.confirmar({
+      titulo: 'Remover visualizador',
+      texto: `Remover o acesso de ${v.nome_completo}?`,
+      confirmar: 'Remover',
+    });
+    if (!ok) return;
+
+    this.camarotesService.removerVisualizador(v.usuario_id).subscribe({
+      next: () => {
+        this.visualizadores.update((lista) => lista.filter((x) => x.usuario_id !== v.usuario_id));
+        this.mensagem.set('Visualizador removido.');
+      },
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao remover visualizador.'),
+    });
   }
 
   async sincronizar(): Promise<void> {
@@ -123,13 +197,14 @@ export class CamarotesAdminComponent implements OnInit {
         dias_vence_breve: this.diasVenceBreve(),
         cadencia: this.cadencia(),
         envio_ativo: this.envioAtivo(),
+        sync_automatica: this.syncAutomatica(),
+        sync_frequencia: this.syncFrequencia(),
       })
       .subscribe({
         next: (c) => {
           this.config.set(c);
           this.mensagem.set('Configuração salva.');
           this.salvandoConfig.set(false);
-          this.carregarTudo();
         },
         error: (err: HttpErrorResponse) => {
           this.erro.set(err.error?.mensagem || 'Erro ao salvar configuração.');
@@ -184,27 +259,5 @@ export class CamarotesAdminComponent implements OnInit {
         this.enviando.set(false);
       },
     });
-  }
-
-  numerosSetor(dashboard: CamarotesDashboard, setor: string): string {
-    const bloco = dashboard.camarotes.disponiveis_por_setor?.[setor];
-    if (!bloco?.numeros?.length) return '—';
-    return bloco.numeros.join(', ');
-  }
-
-  totalSetor(dashboard: CamarotesDashboard, setor: string): number {
-    return dashboard.camarotes.disponiveis_por_setor?.[setor]?.total ?? 0;
-  }
-
-  tiposCessionarioKeys(obj: Record<string, unknown> | undefined): string[] {
-    return obj ? Object.keys(obj) : [];
-  }
-
-  andaresEntries(porAndar: Record<string, Record<string, number>> | undefined): Array<{ andar: string; tipos: Array<{ nome: string; qtd: number }> }> {
-    if (!porAndar) return [];
-    return Object.entries(porAndar).map(([andar, tipos]) => ({
-      andar,
-      tipos: Object.entries(tipos).map(([nome, qtd]) => ({ nome, qtd })),
-    }));
   }
 }

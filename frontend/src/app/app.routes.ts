@@ -4,6 +4,7 @@ import { adminGuard } from './guards/admin.guard';
 import { guestGuard } from './guards/guest.guard';
 import { moduloGuardFromRoute } from './guards/modulo.guard';
 import { superAdminGuard } from './guards/super-admin.guard';
+import { camarotesViewerGuard } from './guards/camarotes-viewer.guard';
 
 export const routes: Routes = [
   {
@@ -58,6 +59,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/treinamentos/treinamentos.component').then(
         (m) => m.TreinamentosComponent
+      ),
+  },
+  {
+    path: 'bi/camarotes',
+    canActivate: [authGuard, camarotesViewerGuard],
+    loadComponent: () =>
+      import('./pages/bi/camarotes/camarotes-view.component').then(
+        (m) => m.CamarotesViewComponent
       ),
   },
   {
@@ -170,7 +179,7 @@ export const routes: Routes = [
           import('./pages/admin/camarotes/camarotes-admin.component').then(
             (m) => m.CamarotesAdminComponent
           ),
-        data: { adminTitle: 'Gestão de Camarotes' },
+        data: { adminTitle: 'Configuração de Camarotes' },
       },
       {
         path: 'perfis',

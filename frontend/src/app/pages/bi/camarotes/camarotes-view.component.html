@@ -1,0 +1,30 @@
+<div class="pagina">
+  <app-public-chrome>
+    <div class="page-head">
+      <div class="wrap">
+        <div class="crumb">BI › <span>Camarotes</span></div>
+        <h1>Camarotes</h1>
+        <p>
+          Dashboard operacional sincronizado com a planilha SharePoint.
+          Atualizado em <strong>{{ ultimaSyncLabel() }}</strong>.
+        </p>
+      </div>
+    </div>
+
+    <div class="wrap conteudo">
+      @if (carregando() && !dashboard()) {
+        <p class="empty">Carregando dashboard…</p>
+      }
+
+      @if (erro()) {
+        <p class="erro">{{ erro() }}</p>
+      }
+
+      @if (dashboard(); as d) {
+        <app-camarotes-dashboard [dashboard]="d" />
+      }
+    </div>
+  </app-public-chrome>
+
+  <app-footer />
+</div>

@@ -1,101 +1,79 @@
 <div class="admin-page">
   <header class="page-head">
-    <h1>Gestão de Camarotes</h1>
+    <h1>Configuração de Camarotes</h1>
     <p>
-      Dashboard operacional sincronizado com a planilha SharePoint.
-      Atualizado em <strong>{{ ultimaSyncLabel() }}</strong>.
+      Sincronização, alertas e gestão de quem pode visualizar o dashboard em BI / Camarotes.
+      Última sync: <strong>{{ ultimaSyncLabel() }}</strong>.
     </p>
   </header>
 
-  @if (carregando() && !dashboard()) {
-    <p class="empty">Carregando dashboard…</p>
-  }
-
-  @if (dashboard(); as d) {
-    <div class="metrics-grid">
-      <section class="card metric-card">
-        <div class="card-head"><h2>Disponíveis por setor</h2></div>
-        <div class="card-body">
-          @for (setor of setores; track setor) {
-            <div class="setor-row">
-              <span class="setor-label">{{ setor }}</span>
-              <span class="setor-count">{{ totalSetor(d, setor) }}</span>
-              <span class="setor-nums">{{ numerosSetor(d, setor) }}</span>
-            </div>
-          }
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Alertas</h2></div>
-        <div class="card-body alert-grid">
-          <div class="alert-stat danger"><span>{{ d.camarotes.alertas.vencidos }}</span><small>Vencidos</small></div>
-          <div class="alert-stat warn"><span>{{ d.camarotes.alertas.vence_breve }}</span><small>Vence em breve</small></div>
-          <div class="alert-stat ok"><span>{{ d.camarotes.alertas.vagos }}</span><small>Vagos</small></div>
-        </div>
-      </section>
+  <section class="card">
+    <div class="card-head">
+      <h2>Usuários com visualização</h2>
     </div>
-
-    <section class="card">
-      <div class="card-head"><h2>Métricas financeiras</h2></div>
-      <div class="card-body fin-grid">
-        <div><small>Receita anual</small><strong>{{ moeda(d.camarotes.metricas.receita_anual) }}</strong></div>
-        <div><small>Ticket médio anual</small><strong>{{ moeda(d.camarotes.metricas.ticket_medio_anual) }}</strong></div>
-        <div><small>Valor médio contrato</small><strong>{{ moeda(d.camarotes.metricas.valor_medio_contrato) }}</strong></div>
-        <div><small>Capacidade total</small><strong>{{ d.camarotes.metricas.capacidade_total }}</strong></div>
-        <div><small>Média p/ unidade</small><strong>{{ d.camarotes.metricas.media_por_unidade | number:'1.1-1' }}</strong></div>
+    <div class="card-body">
+      <div class="field busca-field">
+        <label for="busca-viz">Adicionar colaborador</label>
+        <input
+          id="busca-viz"
+          type="search"
+          placeholder="Buscar por nome ou e-mail…"
+          [ngModel]="buscaTexto()"
+          (ngModelChange)="onBuscaInput($event)"
+          [disabled]="adicionandoVisualizador()"
+        />
+        @if (resultadosBusca().length) {
+          <ul class="busca-resultados">
+            @for (c of resultadosBusca(); track c.id) {
+              <li>
+                <button
+                  type="button"
+                  class="busca-item"
+                  [disabled]="adicionandoVisualizador()"
+                  (click)="adicionarVisualizador(c)"
+                >
+                  <strong>{{ c.nome }}</strong>
+                  <span>{{ c.email || '—' }}</span>
+                  @if (c.departamento) {
+                    <small>{{ c.departamento }}</small>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        }
       </div>
-    </section>
 
-    <section class="card">
-      <div class="card-head"><h2>Tipo cessionário</h2></div>
-      <div class="card-body">
+      @if (!visualizadores().length) {
+        <p class="empty">Nenhum visualizador cadastrado. Admins e usuários com módulo Camarotes já têm acesso automático.</p>
+      } @else {
         <table>
           <thead>
-            <tr><th>Tipo</th><th>Qtd</th><th>Valor total</th></tr>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Departamento</th>
+              <th></th>
+            </tr>
           </thead>
           <tbody>
-            @for (tipo of tiposCessionarioKeys(d.camarotes.tipo_cessionario.resumo); track tipo) {
+            @for (v of visualizadores(); track v.usuario_id) {
               <tr>
-                <td>{{ tipo }}</td>
-                <td>{{ d.camarotes.tipo_cessionario.resumo[tipo].quantidade }}</td>
-                <td>{{ moeda(d.camarotes.tipo_cessionario.resumo[tipo].valor_total) }}</td>
+                <td>{{ v.nome_completo }}</td>
+                <td>{{ v.email }}</td>
+                <td>{{ v.departamento || '—' }}</td>
+                <td class="acoes">
+                  <button type="button" class="btn-icon danger" title="Remover" (click)="removerVisualizador(v)">
+                    Remover
+                  </button>
+                </td>
               </tr>
             }
           </tbody>
         </table>
-        @if (andaresEntries(d.camarotes.tipo_cessionario.por_andar).length) {
-          <h3 class="sub-title">Por andar</h3>
-          @for (a of andaresEntries(d.camarotes.tipo_cessionario.por_andar); track a.andar) {
-            <div class="andar-block">
-              <strong>{{ a.andar }}</strong>:
-              @for (t of a.tipos; track t.nome) {
-                <span class="tag">{{ t.nome }} ({{ t.qtd }})</span>
-              }
-            </div>
-          }
-        }
-      </div>
-    </section>
-
-    <div class="metrics-grid">
-      <section class="card">
-        <div class="card-head"><h2>Pack30</h2></div>
-        <div class="card-body alert-grid">
-          <div class="alert-stat"><span>{{ d.camarotes.pack30.com_pack30 }}</span><small>Com Pack30</small></div>
-          <div class="alert-stat muted"><span>{{ d.camarotes.pack30.sem_pack30 }}</span><small>Sem Pack30</small></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Vagas VVIP</h2></div>
-        <div class="card-body fin-grid">
-          <div><small>Total vagas</small><strong>{{ d.camarotes.vagas_vvip.total_vagas }}</strong></div>
-          <div><small>Valor total</small><strong>{{ moeda(d.camarotes.vagas_vvip.valor_total) }}</strong></div>
-        </div>
-      </section>
+      }
     </div>
-  }
+  </section>
 
   <section class="card">
     <div class="card-head">
@@ -113,6 +91,34 @@
       </div>
     </div>
     <div class="card-body config-grid">
+      <div class="field field-span">
+        <h3 class="sub-title">Sincronização automática</h3>
+        <p class="hint">Próxima execução conforme intervalo desde a última sync bem-sucedida.</p>
+      </div>
+      <div class="field toggle-row">
+        <label>
+          <input type="checkbox" [ngModel]="syncAutomatica()" (ngModelChange)="syncAutomatica.set($event)" />
+          Sync automática ativa
+        </label>
+      </div>
+      <div class="field">
+        <label for="sync-frequencia">Frequência da sync</label>
+        <select
+          id="sync-frequencia"
+          [ngModel]="syncFrequencia()"
+          (ngModelChange)="syncFrequencia.set($event)"
+          [disabled]="!syncAutomatica()"
+        >
+          <option value="1h">A cada 1 hora</option>
+          <option value="6h">A cada 6 horas</option>
+          <option value="12h">A cada 12 horas</option>
+          <option value="24h">A cada 24 horas</option>
+          <option value="semanal">Semanal</option>
+        </select>
+      </div>
+      <div class="field field-span">
+        <h3 class="sub-title">Alertas por e-mail</h3>
+      </div>
       <div class="field">
         <label for="emails">E-mails de alerta (um por linha, domínios internos)</label>
         <textarea id="emails" rows="4" [ngModel]="emailsTexto()" (ngModelChange)="emailsTexto.set($event)"></textarea>
@@ -139,6 +145,9 @@
           {{ salvandoConfig() ? 'Salvando…' : 'Salvar configuração' }}
         </button>
       </div>
+      @if (config()?.ultima_sync) {
+        <p class="hint">Última sync: {{ config()!.ultima_sync | date:'dd/MM/yyyy HH:mm' }}</p>
+      }
       @if (config()?.ultimo_envio) {
         <p class="hint">Último envio: {{ config()!.ultimo_envio | date:'dd/MM/yyyy HH:mm' }}</p>
       }

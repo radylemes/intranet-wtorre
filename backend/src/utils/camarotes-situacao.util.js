@@ -1,7 +1,9 @@
+const { sqlCessionarioVagoExpr, isCessionarioVago } = require('./camarotes-cessionario.util');
+
 function sqlSituacaoExpr(tableAlias = '') {
   const p = tableAlias ? `${tableAlias}.` : '';
   return `(CASE
-    WHEN TRIM(COALESCE(${p}cessionario, '')) = '' THEN 'vago'
+    WHEN ${sqlCessionarioVagoExpr(tableAlias || '')} THEN 'vago'
     WHEN ${p}final_locacao IS NULL THEN 'ativo'
     WHEN ${p}final_locacao < CURDATE() THEN 'vencido'
     WHEN ${p}final_locacao <= DATE_ADD(CURDATE(), INTERVAL ? DAY) THEN 'vence_breve'
@@ -23,8 +25,7 @@ function diasRestantes(finalLocacao) {
 
 /** @deprecated Use sqlSituacaoExpr + CURDATE() nas queries SQL. */
 function derivarSituacao(unidade, diasVenceBreve = 90) {
-  const cessionario = unidade.cessionario?.trim?.() || unidade.cessionario;
-  if (!cessionario) return 'vago';
+  if (isCessionarioVago(unidade.cessionario)) return 'vago';
   if (!unidade.final_locacao) return 'ativo';
   const dias = diasRestantes(unidade.final_locacao);
   if (dias == null) return 'ativo';

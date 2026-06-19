@@ -1,4 +1,5 @@
 const XLSX = require('xlsx');
+const { isCessionarioVago } = require('../utils/camarotes-cessionario.util');
 
 const HEADER_MAP = {
   andar: ['andar'],
@@ -21,7 +22,7 @@ const HEADER_MAP = {
   valor_anual: ['valor anual', 'receita anual', 'r$ valor anual'],
   entrada: ['entrada', 'r$ entrada'],
   valor_parcelado: ['valor parcelado', 'r$ valor parcelado'],
-  valor_vagas: ['valor vagas', 'r$ valor vagas', 'valor vvip'],
+  valor_vagas: ['valor das vagas', 'valor vagas', 'r$ valor vagas', 'r$ valor das vagas', 'valor vvip'],
   qtd_parcelas: ['qtd. parcelas', 'qtd parcelas', 'quantidade parcelas'],
   vagas_vvip: ['vagas vvip', 'vaga vvip'],
   credencial_staff: ['credencial staff', 'credencial'],
@@ -119,7 +120,8 @@ function parseSimNao(value) {
 
 function parseCessionario(value) {
   const s = String(value || '').trim();
-  return s ? s : null;
+  if (!s || isCessionarioVago(s)) return null;
+  return s;
 }
 
 function buildColumnIndex(headers) {
@@ -163,7 +165,7 @@ function mapRow(row, columnIndex, tipoUnidade) {
   };
 
   const numero = String(get('numero') || '').trim();
-  if (!numero) return null;
+  if (!numero || numero === '-') return null;
 
   return {
     tipo_unidade: tipoUnidade,

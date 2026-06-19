@@ -105,12 +105,24 @@ function encodeDrivePath(path) {
     .join('/');
 }
 
+function normalizeShareUrl(shareUrl) {
+  const trimmed = String(shareUrl || '').trim();
+  if (!trimmed) return '';
+  try {
+    const url = new URL(trimmed);
+    url.searchParams.delete('rtime');
+    return url.toString();
+  } catch {
+    return trimmed.replace(/([?&])rtime=[^&]*&?/g, '$1').replace(/[?&]$/, '');
+  }
+}
+
 function encodeShareUrl(shareUrl) {
-  const base = String(shareUrl || '').trim().split('?')[0];
-  if (!base) {
+  const normalized = normalizeShareUrl(shareUrl);
+  if (!normalized) {
     throw new Error('URL de compartilhamento vazia.');
   }
-  return `u!${Buffer.from(base, 'utf8').toString('base64url')}`;
+  return `u!${Buffer.from(normalized, 'utf8').toString('base64url')}`;
 }
 
 async function downloadSharedDriveItemContent(token, shareUrl) {
@@ -126,7 +138,14 @@ async function downloadSharedDriveItemContent(token, shareUrl) {
   }
 
   const meta = await metaRes.json();
-  return downloadDriveItemContent(token, meta.driveId, meta.id);
+  const driveId = meta.parentReference?.driveId || meta.driveId;
+  const itemId = meta.id;
+  if (!driveId || !itemId) {
+    const err = new Error('Metadados do arquivo incompletos na resposta Graph (/shares).');
+    err.status = 502;
+    throw err;
+  }
+  return downloadDriveItemContent(token, driveId, itemId);
 }
 
 async function downloadDriveItemContent(token, driveId, fileRef) {
@@ -160,6 +179,7 @@ module.exports = {
   getUserPhoto,
   testConnection,
   listAllUsers,
+  normalizeShareUrl,
   encodeShareUrl,
   downloadSharedDriveItemContent,
   downloadDriveItemContent,

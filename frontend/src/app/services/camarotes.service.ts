@@ -4,9 +4,11 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   CamaroteUnidade,
+  CamarotesAcesso,
   CamarotesConfig,
   CamarotesDashboard,
   CamarotesSyncLog,
+  CamarotesVisualizador,
   EnviarResumoResposta,
   SituacaoUnidade,
   SyncResumo,
@@ -23,6 +25,22 @@ export class CamarotesService {
 
   dashboard(): Observable<CamarotesDashboard> {
     return this.http.get<CamarotesDashboard>(this.api('/camarotes/dashboard'));
+  }
+
+  podeVisualizar(): Observable<CamarotesAcesso> {
+    return this.http.get<CamarotesAcesso>(this.api('/camarotes/acesso'));
+  }
+
+  listarVisualizadores(): Observable<CamarotesVisualizador[]> {
+    return this.http.get<CamarotesVisualizador[]>(this.api('/camarotes/visualizadores'));
+  }
+
+  adicionarVisualizador(body: { usuario_id?: number; colaborador_id?: number }): Observable<CamarotesVisualizador> {
+    return this.http.post<CamarotesVisualizador>(this.api('/camarotes/visualizadores'), body);
+  }
+
+  removerVisualizador(usuarioId: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(this.api(`/camarotes/visualizadores/${usuarioId}`));
   }
 
   unidades(filtros?: {

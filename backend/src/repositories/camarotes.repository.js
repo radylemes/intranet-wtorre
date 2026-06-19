@@ -47,6 +47,12 @@ function mapUnidade(row) {
   };
 }
 
+const SYNC_FREQUENCIAS = new Set(['1h', '6h', '12h', '24h', 'semanal']);
+
+function normalizeSyncFrequencia(value) {
+  return SYNC_FREQUENCIAS.has(value) ? value : '24h';
+}
+
 function mapConfig(row) {
   if (!row) return null;
   return {
@@ -55,6 +61,8 @@ function mapConfig(row) {
     dias_vence_breve: row.dias_vence_breve,
     cadencia: row.cadencia,
     envio_ativo: !!row.envio_ativo,
+    sync_automatica: row.sync_automatica != null ? !!row.sync_automatica : true,
+    sync_frequencia: normalizeSyncFrequencia(row.sync_frequencia),
     ultimo_envio: row.ultimo_envio,
     ultima_sync: row.ultima_sync,
   };
@@ -87,13 +95,17 @@ async function updateConfig(data) {
       emails_alerta = ?,
       dias_vence_breve = ?,
       cadencia = ?,
-      envio_ativo = ?
+      envio_ativo = ?,
+      sync_automatica = ?,
+      sync_frequencia = ?
      WHERE id = 1`,
     [
       JSON.stringify(data.emails_alerta || []),
       data.dias_vence_breve ?? 90,
       data.cadencia === 'semanal' ? 'semanal' : 'diaria',
       data.envio_ativo ? 1 : 0,
+      data.sync_automatica !== false ? 1 : 0,
+      normalizeSyncFrequencia(data.sync_frequencia),
     ]
   );
   return getConfig();
@@ -193,9 +205,8 @@ async function insertSyncLog(entry) {
 async function listSyncLog(limit = 20) {
   const pool = getPool();
   const lim = Math.min(Math.max(Number(limit) || 20, 1), 100);
-  const [rows] = await pool.execute(
-    'SELECT * FROM camarotes_sync ORDER BY executado_em DESC LIMIT ?',
-    [lim]
+  const [rows] = await pool.query(
+    `SELECT * FROM camarotes_sync ORDER BY executado_em DESC LIMIT ${lim}`
   );
   return rows.map(mapSyncLog);
 }
@@ -362,6 +373,65 @@ async function buildDashboard() {
   };
 }
 
+async function isVisualizador(usuarioId) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT 1 FROM camarotes_visualizadores WHERE usuario_id = ? LIMIT 1',
+    [usuarioId]
+  );
+  return rows.length > 0;
+}
+
+async function listVisualizadores() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT v.usuario_id, v.criado_em, u.nome_completo, u.email, u.departamento
+     FROM camarotes_visualizadores v
+     INNER JOIN usuarios u ON u.id = v.usuario_id
+     ORDER BY u.nome_completo`
+  );
+  return rows.map((row) => ({
+    usuario_id: row.usuario_id,
+    nome_completo: row.nome_completo,
+    email: row.email,
+    departamento: row.departamento,
+    criado_em: row.criado_em,
+  }));
+}
+
+async function addVisualizador(usuarioId, criadoPor = null) {
+  const pool = getPool();
+  await pool.execute(
+    `INSERT IGNORE INTO camarotes_visualizadores (usuario_id, criado_por) VALUES (?, ?)`,
+    [usuarioId, criadoPor]
+  );
+  const [rows] = await pool.execute(
+    `SELECT v.usuario_id, v.criado_em, u.nome_completo, u.email, u.departamento
+     FROM camarotes_visualizadores v
+     INNER JOIN usuarios u ON u.id = v.usuario_id
+     WHERE v.usuario_id = ?`,
+    [usuarioId]
+  );
+  return rows[0]
+    ? {
+        usuario_id: rows[0].usuario_id,
+        nome_completo: rows[0].nome_completo,
+        email: rows[0].email,
+        departamento: rows[0].departamento,
+        criado_em: rows[0].criado_em,
+      }
+    : null;
+}
+
+async function removeVisualizador(usuarioId) {
+  const pool = getPool();
+  const [result] = await pool.execute(
+    'DELETE FROM camarotes_visualizadores WHERE usuario_id = ?',
+    [usuarioId]
+  );
+  return result.affectedRows > 0;
+}
+
 async function listUnidadesParaAlerta(diasVenceBreve) {
   const pool = getPool();
   const [rows] = await pool.execute(
@@ -388,4 +458,8 @@ module.exports = {
   buildDashboard,
   listUnidadesParaAlerta,
   fetchAllUnidades,
+  isVisualizador,
+  listVisualizadores,
+  addVisualizador,
+  removeVisualizador,
 };

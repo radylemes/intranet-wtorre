@@ -134,13 +134,14 @@ async function reorder(req, res) {
       }
     }
 
-    await catRepo.reorderBatch(
-      items.map((i) => ({
-        id: Number(i.id),
-        parent_id: i.parent_id == null ? null : Number(i.parent_id),
-        ordem: Number(i.ordem),
-      }))
-    );
+    const normalized = items.map((i) => ({
+      id: Number(i.id),
+      parent_id: i.parent_id == null ? null : Number(i.parent_id),
+      ordem: Number(i.ordem),
+    }));
+
+    await catRepo.reorderBatch(normalized);
+    await menuSync.syncCategoriasOrdemToMenu(normalized);
     return res.json({ ok: true });
   } catch (err) {
     return res.status(400).json({ mensagem: err.message });

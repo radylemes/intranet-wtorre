@@ -1,6 +1,7 @@
 export type TipoUnidade = 'camarote' | 'lounge';
 export type SituacaoUnidade = 'vago' | 'vencido' | 'vence_breve' | 'ativo';
 export type CadenciaAlerta = 'diaria' | 'semanal';
+export type SyncFrequencia = '1h' | '6h' | '12h' | '24h' | 'semanal';
 
 export interface CamaroteUnidade {
   id: number;
@@ -71,6 +72,8 @@ export interface CamarotesConfig {
   dias_vence_breve: number;
   cadencia: CadenciaAlerta;
   envio_ativo: boolean;
+  sync_automatica: boolean;
+  sync_frequencia: SyncFrequencia;
   ultimo_envio: string | null;
   ultima_sync: string | null;
 }
@@ -99,6 +102,18 @@ export interface SyncResumo {
   erros: Array<{ tipo_unidade: TipoUnidade; mensagem: string }>;
   duracao_ms: number;
   ultima_sync: string | null;
+}
+
+export interface CamarotesVisualizador {
+  usuario_id: number;
+  nome_completo: string;
+  email: string;
+  departamento?: string | null;
+  criado_em?: string;
+}
+
+export interface CamarotesAcesso {
+  pode_visualizar: boolean;
 }
 
 export interface EnviarResumoResposta {

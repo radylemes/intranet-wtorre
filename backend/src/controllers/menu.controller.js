@@ -1,6 +1,20 @@
 const menuRepo = require('../repositories/menu.repository');
+const menuSync = require('../services/doc-categoria-menu.sync');
 const { isValidMenuUrl, normalizeMenuUrl } = require('../utils/menu.validation');
 const { MAX_DEPTH, getDepth, isDescendant } = require('../utils/menu.tree');
+const { usuarioPodeVisualizar } = require('../services/camarotes-acesso.service');
+
+const CAMAROTES_BI_URL = '/bi/camarotes';
+
+function filterUrlFromTree(nodes, url) {
+  const result = [];
+  for (const node of nodes) {
+    const children = filterUrlFromTree(node.children || [], url);
+    if (node.url === url) continue;
+    result.push({ ...node, children });
+  }
+  return result;
+}
 
 async function validateParent(parentId, selfId = null) {
   if (parentId == null || parentId === '') return null;
@@ -42,11 +56,17 @@ function parseBody(body) {
 
 async function getPublicTree(req, res) {
   const rows = await menuRepo.findAllFlat();
-  const tree = menuRepo.buildTree(rows, {
+  let tree = menuRepo.buildTree(rows, {
     filterActive: true,
     perfil: req.user.perfil,
     includeAdminFields: false,
   });
+
+  const podeVisualizarCamarotes = await usuarioPodeVisualizar(req.user, req.userModulos || []);
+  if (!podeVisualizarCamarotes) {
+    tree = filterUrlFromTree(tree, CAMAROTES_BI_URL);
+  }
+
   return res.json(tree);
 }
 
@@ -129,13 +149,14 @@ async function reorder(req, res) {
       }
     }
 
-    await menuRepo.reorderBatch(
-      items.map((i) => ({
-        id: Number(i.id),
-        parent_id: i.parent_id == null ? null : Number(i.parent_id),
-        ordem: Number(i.ordem),
-      }))
-    );
+    const normalized = items.map((i) => ({
+      id: Number(i.id),
+      parent_id: i.parent_id == null ? null : Number(i.parent_id),
+      ordem: Number(i.ordem),
+    }));
+
+    await menuRepo.reorderBatch(normalized);
+    await menuSync.syncMenuOrdemToCategorias(normalized);
     return res.json({ ok: true });
   } catch (err) {
     return res.status(400).json({ mensagem: err.message });

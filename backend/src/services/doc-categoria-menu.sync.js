@@ -61,6 +61,12 @@ function isRootCategoria(categoria) {
   return categoria.parent_id == null;
 }
 
+function parseDocSlugFromMenuUrl(url) {
+  if (!url || !url.startsWith(`${DOCUMENTOS_URL}/`)) return null;
+  const slug = url.slice(DOCUMENTOS_URL.length + 1);
+  return slug || null;
+}
+
 async function upsertMenuItemForCategoria(categoria, parentId) {
   const existing =
     (await findMenuItemByCategoriaId(categoria.id)) ||
@@ -70,7 +76,6 @@ async function upsertMenuItemForCategoria(categoria, parentId) {
     label: categoria.nome,
     url: categoriaMenuUrl(categoria.slug),
     parent_id: parentId,
-    ordem: categoria.ordem ?? 0,
     abrir_nova_aba: false,
     ativo: categoria.ativo !== false,
   };
@@ -80,7 +85,7 @@ async function upsertMenuItemForCategoria(categoria, parentId) {
     return;
   }
 
-  await menuRepo.create(payload);
+  await menuRepo.create({ ...payload, ordem: categoria.ordem ?? 0 });
 }
 
 async function syncOnCreate(categoria) {
@@ -114,14 +119,17 @@ async function syncOnUpdate(before, after) {
   const parentId = await ensureDocumentosMenuParent();
 
   if (menuItem) {
-    await menuRepo.update(menuItem.id, {
+    const updatePayload = {
       label: after.nome,
       url: categoriaMenuUrl(after.slug),
       parent_id: parentId,
-      ordem: after.ordem ?? 0,
       abrir_nova_aba: false,
       ativo: after.ativo !== false,
-    });
+    };
+    if (before.ordem !== after.ordem) {
+      updatePayload.ordem = after.ordem ?? 0;
+    }
+    await menuRepo.update(menuItem.id, updatePayload);
     return;
   }
 
@@ -168,6 +176,38 @@ async function reconcileAll() {
   return rootCategories.length;
 }
 
+async function syncMenuOrdemToCategorias(menuReorderItems) {
+  for (const item of menuReorderItems) {
+    const menuItem = await menuRepo.findById(Number(item.id));
+    if (!menuItem) continue;
+
+    const slug = parseDocSlugFromMenuUrl(menuItem.url);
+    if (!slug) continue;
+
+    const categoria = await catRepo.findBySlug(slug);
+    if (!categoria || !isRootCategoria(categoria)) continue;
+
+    await catRepo.update(categoria.id, { ordem: Number(item.ordem) });
+  }
+}
+
+async function syncCategoriasOrdemToMenu(categoriaReorderItems) {
+  const parentId = await findDocumentosMenuParent();
+  if (!parentId) return;
+
+  for (const item of categoriaReorderItems) {
+    if (item.parent_id != null) continue;
+
+    const categoria = await catRepo.findById(Number(item.id));
+    if (!categoria || !isRootCategoria(categoria)) continue;
+
+    const menuItem = await findMenuItemByCategoriaId(categoria.id);
+    if (!menuItem) continue;
+
+    await menuRepo.update(menuItem.id, { ordem: Number(item.ordem) });
+  }
+}
+
 module.exports = {
   DOCUMENTOS_URL,
   categoriaMenuUrl,
@@ -178,4 +218,6 @@ module.exports = {
   syncOnUpdate,
   syncOnDelete,
   reconcileAll,
+  syncMenuOrdemToCategorias,
+  syncCategoriasOrdemToMenu,
 };

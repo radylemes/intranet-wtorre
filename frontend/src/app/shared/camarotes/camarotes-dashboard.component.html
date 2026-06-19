@@ -1,0 +1,93 @@
+<div class="metrics-grid">
+  <section class="card metric-card">
+    <div class="card-head"><h2>Disponíveis por setor</h2></div>
+    <div class="card-body">
+      @for (setor of setores; track setor) {
+        <div class="setor-row">
+          <span class="setor-label">{{ setor }}</span>
+          <span class="setor-count">{{ totalSetor(setor) }}</span>
+          <span class="setor-nums">{{ numerosSetor(setor) }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Alertas</h2></div>
+    <div class="card-body alert-grid">
+      <div class="alert-stat danger">
+        <span>{{ dashboard.camarotes.alertas.vencidos }}</span><small>Vencidos</small>
+      </div>
+      <div class="alert-stat warn">
+        <span>{{ dashboard.camarotes.alertas.vence_breve }}</span><small>Vence em breve</small>
+      </div>
+      <div class="alert-stat ok">
+        <span>{{ dashboard.camarotes.alertas.vagos }}</span><small>Vagos</small>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head"><h2>Métricas financeiras</h2></div>
+  <div class="card-body fin-grid">
+    <div><small>Receita anual</small><strong>{{ moeda(dashboard.camarotes.metricas.receita_anual) }}</strong></div>
+    <div><small>Ticket médio anual</small><strong>{{ moeda(dashboard.camarotes.metricas.ticket_medio_anual) }}</strong></div>
+    <div><small>Valor médio contrato</small><strong>{{ moeda(dashboard.camarotes.metricas.valor_medio_contrato) }}</strong></div>
+    <div><small>Capacidade total</small><strong>{{ dashboard.camarotes.metricas.capacidade_total }}</strong></div>
+    <div><small>Média p/ unidade</small><strong>{{ dashboard.camarotes.metricas.media_por_unidade | number:'1.1-1' }}</strong></div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Tipo cessionário</h2></div>
+  <div class="card-body">
+    <table>
+      <thead>
+        <tr><th>Tipo</th><th>Qtd</th><th>Valor total</th></tr>
+      </thead>
+      <tbody>
+        @for (tipo of tiposCessionarioKeys(dashboard.camarotes.tipo_cessionario.resumo); track tipo) {
+          <tr>
+            <td>{{ tipo }}</td>
+            <td>{{ dashboard.camarotes.tipo_cessionario.resumo[tipo].quantidade }}</td>
+            <td>{{ moeda(dashboard.camarotes.tipo_cessionario.resumo[tipo].valor_total) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (andaresEntries(dashboard.camarotes.tipo_cessionario.por_andar).length) {
+      <h3 class="sub-title">Por andar</h3>
+      @for (a of andaresEntries(dashboard.camarotes.tipo_cessionario.por_andar); track a.andar) {
+        <div class="andar-block">
+          <strong>{{ a.andar }}</strong>:
+          @for (t of a.tipos; track t.nome) {
+            <span class="tag">{{ t.nome }} ({{ t.qtd }})</span>
+          }
+        </div>
+      }
+    }
+  </div>
+</section>
+
+<div class="metrics-grid">
+  <section class="card">
+    <div class="card-head"><h2>Pack30</h2></div>
+    <div class="card-body alert-grid">
+      <div class="alert-stat">
+        <span>{{ dashboard.camarotes.pack30.com_pack30 }}</span><small>Com Pack30</small>
+      </div>
+      <div class="alert-stat muted">
+        <span>{{ dashboard.camarotes.pack30.sem_pack30 }}</span><small>Sem Pack30</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Vagas VVIP</h2></div>
+    <div class="card-body fin-grid">
+      <div><small>Total vagas</small><strong>{{ dashboard.camarotes.vagas_vvip.total_vagas }}</strong></div>
+      <div><small>Valor total</small><strong>{{ moeda(dashboard.camarotes.vagas_vvip.valor_total) }}</strong></div>
+    </div>
+  </section>
+</div>

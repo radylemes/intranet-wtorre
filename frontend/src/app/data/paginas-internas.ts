@@ -21,6 +21,7 @@ export const PAGINAS_INTERNAS: PaginaInterna[] = [
   { path: '/aniversariantes', label: 'Aniversariantes' },
   { path: '/treinamentos', label: 'Treinamentos' },
   { path: '/assinaturas', label: 'Assinaturas de E-mail' },
+  { path: '/bi/camarotes', label: 'BI / Camarotes' },
 ];
 
 export function paginasDocumentosFromCategorias(categoriasRaiz: { slug: string; nome: string }[]): PaginaInterna[] {
