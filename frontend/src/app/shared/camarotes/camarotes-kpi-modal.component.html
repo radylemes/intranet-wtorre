@@ -1,0 +1,145 @@
+@if (aberto) {
+  <div class="kpi-modal-overlay" (click)="onBackdropClick()">
+    <div
+      class="kpi-modal-panel"
+      role="dialog"
+      [attr.aria-label]="titulo"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="kpi-modal-head">
+        <div>
+          <h3>{{ titulo }}</h3>
+          @if (subtitulo) {
+            <p class="kpi-modal-sub">{{ subtitulo }}</p>
+          }
+        </div>
+        <button type="button" class="kpi-modal-close" aria-label="Fechar" (click)="onCloseClick()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </header>
+
+      <div class="kpi-modal-body">
+        @if (carregando) {
+          <p class="kpi-modal-state">Carregando unidades…</p>
+        } @else if (erro) {
+          <p class="kpi-modal-state kpi-modal-erro">{{ erro }}</p>
+        } @else if (!unidades.length) {
+          <p class="kpi-modal-state">Nenhuma unidade encontrada.</p>
+        } @else if (modo === 'vago') {
+          <div class="kpi-modal-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Número</th>
+                  <th>Setor</th>
+                  <th>Andar</th>
+                  <th class="r">Capacidade</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of unidades; track u.id) {
+                  <tr>
+                    <td>{{ u.numero }}</td>
+                    <td>{{ texto(u.setor) }}</td>
+                    <td>{{ formatarAndar(u.andar) }}</td>
+                    <td class="r num">{{ u.capacidade ?? '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (modo === 'pack30') {
+          <div class="kpi-modal-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Número</th>
+                  <th>Setor</th>
+                  <th>Cessionário</th>
+                  <th>Pack30</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of unidades; track u.id) {
+                  <tr>
+                    <td>{{ u.numero }}</td>
+                    <td>{{ texto(u.setor) }}</td>
+                    <td>{{ texto(u.cessionario) }}</td>
+                    <td>{{ u.pack30 ? 'Sim' : 'Não' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (modo === 'vvip') {
+          <div class="kpi-modal-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Número</th>
+                  <th>Setor</th>
+                  <th>Cessionário</th>
+                  <th class="r">Vagas VVIP</th>
+                  <th class="r">Valor vagas</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of unidades; track u.id) {
+                  <tr>
+                    <td>{{ u.numero }}</td>
+                    <td>{{ texto(u.setor) }}</td>
+                    <td>{{ texto(u.cessionario) }}</td>
+                    <td class="r num">{{ u.vagas_vvip ?? '—' }}</td>
+                    <td class="r num">{{ moeda(u.valor_vagas) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="kpi-modal-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Número</th>
+                  <th>Setor</th>
+                  <th>Andar</th>
+                  <th>Cessionário</th>
+                  <th>Tipo</th>
+                  <th>Início</th>
+                  <th>Término</th>
+                  <th class="r">Valor anual</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of unidades; track u.id) {
+                  <tr>
+                    <td>{{ u.numero }}</td>
+                    <td>{{ texto(u.setor) }}</td>
+                    <td>{{ formatarAndar(u.andar) }}</td>
+                    <td>{{ texto(u.cessionario) }}</td>
+                    <td>{{ texto(u.tipo_cessionario) }}</td>
+                    <td>{{ u.inicio_locacao ? (u.inicio_locacao | date:'dd/MM/yyyy') : '—' }}</td>
+                    <td>{{ u.final_locacao ? (u.final_locacao | date:'dd/MM/yyyy') : '—' }}</td>
+                    <td class="r num">{{ moeda(u.valor_anual) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <footer class="kpi-modal-foot">
+        <button type="button" class="btn-fechar" (click)="onCloseClick()">Fechar</button>
+      </footer>
+    </div>
+  </div>
+}

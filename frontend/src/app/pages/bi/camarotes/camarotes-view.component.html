@@ -1,17 +1,32 @@
 <div class="pagina">
   <app-public-chrome>
-    <div class="page-head">
-      <div class="wrap">
-        <div class="crumb">BI › <span>Camarotes</span></div>
-        <h1>Camarotes</h1>
-        <p>
-          Dashboard operacional sincronizado com a planilha SharePoint.
-          Atualizado em <strong>{{ ultimaSyncLabel() }}</strong>.
-        </p>
-      </div>
-    </div>
-
     <div class="wrap conteudo">
+      <header class="head">
+        <div>
+          <h1>Camarotes</h1>
+          <div class="sync">
+            <span class="dot"></span>
+            <span>
+              Sincronizado com a planilha do SharePoint · atualizado em
+              <time>{{ ultimaSyncLabel() }}</time>
+            </span>
+          </div>
+        </div>
+        @if (podeAdmin()) {
+          <div class="actions">
+            <a routerLink="/admin/camarotes" class="btn btn-ghost">Configurar</a>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="sincronizando()"
+              (click)="sincronizar()"
+            >
+              {{ sincronizando() ? 'Sincronizando…' : 'Sincronizar agora' }}
+            </button>
+          </div>
+        }
+      </header>
+
       @if (carregando() && !dashboard()) {
         <p class="empty">Carregando dashboard…</p>
       }

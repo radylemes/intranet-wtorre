@@ -1,93 +1,258 @@
-<div class="metrics-grid">
-  <section class="card metric-card">
-    <div class="card-head"><h2>Disponíveis por setor</h2></div>
-    <div class="card-body">
-      @for (setor of setores; track setor) {
-        <div class="setor-row">
-          <span class="setor-label">{{ setor }}</span>
-          <span class="setor-count">{{ totalSetor(setor) }}</span>
-          <span class="setor-nums">{{ numerosSetor(setor) }}</span>
-        </div>
-      }
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="card-head"><h2>Alertas</h2></div>
-    <div class="card-body alert-grid">
-      <div class="alert-stat danger">
-        <span>{{ dashboard.camarotes.alertas.vencidos }}</span><small>Vencidos</small>
-      </div>
-      <div class="alert-stat warn">
-        <span>{{ dashboard.camarotes.alertas.vence_breve }}</span><small>Vence em breve</small>
-      </div>
-      <div class="alert-stat ok">
-        <span>{{ dashboard.camarotes.alertas.vagos }}</span><small>Vagos</small>
-      </div>
-    </div>
-  </section>
-</div>
-
-<section class="card">
-  <div class="card-head"><h2>Métricas financeiras</h2></div>
-  <div class="card-body fin-grid">
-    <div><small>Receita anual</small><strong>{{ moeda(dashboard.camarotes.metricas.receita_anual) }}</strong></div>
-    <div><small>Ticket médio anual</small><strong>{{ moeda(dashboard.camarotes.metricas.ticket_medio_anual) }}</strong></div>
-    <div><small>Valor médio contrato</small><strong>{{ moeda(dashboard.camarotes.metricas.valor_medio_contrato) }}</strong></div>
-    <div><small>Capacidade total</small><strong>{{ dashboard.camarotes.metricas.capacidade_total }}</strong></div>
-    <div><small>Média p/ unidade</small><strong>{{ dashboard.camarotes.metricas.media_por_unidade | number:'1.1-1' }}</strong></div>
+<!-- KPIs operacionais -->
+<section class="kpis">
+  <div
+    class="card kpi is-red"
+    [class.is-clickable]="kpiClickable('vencido')"
+    role="button"
+    [tabindex]="kpiClickable('vencido') ? 0 : -1"
+    (click)="abrirKpi('vencido')"
+    (keydown)="onKpiKeydown($event, 'vencido')"
+  >
+    <div class="label">Contratos vencidos</div>
+    <div class="value num">{{ dashboard.camarotes.alertas.vencidos }}</div>
+    <div class="sub">exigem renovação imediata</div>
+  </div>
+  <div
+    class="card kpi is-amber"
+    [class.is-clickable]="kpiClickable('vence_breve')"
+    role="button"
+    [tabindex]="kpiClickable('vence_breve') ? 0 : -1"
+    (click)="abrirKpi('vence_breve')"
+    (keydown)="onKpiKeydown($event, 'vence_breve')"
+  >
+    <div class="label">Vencem em breve</div>
+    <div class="value num">{{ dashboard.camarotes.alertas.vence_breve }}</div>
+    <div class="sub">nos próximos {{ dashboard.dias_vence_breve }} dias</div>
+  </div>
+  <div
+    class="card kpi is-green"
+    [class.is-clickable]="kpiClickable('vago')"
+    role="button"
+    [tabindex]="kpiClickable('vago') ? 0 : -1"
+    (click)="abrirKpi('vago')"
+    (keydown)="onKpiKeydown($event, 'vago')"
+  >
+    <div class="label">Camarotes vagos</div>
+    <div class="value num">{{ dashboard.camarotes.alertas.vagos }}</div>
+    <div class="sub">disponíveis para locação</div>
+  </div>
+  <div
+    class="card kpi is-accent"
+    [class.is-clickable]="kpiClickable('ativo')"
+    role="button"
+    [tabindex]="kpiClickable('ativo') ? 0 : -1"
+    (click)="abrirKpi('ativo')"
+    (keydown)="onKpiKeydown($event, 'ativo')"
+  >
+    <div class="label">Ocupados</div>
+    <div class="value num">{{ dashboard.camarotes.alertas.ativos }}</div>
+    <div class="sub">de {{ totalUnidades() }} unidades · {{ ocupacaoPct() }}% ocupação</div>
   </div>
 </section>
 
-<section class="card">
-  <div class="card-head"><h2>Tipo cessionário</h2></div>
-  <div class="card-body">
-    <table>
-      <thead>
-        <tr><th>Tipo</th><th>Qtd</th><th>Valor total</th></tr>
-      </thead>
-      <tbody>
-        @for (tipo of tiposCessionarioKeys(dashboard.camarotes.tipo_cessionario.resumo); track tipo) {
-          <tr>
-            <td>{{ tipo }}</td>
-            <td>{{ dashboard.camarotes.tipo_cessionario.resumo[tipo].quantidade }}</td>
-            <td>{{ moeda(dashboard.camarotes.tipo_cessionario.resumo[tipo].valor_total) }}</td>
-          </tr>
-        }
-      </tbody>
-    </table>
-    @if (andaresEntries(dashboard.camarotes.tipo_cessionario.por_andar).length) {
-      <h3 class="sub-title">Por andar</h3>
-      @for (a of andaresEntries(dashboard.camarotes.tipo_cessionario.por_andar); track a.andar) {
-        <div class="andar-block">
-          <strong>{{ a.andar }}</strong>:
-          @for (t of a.tipos; track t.nome) {
-            <span class="tag">{{ t.nome }} ({{ t.qtd }})</span>
+<!-- Métricas financeiras -->
+<section class="card finance">
+  <div class="fin-item">
+    <div class="eyebrow">Receita anual</div>
+    <div class="v num">{{ moeda(dashboard.camarotes.metricas.receita_anual) }}</div>
+  </div>
+  <div class="fin-item">
+    <div class="eyebrow">Ticket médio anual</div>
+    <div class="v num">{{ moeda(dashboard.camarotes.metricas.ticket_medio_anual) }}</div>
+  </div>
+  <div class="fin-item">
+    <div class="eyebrow">Valor médio contrato</div>
+    <div class="v num">{{ moeda(dashboard.camarotes.metricas.valor_medio_contrato) }}</div>
+  </div>
+  <div class="fin-item">
+    <div class="eyebrow">Capacidade total</div>
+    <div class="v num">{{ dashboard.camarotes.metricas.capacidade_total | number:'1.0-0' }}</div>
+  </div>
+  <div class="fin-item">
+    <div class="eyebrow">Média por unidade</div>
+    <div class="v num">{{ dashboard.camarotes.metricas.media_por_unidade | number:'1.1-1' }}</div>
+  </div>
+</section>
+
+<div class="detail-rows">
+  <div class="pair-row pair-row--equal">
+    <section class="card card-pad">
+      <div class="card-head">
+        <h2>Pack30</h2>
+        <span class="meta">{{ pack30Total() }} unidades</span>
+      </div>
+      <div class="split">
+        <span class="a" [style.width.%]="pack30PctCom()"></span>
+        <span class="b" [style.width.%]="100 - pack30PctCom()"></span>
+      </div>
+      <div class="legend">
+        <div
+          class="it"
+          [class.is-clickable]="pack30Clickable(true)"
+          role="button"
+          [tabindex]="pack30Clickable(true) ? 0 : -1"
+          (click)="abrirPack30(true)"
+          (keydown)="onDrilldownKeydown($event, () => abrirPack30(true))"
+        >
+          <div class="n num pack-com">{{ dashboard.camarotes.pack30.com_pack30 }}</div>
+          <div class="k">
+            <span class="swatch swatch-com"></span>
+            Com Pack30
+          </div>
+        </div>
+        <div
+          class="it"
+          [class.is-clickable]="pack30Clickable(false)"
+          role="button"
+          [tabindex]="pack30Clickable(false) ? 0 : -1"
+          (click)="abrirPack30(false)"
+          (keydown)="onDrilldownKeydown($event, () => abrirPack30(false))"
+        >
+          <div class="n num">{{ dashboard.camarotes.pack30.sem_pack30 }}</div>
+          <div class="k">
+            <span class="swatch swatch-sem"></span>
+            Sem Pack30
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="card card-pad"
+      [class.is-clickable]="vvipClickable()"
+      role="button"
+      [tabindex]="vvipClickable() ? 0 : -1"
+      (click)="abrirVvip()"
+      (keydown)="onDrilldownKeydown($event, () => abrirVvip())"
+    >
+      <div class="card-head"><h2>Vagas VVIP</h2></div>
+      <div class="vvip">
+        <div class="b">
+          <div class="v num">{{ dashboard.camarotes.vagas_vvip.total_vagas }}</div>
+          <div class="k">Total de vagas</div>
+        </div>
+        <div class="b">
+          <div class="v money num">{{ moeda(dashboard.camarotes.vagas_vvip.valor_total) }}</div>
+          <div class="k">Valor total</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="pair-row pair-row--equal">
+    <section class="card card-pad">
+      <div
+        class="card-head"
+        [class.is-clickable]="totalVagos() > 0"
+        role="button"
+        [tabindex]="totalVagos() > 0 ? 0 : -1"
+        (click)="abrirTodosVagos()"
+        (keydown)="onDrilldownKeydown($event, () => abrirTodosVagos())"
+      >
+        <h2>Disponíveis por setor</h2>
+        <span class="meta">{{ totalVagos() }} camarotes vagos</span>
+      </div>
+
+      <div class="setor-list">
+      @for (setor of setores; track setor) {
+        <div
+          class="setor-row"
+          [class.is-clickable]="totalSetor(setor) > 0"
+          role="button"
+          [tabindex]="totalSetor(setor) > 0 ? 0 : -1"
+          (click)="abrirSetor(setor)"
+          (keydown)="onDrilldownKeydown($event, () => abrirSetor(setor))"
+        >
+          <div class="setor-top">
+            <span class="setor-name">{{ setor }}</span>
+            <span class="setor-count num">{{ totalSetor(setor) }}</span>
+            <span class="bar"><i [style.width.%]="barWidthSetor(setor)"></i></span>
+          </div>
+          @if (numerosSetor(setor).length) {
+            <div class="chips">
+              @for (num of numerosSetor(setor); track num) {
+                <span class="chip">{{ num }}</span>
+              }
+            </div>
           }
         </div>
       }
-    }
+      </div>
+    </section>
+
+    <section class="card card-pad">
+      <div class="card-head">
+        <h2>Tipo de cessionário</h2>
+        <span class="meta">{{ qtdAtivos() }} contratos ativos</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th class="r">Qtd.</th>
+            <th class="r">Valor total</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (tipo of tiposOrdenados(); track tipo.nome) {
+            <tr
+              [class.is-clickable]="tipo.quantidade > 0"
+              role="button"
+              [tabindex]="tipo.quantidade > 0 ? 0 : -1"
+              (click)="abrirTipoCessionario(tipo.nome, tipo.quantidade)"
+              (keydown)="onDrilldownKeydown($event, () => abrirTipoCessionario(tipo.nome, tipo.quantidade))"
+            >
+              <td>
+                <div class="t-name">
+                  <span class="t-dot" [style.background]="corTipo(tipo.nome)"></span>
+                  {{ tipo.nome }}
+                </div>
+                <div class="t-bar">
+                  <i [style.width.%]="barWidthTipo(tipo.quantidade)" [style.background]="corTipo(tipo.nome)"></i>
+                </div>
+              </td>
+              <td class="r"><span class="qtd">{{ tipo.quantidade }}</span></td>
+              <td class="r valor">{{ moeda(tipo.valor_total) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      @if (andaresEntries().length) {
+        <div class="andar">
+          <div class="eyebrow">Por andar</div>
+          @for (a of andaresEntries(); track a.andar) {
+            <div class="andar-row">
+              <span class="andar-lbl">{{ a.andar }}</span>
+              @for (t of a.tipos; track t.nome) {
+                <span
+                  class="tag"
+                  [class.is-clickable]="t.qtd > 0"
+                  role="button"
+                  [tabindex]="t.qtd > 0 ? 0 : -1"
+                  (click)="$event.stopPropagation(); abrirAndarTipo(a.andar, t.nome, t.qtd)"
+                  (keydown)="onDrilldownKeydown($event, () => abrirAndarTipo(a.andar, t.nome, t.qtd))"
+                >
+                  <span class="t-dot" [style.background]="corTipo(t.nome)"></span>
+                  {{ t.nome }} <b>{{ t.qtd }}</b>
+                </span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
   </div>
-</section>
-
-<div class="metrics-grid">
-  <section class="card">
-    <div class="card-head"><h2>Pack30</h2></div>
-    <div class="card-body alert-grid">
-      <div class="alert-stat">
-        <span>{{ dashboard.camarotes.pack30.com_pack30 }}</span><small>Com Pack30</small>
-      </div>
-      <div class="alert-stat muted">
-        <span>{{ dashboard.camarotes.pack30.sem_pack30 }}</span><small>Sem Pack30</small>
-      </div>
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="card-head"><h2>Vagas VVIP</h2></div>
-    <div class="card-body fin-grid">
-      <div><small>Total vagas</small><strong>{{ dashboard.camarotes.vagas_vvip.total_vagas }}</strong></div>
-      <div><small>Valor total</small><strong>{{ moeda(dashboard.camarotes.vagas_vvip.valor_total) }}</strong></div>
-    </div>
-  </section>
 </div>
+
+<app-camarotes-kpi-modal
+  [aberto]="modalAberto()"
+  [titulo]="modalTitulo()"
+  [subtitulo]="modalSubtitulo()"
+  [carregando]="modalCarregando()"
+  [erro]="modalErro()"
+  [unidades]="modalUnidades()"
+  [modo]="modalModo()"
+  (fechar)="fecharKpi()"
+/>
