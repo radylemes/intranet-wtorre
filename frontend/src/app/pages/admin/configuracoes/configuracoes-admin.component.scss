@@ -5,3 +5,114 @@
 .form-actions {
   margin-top: 1.5rem;
 }
+
+.smtp-card {
+  margin-top: 1.5rem;
+}
+
+.smtp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: var(--panel-2, #f6f8fc);
+  border: 1.5px solid var(--line, #e4e8f0);
+  border-radius: 12px;
+  padding: 13px 15px;
+  margin-bottom: 12px;
+}
+
+.toggle-field .tt {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.toggle-field .ts {
+  font-size: 12px;
+  color: var(--ink-dim, #8a93a8);
+  margin-top: 2px;
+}
+
+.switch {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: block;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  margin: 0;
+}
+
+.switch .slider {
+  position: absolute;
+  inset: 0;
+  background: #cdd6e6;
+  border-radius: 30px;
+  transition: 0.2s;
+}
+
+.switch .slider::before {
+  content: '';
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.switch input:checked + .slider {
+  background: var(--wtorre, #1d54e6);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(20px);
+}
+
+.secret {
+  position: relative;
+}
+
+.secret input {
+  padding-right: 2.75rem;
+}
+
+.secret .eye {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim, #8a93a8);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+}
+
+.secret .eye svg {
+  width: 18px;
+  height: 18px;
+}
+
+.help {
+  margin-top: 0.35rem;
+  font-size: 12px;
+  color: var(--ink-dim, #8a93a8);
+}

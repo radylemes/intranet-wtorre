@@ -1,5 +1,40 @@
 const { getPool } = require('../db/pool');
 const { sqlSituacaoExpr } = require('../utils/camarotes-situacao.util');
+const { sqlCessionarioVagoExpr } = require('../utils/camarotes-cessionario.util');
+
+const TIPO_CAMAROTE = 'camarote';
+const OCUPADO = `NOT ${sqlCessionarioVagoExpr('')}`;
+
+const MESES_LABEL = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+function toNum(val, fallback = 0) {
+  if (val == null) return fallback;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function roundMoney(val) {
+  return Math.round(toNum(val) * 100) / 100;
+}
+
+function addMonthsYm(ym, offset) {
+  let [y, m] = ym.split('-').map(Number);
+  m += offset;
+  while (m > 12) {
+    m -= 12;
+    y += 1;
+  }
+  while (m < 1) {
+    m += 12;
+    y -= 1;
+  }
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+function labelMesFromYm(ym) {
+  const m = Number(ym.split('-')[1]);
+  return MESES_LABEL[m - 1] || ym;
+}
 
 function parseEmails(raw) {
   if (!raw) return [];
@@ -353,23 +388,162 @@ function vagasVvipResumo(unidades, tipo) {
   };
 }
 
+async function fetchVencimentosMensais() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT DATE_FORMAT(final_locacao, '%Y-%m') AS ym, COUNT(*) AS qtd
+     FROM camarotes_unidades
+     WHERE tipo_unidade = ?
+       AND ${OCUPADO}
+       AND final_locacao IS NOT NULL
+       AND final_locacao >= CURDATE()
+       AND final_locacao < DATE_ADD(CURDATE(), INTERVAL 12 MONTH)
+     GROUP BY ym
+     ORDER BY ym`,
+    [TIPO_CAMAROTE]
+  );
+  return rows;
+}
+
+async function fetchVencimentosEscalares() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT
+       COALESCE(SUM(final_locacao < CURDATE()), 0) AS vencidos,
+       COALESCE(SUM(final_locacao >= DATE_ADD(CURDATE(), INTERVAL 12 MONTH)), 0) AS apos_12m,
+       DATE_FORMAT(CURDATE(), '%Y-%m') AS ym_atual,
+       DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS ref_hoje,
+       DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 12 MONTH), '%Y-%m-%d') AS ref_limite_12m,
+       DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 90 DAY), '%Y-%m-%d') AS limite_breve
+     FROM camarotes_unidades
+     WHERE tipo_unidade = ?
+       AND ${OCUPADO}
+       AND final_locacao IS NOT NULL`,
+    [TIPO_CAMAROTE]
+  );
+  return rows[0] || {};
+}
+
+async function fetchReceitaRenovarTrimestres() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT YEAR(final_locacao) AS ano, QUARTER(final_locacao) AS tri,
+            SUM(valor_anual) AS valor
+     FROM camarotes_unidades
+     WHERE tipo_unidade = ?
+       AND ${OCUPADO}
+       AND valor_anual IS NOT NULL
+       AND final_locacao IS NOT NULL
+       AND final_locacao >= CURDATE()
+       AND final_locacao < DATE_ADD(CURDATE(), INTERVAL 12 MONTH)
+     GROUP BY ano, tri
+     ORDER BY ano, tri`,
+    [TIPO_CAMAROTE]
+  );
+  return rows;
+}
+
+async function fetchReceitaRenovarTotais() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT
+       COALESCE(SUM(CASE WHEN final_locacao >= CURDATE()
+                          AND final_locacao < DATE_ADD(CURDATE(), INTERVAL 12 MONTH)
+                         THEN valor_anual ELSE 0 END), 0) AS total_12m,
+       COALESCE(SUM(CASE WHEN final_locacao < CURDATE() THEN valor_anual ELSE 0 END), 0) AS vencida
+     FROM camarotes_unidades
+     WHERE tipo_unidade = ?
+       AND ${OCUPADO}
+       AND valor_anual IS NOT NULL
+       AND final_locacao IS NOT NULL`,
+    [TIPO_CAMAROTE]
+  );
+  return rows[0] || {};
+}
+
+function montarVencimentos(rowsMensais, escalares) {
+  const ymAtual = escalares.ym_atual;
+  const limiteBreve = escalares.limite_breve;
+  const porYm = {};
+  for (const row of rowsMensais) {
+    porYm[row.ym] = toNum(row.qtd);
+  }
+
+  const meses = [];
+  for (let i = 0; i < 12; i += 1) {
+    const ym = addMonthsYm(ymAtual, i);
+    meses.push({
+      ym,
+      label: labelMesFromYm(ym),
+      qtd: porYm[ym] ?? 0,
+      venceBreve: `${ym}-01` <= limiteBreve,
+    });
+  }
+
+  return {
+    vencidos: toNum(escalares.vencidos),
+    apos12m: toNum(escalares.apos_12m),
+    refHoje: escalares.ref_hoje,
+    refLimite12m: escalares.ref_limite_12m,
+    meses,
+  };
+}
+
+function montarReceitaRenovar(rowsTri, totais) {
+  const trimestres = rowsTri
+    .map((row) => {
+      const ano = toNum(row.ano);
+      const tri = toNum(row.tri);
+      const valor = roundMoney(row.valor);
+      if (valor <= 0) return null;
+      const anoCurto = String(ano % 100).padStart(2, '0');
+      return { label: `${tri}T/${anoCurto}`, ano, tri, valor };
+    })
+    .filter(Boolean);
+
+  return {
+    total12m: roundMoney(totais.total_12m),
+    vencida: roundMoney(totais.vencida),
+    trimestres,
+  };
+}
+
 async function buildDashboard() {
   const config = await getConfig();
   const dias = config?.dias_vence_breve ?? 90;
-  const unidades = await fetchAllUnidades(dias);
-  const camarotes = unidades.filter((u) => u.tipo_unidade === 'camarote');
+
+  const [unidades, rowsMensais, escalares, rowsTri, totais] = await Promise.all([
+    fetchAllUnidades(dias),
+    fetchVencimentosMensais(),
+    fetchVencimentosEscalares(),
+    fetchReceitaRenovarTrimestres(),
+    fetchReceitaRenovarTotais(),
+  ]);
+
+  const camarotes = unidades.filter((u) => u.tipo_unidade === TIPO_CAMAROTE);
+  const alertas = resumoAlertas(camarotes, TIPO_CAMAROTE);
+  const vencimentos = montarVencimentos(rowsMensais, escalares);
+  const receitaRenovar = montarReceitaRenovar(rowsTri, totais);
+
+  if (vencimentos.vencidos !== alertas.vencidos) {
+    throw new Error(
+      `Inconsistência vencimentos: timeline=${vencimentos.vencidos}, alertas=${alertas.vencidos}`
+    );
+  }
 
   return {
     ultima_sync: config?.ultima_sync || null,
     dias_vence_breve: dias,
     camarotes: {
-      disponiveis_por_setor: agruparPorSetor(camarotes, 'camarote'),
-      alertas: resumoAlertas(camarotes, 'camarote'),
-      metricas: metricasFinanceiras(camarotes, 'camarote'),
-      tipo_cessionario: tipoCessionarioBreakdown(camarotes, 'camarote'),
-      pack30: pack30Resumo(camarotes, 'camarote'),
-      vagas_vvip: vagasVvipResumo(camarotes, 'camarote'),
+      disponiveis_por_setor: agruparPorSetor(camarotes, TIPO_CAMAROTE),
+      alertas,
+      metricas: metricasFinanceiras(camarotes, TIPO_CAMAROTE),
+      tipo_cessionario: tipoCessionarioBreakdown(camarotes, TIPO_CAMAROTE),
+      pack30: pack30Resumo(camarotes, TIPO_CAMAROTE),
+      vagas_vvip: vagasVvipResumo(camarotes, TIPO_CAMAROTE),
     },
+    vencimentos,
+    receitaRenovar,
   };
 }
 

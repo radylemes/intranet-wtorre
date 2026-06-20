@@ -150,19 +150,31 @@
   z-index: 50;
 }
 
-.menu-entry.aberto .flyout {
+.menu-entry.aberto > .flyout {
   opacity: 1;
   visibility: visible;
   transform: translateX(0);
 }
 
-.menu-entry.flip .flyout {
+.flyout .flyout {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(6px);
+}
+
+.flyout .menu-entry.aberto > .flyout {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.menu-entry.flip > .flyout {
   left: auto;
   right: 100%;
   transform: translateX(-6px);
 }
 
-.menu-entry.flip.aberto .flyout {
+.menu-entry.flip.aberto > .flyout {
   transform: translateX(0);
 }
 

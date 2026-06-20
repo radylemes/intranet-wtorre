@@ -60,10 +60,40 @@ export interface BlocoTipoUnidade {
   vagas_vvip: { total_vagas: number; valor_total: number };
 }
 
+export interface VencimentoMes {
+  ym: string;
+  label: string;
+  qtd: number;
+  venceBreve: boolean;
+}
+
+export interface VencimentosDashboard {
+  vencidos: number;
+  apos12m: number;
+  refHoje: string;
+  refLimite12m: string;
+  meses: VencimentoMes[];
+}
+
+export interface ReceitaTrimestre {
+  label: string;
+  ano: number;
+  tri: number;
+  valor: number;
+}
+
+export interface ReceitaRenovarDashboard {
+  total12m: number;
+  vencida: number;
+  trimestres: ReceitaTrimestre[];
+}
+
 export interface CamarotesDashboard {
   ultima_sync: string | null;
   dias_vence_breve: number;
   camarotes: BlocoTipoUnidade;
+  vencimentos: VencimentosDashboard;
+  receitaRenovar: ReceitaRenovarDashboard;
 }
 
 export interface CamarotesConfig {

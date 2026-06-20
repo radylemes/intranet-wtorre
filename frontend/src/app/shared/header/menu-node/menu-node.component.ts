@@ -1,5 +1,6 @@
 import {
   Component,
+  effect,
   ElementRef,
   forwardRef,
   HostListener,
@@ -12,6 +13,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { MenuItem } from '../../../models/menu.model';
 import { isExterno, isInterno, isPlaceholder, temFilhos } from '../menu-link.util';
+import { MenuFlyoutService } from '../menu-flyout.service';
 
 const HOVER_DELAY_MS = 150;
 
@@ -26,6 +28,7 @@ export class MenuNodeComponent implements OnDestroy {
   @Input({ required: true }) item!: MenuItem;
   @Input() depth = 0;
   @Input() mobile = false;
+  @Input() parentOpen = true;
   @Input() expandedIds = new Set<number>();
   @Input() onToggleMobile: (id: number) => void = () => {};
   @Input() onCloseMenu: () => void = () => {};
@@ -38,6 +41,21 @@ export class MenuNodeComponent implements OnDestroy {
 
   private closeTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly flyoutService = inject(MenuFlyoutService);
+  private readonly closeSelf = (): void => {
+    this.clearCloseTimer();
+    if (!this.aberto()) return;
+    this.aberto.set(false);
+    this.flyoutService.deactivate(this.depth, this.closeSelf);
+  };
+
+  constructor() {
+    effect(() => {
+      if (!this.parentOpen && this.aberto()) {
+        this.closeSelf();
+      }
+    });
+  }
 
   protected readonly temFilhos = temFilhos;
   protected readonly isInterno = isInterno;
@@ -50,11 +68,15 @@ export class MenuNodeComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.clearCloseTimer();
+    if (!this.mobile) {
+      this.flyoutService.deactivate(this.depth, this.closeSelf);
+    }
   }
 
   onMouseEnter(): void {
     if (this.mobile || !this.temFilhos(this.item)) return;
     this.clearCloseTimer();
+    this.flyoutService.activate(this.depth, this.closeSelf);
     this.aberto.set(true);
     if (this.depth >= 1) {
       queueMicrotask(() => this.checkFlyoutFlip());
@@ -64,6 +86,10 @@ export class MenuNodeComponent implements OnDestroy {
   onMouseLeave(): void {
     if (this.mobile) return;
     this.scheduleClose();
+  }
+
+  onTriggerMouseEnter(): void {
+    if (this.depth >= 1) this.onMouseEnter();
   }
 
   onTriggerClick(event: Event): void {
@@ -112,7 +138,7 @@ export class MenuNodeComponent implements OnDestroy {
 
   private scheduleClose(): void {
     this.clearCloseTimer();
-    this.closeTimer = setTimeout(() => this.aberto.set(false), HOVER_DELAY_MS);
+    this.closeTimer = setTimeout(() => this.closeSelf(), HOVER_DELAY_MS);
   }
 
   private clearCloseTimer(): void {

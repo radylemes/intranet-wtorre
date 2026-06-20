@@ -44,6 +44,7 @@
             [item]="child"
             [depth]="depth + 1"
             [mobile]="mobile"
+            [parentOpen]="!mobile && aberto()"
             [expandedIds]="expandedIds"
             [onToggleMobile]="onToggleMobile"
             [onCloseMenu]="onCloseMenu"
@@ -57,7 +58,6 @@
       [class.aberto]="!mobile && aberto()"
       [class.expandido]="mobile && mobileExpandido"
       [class.flip]="flipFlyout()"
-      (mouseenter)="onMouseEnter()"
       (mouseleave)="onMouseLeave()"
     >
       <button
@@ -67,6 +67,7 @@
         role="menuitem"
         [attr.aria-haspopup]="true"
         [attr.aria-expanded]="mobile ? mobileExpandido : aberto()"
+        (mouseenter)="onTriggerMouseEnter()"
         (click)="onTriggerClick($event)"
         (keydown)="onTriggerKeydown($event)"
       >
@@ -88,6 +89,7 @@
             [item]="child"
             [depth]="depth + 1"
             [mobile]="mobile"
+            [parentOpen]="!mobile && aberto()"
             [expandedIds]="expandedIds"
             [onToggleMobile]="onToggleMobile"
             [onCloseMenu]="onCloseMenu"

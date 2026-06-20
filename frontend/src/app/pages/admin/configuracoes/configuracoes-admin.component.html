@@ -80,5 +80,133 @@
         </form>
       </div>
     </section>
+
+    <section class="card smtp-card">
+      <div class="card-head">
+        <h2>E-mail SMTP</h2>
+      </div>
+      <div class="card-body">
+        <form [formGroup]="smtpForm" (ngSubmit)="salvarSmtp()" class="config-form">
+          <div class="field">
+            <label for="smtp-host">Host SMTP</label>
+            <input id="smtp-host" formControlName="host" type="text" placeholder="smtp.exemplo.com" />
+          </div>
+
+          <div class="field">
+            <label for="smtp-port">Porta</label>
+            <input id="smtp-port" formControlName="port" type="number" min="1" max="65535" />
+          </div>
+
+          <div class="toggle-field">
+            <div>
+              <div class="tt">Conexão segura (SSL/TLS)</div>
+              <div class="ts">Ative para porta 465; desative para STARTTLS na porta 587</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" formControlName="secure" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="smtp-user">Usuário</label>
+            <input id="smtp-user" formControlName="user" type="text" placeholder="usuario@dominio.com" />
+          </div>
+
+          <div class="field">
+            <label for="smtp-password">Senha</label>
+            <div class="secret">
+              <input
+                id="smtp-password"
+                formControlName="password"
+                [type]="mostrarSenhaSmtp() ? 'text' : 'password'"
+                placeholder="Deixe vazio para manter a atual"
+              />
+              <button
+                type="button"
+                class="eye"
+                [attr.aria-label]="mostrarSenhaSmtp() ? 'Ocultar' : 'Mostrar'"
+                (click)="toggleSenhaSmtp()"
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+                </svg>
+              </button>
+            </div>
+            @if (smtpHasPassword()) {
+              <div class="help">Uma senha já está armazenada de forma cifrada.</div>
+            }
+          </div>
+
+          <div class="field">
+            <label for="smtp-from-email">E-mail remetente</label>
+            <input
+              id="smtp-from-email"
+              formControlName="from_email"
+              type="email"
+              placeholder="noreply@grupowtorre.com"
+            />
+          </div>
+
+          <div class="field">
+            <label for="smtp-from-name">Nome remetente</label>
+            <input
+              id="smtp-from-name"
+              formControlName="from_name"
+              type="text"
+              placeholder="Intranet WTorre"
+            />
+          </div>
+
+          <div class="toggle-field">
+            <div>
+              <div class="tt">SMTP ativo</div>
+              <div class="ts">Habilita o envio de e-mails pela intranet</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" formControlName="ativo" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="smtp-destinatario">Destinatário do teste</label>
+            <input
+              id="smtp-destinatario"
+              formControlName="destinatario_teste"
+              type="email"
+              placeholder="seu@email.com"
+            />
+          </div>
+
+          <div class="form-actions smtp-actions">
+            <button type="submit" class="btn-primary" [disabled]="salvandoSmtp()">
+              {{ salvandoSmtp() ? 'Salvando...' : 'Salvar SMTP' }}
+            </button>
+            <button
+              type="button"
+              class="btn-ghost"
+              [disabled]="verificandoSmtp()"
+              (click)="verificarSmtp()"
+            >
+              {{ verificandoSmtp() ? 'Verificando...' : 'Verificar conexão' }}
+            </button>
+            <button
+              type="button"
+              class="btn-ghost"
+              [disabled]="enviandoTesteSmtp()"
+              (click)="enviarTesteSmtp()"
+            >
+              {{ enviandoTesteSmtp() ? 'Enviando...' : 'Enviar e-mail de teste' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
   }
 </div>

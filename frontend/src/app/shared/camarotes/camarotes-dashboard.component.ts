@@ -4,7 +4,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   CamaroteUnidade,
   CamarotesDashboard,
+  ReceitaTrimestre,
   SituacaoUnidade,
+  VencimentoMes,
 } from '../../models/camarote.model';
 import { CamarotesService } from '../../services/camarotes.service';
 import { AlertasService } from '../../services/alertas.service';
@@ -98,6 +100,20 @@ export class CamarotesDashboardComponent {
   moeda(valor: number | null | undefined): string {
     if (valor == null) return '—';
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  moedaCompacta(valor: number | null | undefined): string {
+    if (valor == null) return '—';
+    const abs = Math.abs(valor);
+    if (abs >= 1_000_000) {
+      const mi = valor / 1_000_000;
+      return `R$ ${mi.toLocaleString('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: mi % 1 === 0 ? 0 : 1 })} mi`;
+    }
+    if (abs >= 1_000) {
+      const mil = valor / 1_000;
+      return `R$ ${mil.toLocaleString('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: mil % 1 === 0 ? 0 : 1 })} mil`;
+    }
+    return this.moeda(valor);
   }
 
   totalUnidades(): number {
@@ -232,8 +248,8 @@ export class CamarotesDashboardComponent {
   }
 
   private abrirModal(config: ModalDrilldownConfig): void {
-    const count = config.countEsperado ?? 0;
-    if (count <= 0) {
+    const count = config.countEsperado;
+    if (count !== undefined && count <= 0) {
       this.alertas.sucesso(config.vazioMsg || 'Nenhuma unidade nesta categoria.');
       return;
     }
@@ -379,4 +395,183 @@ export class CamarotesDashboardComponent {
   }
 
   formatarAndar = formatarAndar;
+
+  vencidosTimelineClickable(): boolean {
+    return (this.dashboard.vencimentos?.vencidos ?? 0) > 0;
+  }
+
+  apos12mClickable(): boolean {
+    return (this.dashboard.vencimentos?.apos12m ?? 0) > 0;
+  }
+
+  receitaTotal12mClickable(): boolean {
+    return (this.dashboard.receitaRenovar?.total12m ?? 0) > 0;
+  }
+
+  receitaVencidaClickable(): boolean {
+    return (this.dashboard.receitaRenovar?.vencida ?? 0) > 0;
+  }
+
+  abrirVencidosTimeline(): void {
+    this.abrirKpi('vencido');
+  }
+
+  abrirApos12m(): void {
+    const v = this.dashboard.vencimentos;
+    this.abrirModal({
+      titulo: 'Após 12 meses',
+      subtitulo: `${v.apos12m} contrato(s) com vencimento a partir de ${this.formatarDataBr(v.refLimite12m)}`,
+      modo: 'contrato',
+      fetch: { tipo: 'camarote' },
+      filtro: (u) => this.matchApos12m(u),
+      countEsperado: v.apos12m,
+    });
+  }
+
+  abrirMesVencimento(mes: VencimentoMes): void {
+    if (mes.qtd <= 0) return;
+    this.abrirModal({
+      titulo: `Vencimentos — ${mes.label.toUpperCase()}`,
+      subtitulo: `${mes.qtd} contrato(s) com vencimento em ${mes.ym}`,
+      modo: 'contrato',
+      fetch: { tipo: 'camarote' },
+      filtro: (u) => this.matchMesVencimento(u, mes.ym),
+      countEsperado: mes.qtd,
+    });
+  }
+
+  abrirReceitaTotal12m(): void {
+    const r = this.dashboard.receitaRenovar;
+    const qtd = this.qtdContratosProximos12m();
+    this.abrirModal({
+      titulo: 'Receita a renovar — 12 meses',
+      subtitulo: `${qtd} contrato(s) · ${this.moeda(r.total12m)} em receita anual`,
+      modo: 'contrato',
+      fetch: { tipo: 'camarote' },
+      filtro: (u) => this.matchReceitaProximos12m(u),
+      countEsperado: qtd,
+    });
+  }
+
+  abrirTrimestreReceita(tri: ReceitaTrimestre): void {
+    if (tri.valor <= 0) return;
+    this.abrirModal({
+      titulo: `Receita — ${tri.label}`,
+      subtitulo: `${this.moedaCompacta(tri.valor)} em receita anual neste trimestre`,
+      modo: 'contrato',
+      fetch: { tipo: 'camarote' },
+      filtro: (u) => this.matchTrimestreReceita(u, tri.ano, tri.tri),
+    });
+  }
+
+  abrirReceitaVencida(): void {
+    const v = this.dashboard.receitaRenovar.vencida;
+    if (v <= 0) return;
+    this.abrirModal({
+      titulo: 'Receita vencida',
+      subtitulo: `${this.moeda(v)} em receita anual · renovação em aberto`,
+      modo: 'contrato',
+      fetch: { tipo: 'camarote' },
+      filtro: (u) => this.matchReceitaVencida(u),
+    });
+  }
+
+  qtdContratosProximos12m(): number {
+    return (this.dashboard.vencimentos?.meses ?? []).reduce((s, m) => s + m.qtd, 0);
+  }
+
+  private dataIso(finalLocacao: string | null | undefined): string {
+    return finalLocacao?.slice(0, 10) ?? '';
+  }
+
+  private ymFromFinal(finalLocacao: string | null | undefined): string {
+    return this.dataIso(finalLocacao).slice(0, 7);
+  }
+
+  private formatarDataBr(iso: string): string {
+    const [y, m, d] = iso.split('-');
+    if (!y || !m || !d) return iso;
+    return `${d}/${m}/${y}`;
+  }
+
+  private intervaloTrimestre(ano: number, tri: number): { inicio: string; fim: string } {
+    const inicios = ['01-01', '04-01', '07-01', '10-01'];
+    const fins = ['03-31', '06-30', '09-30', '12-31'];
+    return {
+      inicio: `${ano}-${inicios[tri - 1]}`,
+      fim: `${ano}-${fins[tri - 1]}`,
+    };
+  }
+
+  private matchMesVencimento(u: CamaroteUnidade, ym: string): boolean {
+    return temCessionario(u) && this.ymFromFinal(u.final_locacao) === ym;
+  }
+
+  private matchApos12m(u: CamaroteUnidade): boolean {
+    const limite = this.dashboard.vencimentos.refLimite12m;
+    const d = this.dataIso(u.final_locacao);
+    return temCessionario(u) && !!d && d >= limite;
+  }
+
+  private matchReceitaProximos12m(u: CamaroteUnidade): boolean {
+    const { refHoje, refLimite12m } = this.dashboard.vencimentos;
+    const d = this.dataIso(u.final_locacao);
+    return (
+      temCessionario(u) &&
+      (u.valor_anual ?? 0) > 0 &&
+      !!d &&
+      d >= refHoje &&
+      d < refLimite12m
+    );
+  }
+
+  private matchTrimestreReceita(u: CamaroteUnidade, ano: number, tri: number): boolean {
+    const { refHoje, refLimite12m } = this.dashboard.vencimentos;
+    const d = this.dataIso(u.final_locacao);
+    if (!temCessionario(u) || (u.valor_anual ?? 0) <= 0 || !d) return false;
+    if (d < refHoje || d >= refLimite12m) return false;
+    const { inicio, fim } = this.intervaloTrimestre(ano, tri);
+    return d >= inicio && d <= fim;
+  }
+
+  private matchReceitaVencida(u: CamaroteUnidade): boolean {
+    const refHoje = this.dashboard.vencimentos.refHoje;
+    const d = this.dataIso(u.final_locacao);
+    return temCessionario(u) && (u.valor_anual ?? 0) > 0 && !!d && d < refHoje;
+  }
+
+  vencimentosVazio(): boolean {
+    const v = this.dashboard.vencimentos;
+    if (!v?.meses?.length) return true;
+    const sumMeses = v.meses.reduce((s, m) => s + m.qtd, 0);
+    return v.vencidos + v.apos12m + sumMeses === 0;
+  }
+
+  receitaVazia(): boolean {
+    const r = this.dashboard.receitaRenovar;
+    if (!r) return true;
+    return r.total12m === 0 && r.vencida === 0 && !r.trimestres?.length;
+  }
+
+  maxVencimentoQtd(): number {
+    const meses = this.dashboard.vencimentos?.meses ?? [];
+    const max = Math.max(...meses.map((m) => m.qtd), 0);
+    return Math.max(max, 1);
+  }
+
+  alturaBarraVenc(qtd: number): number {
+    if (qtd <= 0) return 8;
+    return Math.max(Math.round((qtd / this.maxVencimentoQtd()) * 100), 8);
+  }
+
+  maxReceitaTri(): number {
+    const trimestres = this.dashboard.receitaRenovar?.trimestres ?? [];
+    const max = Math.max(...trimestres.map((t) => t.valor), 0);
+    return Math.max(max, 1);
+  }
+
+  larguraBarraReceita(valor: number): number {
+    if (valor <= 0) return 0;
+    return Math.round((valor / this.maxReceitaTri()) * 100);
+  }
 }

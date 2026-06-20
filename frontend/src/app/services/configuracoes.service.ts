@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { ConfiguracoesAdmin, HeaderChamadoConfig } from '../models/configuracoes.model';
+import { ConfiguracoesAdmin, HeaderChamadoConfig, SmtpConfig } from '../models/configuracoes.model';
 
 @Injectable({ providedIn: 'root' })
 export class ConfiguracoesService {
@@ -25,5 +25,32 @@ export class ConfiguracoesService {
     tipo_destino: 'interna' | 'externa';
   }): Observable<HeaderChamadoConfig> {
     return this.http.put<HeaderChamadoConfig>(`${this.base}/header-chamado`, body);
+  }
+
+  getSmtp(): Observable<SmtpConfig> {
+    return this.http.get<SmtpConfig>(`${this.base}/smtp`);
+  }
+
+  salvarSmtp(body: {
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    password?: string;
+    from_email: string;
+    from_name: string;
+    ativo: boolean;
+  }): Observable<SmtpConfig> {
+    return this.http.put<SmtpConfig>(`${this.base}/smtp`, body);
+  }
+
+  verificarSmtp(): Observable<{ ok: boolean; mensagem: string }> {
+    return this.http.post<{ ok: boolean; mensagem: string }>(`${this.base}/smtp/verificar`, {});
+  }
+
+  enviarTesteSmtp(destinatario?: string): Observable<{ ok: boolean; mensagem: string }> {
+    return this.http.post<{ ok: boolean; mensagem: string }>(`${this.base}/smtp/teste`, {
+      destinatario,
+    });
   }
 }
