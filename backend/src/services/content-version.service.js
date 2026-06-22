@@ -7,6 +7,7 @@ const RECURSOS = [
   'paginas',
   'documentos',
   'treinamentos',
+  'comunicados',
   'configuracoes',
   'permissoes',
 ];

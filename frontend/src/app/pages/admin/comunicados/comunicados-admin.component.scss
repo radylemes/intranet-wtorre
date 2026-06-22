@@ -1,0 +1,61 @@
+@use '../../../../styles/breakpoints' as bp;
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.search-wrap {
+  flex: 1;
+  max-width: 360px;
+}
+
+.search-wrap input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--line-solid, #e2e6ee);
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+}
+
+.search-wrap input:focus {
+  outline: none;
+  border-color: var(--wtorre, #2f6bff);
+  box-shadow: 0 0 0 4px rgba(47, 107, 255, 0.1);
+}
+
+textarea,
+select {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-solid);
+  border-radius: 10px;
+}
+
+.help {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+
+@include bp.mobile {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-wrap {
+    max-width: none;
+  }
+
+  .toolbar .btn-primary {
+    width: 100%;
+  }
+}

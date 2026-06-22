@@ -8,7 +8,7 @@
       </div>
     </div>
 
-    @if (auth.isAdmin() || auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('documentos') || auth.hasModulo('treinamentos') || auth.hasModulo('containers') || auth.hasModulo('paginas')) {
+    @if (auth.isAdmin() || auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('documentos') || auth.hasModulo('treinamentos') || auth.hasModulo('comunicados') || auth.hasModulo('containers') || auth.hasModulo('paginas')) {
       <div class="nav-group-label">Gestão de conteúdo</div>
       <nav class="sidebar-nav">
         @if (auth.hasModulo('menu')) {
@@ -58,6 +58,26 @@
               <path d="M7 11.5V16c2.5 1.6 7.5 1.6 10 0v-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
             Treinamentos
+          </a>
+        }
+        @if (auth.hasModulo('comunicados')) {
+          <a routerLink="/admin/comunicados" routerLinkActive="active" (click)="closeSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 6h16M4 12h10M4 18h7"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M18 10l2 2-4 4-2-2"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Comunicados
           </a>
         }
         @if (auth.hasModulo('containers')) {

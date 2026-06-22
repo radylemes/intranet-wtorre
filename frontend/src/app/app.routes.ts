@@ -143,6 +143,15 @@ export const routes: Routes = [
         data: { adminTitle: 'Treinamentos' },
       },
       {
+        path: 'comunicados',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/comunicados/comunicados-admin.component').then(
+            (m) => m.ComunicadosAdminComponent
+          ),
+        data: { adminTitle: 'Comunicados' },
+      },
+      {
         path: 'containers',
         canActivate: [moduloGuardFromRoute],
         loadComponent: () =>

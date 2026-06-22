@@ -1,0 +1,115 @@
+<div class="admin-page">
+  <header class="page-head">
+    <h1>Comunicados</h1>
+    <p>Gerencie os avisos exibidos no mural da intranet.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input
+        type="search"
+        placeholder="Buscar por título ou categoria…"
+        (input)="onBuscaInput($any($event.target).value)"
+        aria-label="Buscar comunicados"
+      />
+    </div>
+    <button type="button" class="btn-primary" (click)="novo()">Novo comunicado</button>
+  </div>
+
+  <section class="card">
+    <div class="card-body">
+      @if (carregando()) {
+        <p class="empty">Carregando…</p>
+      } @else if (!comunicadosFiltrados().length) {
+        <p class="empty">
+          @if (busca()) {
+            Nenhum comunicado encontrado para esta busca.
+          } @else {
+            Nenhum comunicado cadastrado ainda.
+          }
+        </p>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Categoria</th>
+                <th>Título</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of comunicadosFiltrados(); track c.id) {
+                <tr>
+                  <td>{{ dataLabel(c) }}</td>
+                  <td>{{ categoriaLabel(c) }}</td>
+                  <td><strong>{{ c.titulo }}</strong></td>
+                  <td>
+                    <span class="status-badge" [class.on]="c.ativo" [class.off]="!c.ativo">
+                      {{ c.ativo ? 'Ativo' : 'Inativo' }}
+                    </span>
+                  </td>
+                  <td class="row-actions">
+                    <button type="button" class="iconbtn" title="Editar" (click)="editar(c)">✎</button>
+                    <button type="button" class="iconbtn del" title="Excluir" (click)="excluir(c)">✕</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </section>
+</div>
+
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="tituloModal()"
+  [subtitle]="subtituloModal()"
+  icon="folder"
+  [salvando]="salvando()"
+  [saveLabel]="salvando() ? 'Salvando…' : 'Salvar'"
+  (save)="salvar()"
+  (cancel)="fecharModal()"
+>
+  <form [formGroup]="form" (ngSubmit)="salvar()">
+    <div class="field">
+      <label for="c-titulo">Título *</label>
+      <textarea id="c-titulo" formControlName="titulo" rows="3"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="c-cat">Categoria *</label>
+      <select id="c-cat" formControlName="categoria">
+        @for (cat of categorias; track cat.codigo) {
+          <option [value]="cat.codigo">{{ cat.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="c-data">Data de publicação *</label>
+      <input id="c-data" formControlName="dataPublicacao" type="date" />
+    </div>
+
+    <div class="field">
+      <label for="c-ordem">Ordem</label>
+      <input id="c-ordem" formControlName="ordem" type="number" min="0" placeholder="Opcional" />
+      <div class="help">Comunicados na mesma data são ordenados por este valor (menor primeiro).</div>
+    </div>
+
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Ativo</div>
+        <div class="ts">Comunicados inativos não aparecem no mural</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="ativo" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </form>
+</app-admin-modal>

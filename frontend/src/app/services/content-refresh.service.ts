@@ -15,6 +15,7 @@ export type ContentResource =
   | 'paginas'
   | 'documentos'
   | 'treinamentos'
+  | 'comunicados'
   | 'configuracoes'
   | 'permissoes';
 
@@ -29,6 +30,7 @@ const RESOURCES: ContentResource[] = [
   'paginas',
   'documentos',
   'treinamentos',
+  'comunicados',
   'configuracoes',
   'permissoes',
 ];
@@ -52,6 +54,7 @@ export class ContentRefreshService {
   readonly paginasChanged$ = new Subject<void>();
   readonly documentosChanged$ = new Subject<void>();
   readonly treinamentosChanged$ = new Subject<void>();
+  readonly comunicadosChanged$ = new Subject<void>();
   readonly configuracoesChanged$ = new Subject<void>();
   readonly permissoesChanged$ = new Subject<void>();
 
@@ -62,6 +65,7 @@ export class ContentRefreshService {
     paginas: this.paginasChanged$,
     documentos: this.documentosChanged$,
     treinamentos: this.treinamentosChanged$,
+    comunicados: this.comunicadosChanged$,
     configuracoes: this.configuracoesChanged$,
     permissoes: this.permissoesChanged$,
   };

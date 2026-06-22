@@ -6,14 +6,14 @@
     </div>
   </div>
   <div class="panel-card">
-    @for (n of noticias; track n.titulo) {
+    @for (n of noticias(); track n.id) {
       <div class="news-item">
         <div class="date">
           <div class="d">{{ n.dia }}</div>
           <div class="m">{{ n.mes }}</div>
         </div>
         <div class="body">
-          <div class="cat {{ n.catClasse }}">{{ n.categoria }}</div>
+          <div class="cat {{ n.catClasse }}">{{ n.categoriaLabel }}</div>
           <div class="t">{{ n.titulo }}</div>
         </div>
       </div>
