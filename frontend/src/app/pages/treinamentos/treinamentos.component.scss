@@ -1,17 +1,17 @@
+@use '../../../styles/breakpoints' as bp;
+
 :host {
   display: block;
 }
 
 .wrap {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 28px;
+  padding-inline: 28px;
 }
 
 .page-head {
   position: relative;
   z-index: 5;
-  padding: 34px 0 12px;
+  padding-block: 34px 12px;
 }
 
 .crumb {
@@ -352,7 +352,7 @@
 
 @media (max-width: 780px) {
   .wrap {
-    padding: 0 16px;
+    padding-inline: 20px;
   }
 
   .featured {

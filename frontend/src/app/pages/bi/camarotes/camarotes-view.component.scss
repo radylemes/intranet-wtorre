@@ -1,5 +1,5 @@
 .conteudo {
-  padding: 32px 0 64px;
+  padding-block: 32px 64px;
 }
 
 .head {
@@ -101,7 +101,7 @@
 
 @media (max-width: 520px) {
   .conteudo {
-    padding: 20px 0 48px;
+    padding-block: 20px 48px;
   }
 
   .head h1 {

@@ -34,7 +34,7 @@ async function validateParent(parentId, selfId = null) {
   }
   const parentDepth = await getDepth(pid);
   if (parentDepth + 1 > MAX_DEPTH) {
-    throw new Error('Profundidade máxima do menu é 3 níveis.');
+    throw new Error(`Profundidade máxima do menu é ${MAX_DEPTH} níveis.`);
   }
   return pid;
 }

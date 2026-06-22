@@ -1,13 +1,19 @@
+@use '../../../styles/breakpoints' as bp;
+
 :host {
   --gold: #e0a52e;
   --gold-soft: #fbf2dc;
   display: block;
 }
 
+.wrap {
+  padding-inline: 28px;
+}
+
 .page-head {
   position: relative;
   z-index: 5;
-  padding: 36px 0 14px;
+  padding-block: 36px 14px;
 }
 
 .crumb {
@@ -216,5 +222,19 @@
     min-width: 0;
     width: 100%;
     order: -1;
+  }
+}
+
+@include bp.mobile {
+  .wrap {
+    padding-inline: 20px;
+  }
+
+  .page-head {
+    padding-block: 24px 12px;
+  }
+
+  .page-head h1 {
+    font-size: 28px;
   }
 }

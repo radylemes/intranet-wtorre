@@ -26,6 +26,7 @@
   border: 1px solid var(--line-solid);
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
+  overflow: visible;
 }
 
 .card-pad {
@@ -36,7 +37,13 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  flex-shrink: 0;
   margin-bottom: 16px;
+}
+
+.card-pad > .card-head {
+  padding: 0;
+  border-bottom: none;
 }
 
 .card-head h2 {
@@ -239,7 +246,7 @@ tbody tr.is-clickable:hover {
   align-items: stretch;
 
   > .card {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -542,6 +549,10 @@ tbody tr:not(:last-child) td {
 
   .pair-row--equal {
     flex-direction: column;
+
+    > .card {
+      width: 100%;
+    }
   }
 }
 
@@ -570,15 +581,21 @@ tbody tr:not(:last-child) td {
 .rr-card {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
 }
 
-.venc-card .venc-wrap,
-.venc-card .empty-hint,
-.rr-card .rr-total,
-.rr-card .rr-q-list,
-.rr-card .empty-hint {
-  flex: 1;
+@media (min-width: 861px) {
+  .pair-row--equal > .venc-card,
+  .pair-row--equal > .rr-card {
+    min-height: 100%;
+  }
+
+  .venc-card .venc-wrap,
+  .venc-card .empty-hint,
+  .rr-card .rr-total,
+  .rr-card .rr-q-list,
+  .rr-card .empty-hint {
+    flex: 1;
+  }
 }
 
 .empty-hint {
@@ -852,6 +869,14 @@ tbody tr:not(:last-child) td {
 }
 
 @media (max-width: 520px) {
+  .kpi .value {
+    font-size: 32px;
+  }
+
+  .fin-item .v {
+    font-size: 18px;
+  }
+
   .rr-q {
     grid-template-columns: 44px 1fr;
     grid-template-rows: auto auto;
@@ -862,11 +887,34 @@ tbody tr:not(:last-child) td {
     justify-self: end;
   }
 
+  .tl {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .tl-col {
+    flex: 0 0 34px;
+    min-width: 34px;
+  }
+
   .tl-cap-num {
     font-size: 28px;
   }
 
   .rr-total-val {
     font-size: 24px;
+  }
+
+  .dashboard-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -6px;
+    padding: 0 6px;
+  }
+
+  .dashboard-table-scroll > table {
+    min-width: 320px;
   }
 }

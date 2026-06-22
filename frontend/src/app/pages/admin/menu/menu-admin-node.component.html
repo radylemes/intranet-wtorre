@@ -69,7 +69,7 @@
           }
         </span>
         <span class="acts">
-          @if (temSubmenu(item)) {
+          @if (podeAdicionarSubitem()) {
             <button type="button" class="ib" title="Adicionar subitem" (click)="emit('addChild', item)">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path

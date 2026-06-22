@@ -1,6 +1,6 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, EventEmitter, Input, Output, ViewEncapsulation, forwardRef } from '@angular/core';
-import { MenuItem } from '../../../models/menu.model';
+import { MENU_MAX_DEPTH, MenuItem } from '../../../models/menu.model';
 
 export interface MenuAdminNodeAction {
   type: 'edit' | 'remove' | 'addChild' | 'toggle';
@@ -55,6 +55,10 @@ export class MenuAdminNodeComponent {
 
   temSubmenu(item: MenuItem): boolean {
     return (item.children?.length ?? 0) > 0;
+  }
+
+  podeAdicionarSubitem(): boolean {
+    return this.depth < MENU_MAX_DEPTH - 1;
   }
 
   badgeClass(url: string | null | undefined): string {

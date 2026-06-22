@@ -5,7 +5,7 @@ import { Subscription, forkJoin } from 'rxjs';
 import { MenuService } from '../../../services/menu.service';
 import { DocumentosService } from '../../../services/documentos.service';
 import { PaginasService } from '../../../services/paginas.service';
-import { MenuItem, MenuReorderItem } from '../../../models/menu.model';
+import { MenuItem, MenuReorderItem, MENU_MAX_DEPTH } from '../../../models/menu.model';
 import {
   MenuAdminNodeAction,
   MenuAdminNodeComponent,
@@ -356,7 +356,9 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
   private flattenTreeOptions(items: MenuItem[], depth = 0): PaiOption[] {
     const result: PaiOption[] = [];
     for (const item of items) {
-      result.push({ id: item.id, label: item.label, depth });
+      if (depth < MENU_MAX_DEPTH - 1) {
+        result.push({ id: item.id, label: item.label, depth });
+      }
       if (item.children?.length) {
         result.push(...this.flattenTreeOptions(item.children, depth + 1));
       }

@@ -34,12 +34,12 @@ a {
 .wrap {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 0 28px;
+  padding-inline: 28px;
 }
 
 @include bp.mobile {
   .wrap {
-    padding: 0 18px;
+    padding-inline: 20px;
   }
 }
 

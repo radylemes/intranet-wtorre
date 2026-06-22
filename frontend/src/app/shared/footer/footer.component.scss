@@ -7,7 +7,7 @@ footer {
 }
 
 .foot-top {
-  padding: 44px 0 34px;
+  padding-block: 44px 34px;
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr 1fr;
   gap: 36px;
@@ -56,7 +56,7 @@ footer {
 
 .sponsors {
   border-top: 1px solid var(--line-solid);
-  padding: 22px 0;
+  padding-block: 22px;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -86,7 +86,7 @@ footer {
 
 .foot-legal {
   border-top: 1px solid var(--line-solid);
-  padding: 18px 0;
+  padding-block: 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;

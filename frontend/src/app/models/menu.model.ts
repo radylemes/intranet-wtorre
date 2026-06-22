@@ -1,3 +1,5 @@
+export const MENU_MAX_DEPTH = 5;
+
 export interface MenuItem {
   id: number;
   label: string;

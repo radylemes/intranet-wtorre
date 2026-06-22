@@ -1,7 +1,15 @@
+@use '../../../styles/breakpoints' as bp;
+
+:host {
+  display: block;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 .page-head {
   position: relative;
   z-index: 5;
-  padding: 36px 0 18px;
+  padding-block: 36px 18px;
 }
 
 .crumb {
@@ -86,7 +94,8 @@
 .ramais-body {
   position: relative;
   z-index: 5;
-  padding-bottom: 60px;
+  padding-block-end: 60px;
+  min-width: 0;
 }
 
 .toolbar {
@@ -234,8 +243,10 @@ select.flt {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
   gap: 16px;
+  width: 100%;
+  min-width: 0;
 }
 
 .alert.err {
@@ -273,5 +284,43 @@ select.flt {
   .selwrap,
   .selwrap select {
     width: 100%;
+  }
+}
+
+@include bp.mobile {
+  .page-head {
+    padding-block: 24px 12px;
+  }
+
+  .ph-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .ph-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sync,
+  .btn-sync {
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+  }
+
+  .toolbar {
+    margin-top: 12px;
+  }
+
+  .chips {
+    gap: 8px;
+    max-width: 100%;
+  }
+
+  .ramais-body {
+    overflow-x: clip;
   }
 }

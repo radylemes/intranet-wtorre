@@ -1,5 +1,21 @@
 <header class="main">
   <div class="wrap navrow">
+    <button
+      class="menu-toggle"
+      type="button"
+      aria-label="Abrir menu"
+      (click)="toggleMenu()"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M3 6h18M3 12h18M3 18h18"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
+
     <nav class="menu" [class.aberto]="menuAberto()">
       @for (item of menuItems(); track item.id) {
         <app-menu-node
@@ -22,17 +38,19 @@
             [attr.target]="chamadoConfig()!.abrir_nova_aba ? '_blank' : null"
             [attr.rel]="chamadoConfig()!.abrir_nova_aba ? 'noopener noreferrer' : null"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
             </svg>
-            <span>{{ chamadoConfig()!.label }}</span>
+            <span class="btn-chamado-label">{{ chamadoConfig()!.label }}</span>
+            <span class="btn-chamado-label-mobile">Chamados</span>
           </a>
         } @else {
           <a class="btn-chamado" [routerLink]="chamadoConfig()!.url!">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
             </svg>
-            <span>{{ chamadoConfig()!.label }}</span>
+            <span class="btn-chamado-label">{{ chamadoConfig()!.label }}</span>
+            <span class="btn-chamado-label-mobile">Chamados</span>
           </a>
         }
       }
@@ -62,21 +80,6 @@
           </div>
         }
       </div>
-      <button
-        class="menu-toggle"
-        type="button"
-        aria-label="Abrir menu"
-        (click)="toggleMenu()"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M3 6h18M3 12h18M3 18h18"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
-      </button>
     </div>
   </div>
 </header>
