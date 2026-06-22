@@ -1,3 +1,5 @@
+@use '../../../../styles/breakpoints' as bp;
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -31,4 +33,19 @@
   font-family: ui-monospace, monospace;
   font-size: 13px;
   color: var(--ink-soft, #48536a);
+}
+
+@include bp.mobile {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-wrap {
+    max-width: none;
+  }
+
+  .toolbar .btn-primary {
+    width: 100%;
+  }
 }

@@ -13,6 +13,7 @@
       @if (!perfis().length) {
         <p class="empty">Nenhum perfil cadastrado.</p>
       } @else {
+        <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -48,6 +49,7 @@
             }
           </tbody>
         </table>
+        </div>
       }
     </div>
   </section>

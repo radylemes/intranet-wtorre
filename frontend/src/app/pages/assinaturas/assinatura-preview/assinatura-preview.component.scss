@@ -22,7 +22,8 @@
 
 .preview-content {
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 :host ::ng-deep .preview-content table {

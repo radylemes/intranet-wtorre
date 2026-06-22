@@ -1,3 +1,5 @@
+@use '../../../../styles/breakpoints' as bp;
+
 .menu-admin-page {
   max-width: 1080px;
 }
@@ -91,4 +93,19 @@
 
 .tree .empty {
   padding: 16px 12px;
+}
+
+@include bp.mobile {
+  .menu-admin-page .page-head h1 {
+    font-size: 24px;
+  }
+
+  .tree {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .menu-admin-page .card-head {
+    padding: 16px;
+  }
 }

@@ -103,4 +103,18 @@
   .conteudo {
     padding: 20px 0 48px;
   }
+
+  .head h1 {
+    font-size: 26px;
+  }
+
+  .actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
 }

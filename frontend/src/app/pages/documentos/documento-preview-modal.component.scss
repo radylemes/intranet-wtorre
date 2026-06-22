@@ -57,3 +57,24 @@
   height: 70vh;
   border: none;
 }
+
+@media (max-width: 760px) {
+  .modal-backdrop {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 90dvh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .modal-body {
+    min-height: 50dvh;
+  }
+
+  .modal-body iframe {
+    height: 60dvh;
+  }
+}

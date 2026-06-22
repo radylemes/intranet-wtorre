@@ -1,3 +1,5 @@
+@use '../../../../styles/breakpoints' as bp;
+
 .editor-page {
   max-width: 1400px;
 }
@@ -160,5 +162,30 @@
 
   .meta-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@include bp.mobile {
+  .editor-head {
+    margin-bottom: 16px;
+  }
+
+  .head-left h1 {
+    font-size: 22px;
+  }
+
+  .meta-grid {
+    padding: 16px;
+  }
+
+  .paleta,
+  .inspetor {
+    padding: 16px;
+    min-width: 0;
+  }
+
+  .canvas-wrap {
+    min-width: 0;
+    overflow-x: auto;
   }
 }

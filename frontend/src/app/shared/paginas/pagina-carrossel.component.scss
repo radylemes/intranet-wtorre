@@ -70,3 +70,23 @@
 .dot.active {
   background: var(--wtorre, #2f6bff);
 }
+
+@media (max-width: 760px) {
+  .nav {
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+  }
+
+  .nav.prev {
+    left: 6px;
+  }
+
+  .nav.next {
+    right: 6px;
+  }
+
+  .viewport img {
+    max-height: 320px;
+  }
+}

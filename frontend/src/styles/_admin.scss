@@ -1,4 +1,5 @@
 /* Shared admin page styles — use inside .admin-page wrapper */
+@use 'breakpoints' as bp;
 
 .admin-page {
   max-width: 1200px;
@@ -437,4 +438,60 @@
 .cat-node-actions {
   display: flex;
   gap: 4px;
+}
+
+/* Table horizontal scroll on mobile */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-page .card-body:has(> table),
+.admin-page .table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-page .card-body:has(> table) > table,
+.admin-page .table-scroll > table {
+  min-width: 560px;
+}
+
+.admin-page .table-scroll--wide > table {
+  min-width: 720px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+@include bp.mobile {
+  .admin-page .page-head h1 {
+    font-size: 22px;
+  }
+
+  .admin-page .card-head {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .admin-page .card-body {
+    padding: 16px;
+  }
+
+  .toolbar {
+    gap: 10px;
+  }
+
+  .toolbar .search,
+  .toolbar input[type='search'],
+  .toolbar input[type='text'] {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+  }
 }

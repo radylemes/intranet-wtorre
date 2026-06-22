@@ -426,6 +426,27 @@
   }
 }
 
+@media (max-width: 760px) {
+  .admin-modal.overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .admin-modal__panel {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px 16px 0 0;
+  }
+
+  .admin-modal .m-head {
+    padding: 18px 16px 14px;
+  }
+
+  .admin-modal .m-body {
+    padding: 16px;
+  }
+}
+
 @media (max-width: 520px) {
   .admin-modal .m-body .row2 {
     grid-template-columns: 1fr;

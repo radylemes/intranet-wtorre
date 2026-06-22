@@ -43,6 +43,7 @@
       @if (!usuarios().length) {
         <p class="empty">Nenhum usuário com permissões configuradas.</p>
       } @else {
+        <div class="table-scroll table-scroll--wide">
         <table>
           <thead>
             <tr>
@@ -89,6 +90,7 @@
             }
           </tbody>
         </table>
+        </div>
       }
     </div>
   </section>

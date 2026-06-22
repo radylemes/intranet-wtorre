@@ -60,3 +60,29 @@
 .btn-link:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 760px) {
+  .page-head {
+    padding: 24px 16px 12px;
+  }
+
+  .page-head h1 {
+    font-size: 24px;
+  }
+
+  .descricao {
+    font-size: 15px;
+  }
+
+  .conteudo {
+    padding: 8px 16px 40px;
+  }
+
+  .not-found {
+    padding: 48px 16px;
+  }
+
+  .not-found h1 {
+    font-size: 22px;
+  }
+}

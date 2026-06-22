@@ -1,3 +1,5 @@
+@use '../../../../styles/breakpoints' as bp;
+
 .menu-tree-list {
   display: flex;
   flex-direction: column;
@@ -219,5 +221,29 @@
 @media (max-width: 1000px) {
   .badges {
     display: none;
+  }
+}
+
+@include bp.mobile {
+  .row {
+    min-width: 0;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .lbl {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+
+  .acts {
+    opacity: 1;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .children {
+    margin-left: 16px;
+    padding-left: 10px;
   }
 }

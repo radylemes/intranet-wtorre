@@ -47,6 +47,7 @@
       @if (!visualizadores().length) {
         <p class="empty">Nenhum visualizador cadastrado. Admins e usuários com módulo Camarotes já têm acesso automático.</p>
       } @else {
+        <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -71,6 +72,7 @@
             }
           </tbody>
         </table>
+        </div>
       }
     </div>
   </section>
@@ -160,6 +162,7 @@
       @if (!syncLogs().length) {
         <p class="empty">Nenhuma sincronização registrada.</p>
       } @else {
+        <div class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -190,6 +193,7 @@
             }
           </tbody>
         </table>
+        </div>
       }
     </div>
   </section>

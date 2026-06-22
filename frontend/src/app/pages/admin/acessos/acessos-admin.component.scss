@@ -83,3 +83,7 @@
 .small {
   font-size: 0.8rem;
 }
+
+.table-scroll--wide > table {
+  min-width: 720px;
+}

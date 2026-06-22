@@ -272,9 +272,22 @@
   margin-top: 6px;
 }
 
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll > table {
+  min-width: 640px;
+}
+
 @media (max-width: 760px) {
   .catalog {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 16px;
   }
 }
 

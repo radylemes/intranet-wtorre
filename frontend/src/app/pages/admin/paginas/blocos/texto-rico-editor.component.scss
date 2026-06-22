@@ -12,6 +12,8 @@
   padding: 8px;
   border-bottom: 1px solid var(--line-solid, #e2e6ee);
   background: var(--bg, #f4f5f8);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .toolbar button {

@@ -129,3 +129,17 @@
   margin-bottom: 16px;
   font-size: 13px;
 }
+
+@media (max-width: 760px) {
+  .cat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-head h1 {
+    font-size: 26px;
+  }
+
+  .doc-section {
+    padding: 20px 0 48px;
+  }
+}

@@ -1,0 +1,28 @@
+$bp-mobile: 760px;
+$bp-tablet: 1080px;
+$bp-admin-sidebar: 1000px;
+$bp-admin-grid: 900px;
+
+@mixin mobile {
+  @media (max-width: $bp-mobile) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (max-width: $bp-tablet) {
+    @content;
+  }
+}
+
+@mixin admin-sidebar {
+  @media (max-width: $bp-admin-sidebar) {
+    @content;
+  }
+}
+
+@mixin admin-grid {
+  @media (max-width: $bp-admin-grid) {
+    @content;
+  }
+}

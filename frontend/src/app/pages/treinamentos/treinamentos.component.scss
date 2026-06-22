@@ -363,3 +363,24 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 760px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .selwrap,
+  .selwrap select {
+    width: 100%;
+  }
+
+  .page-head h1 {
+    font-size: 28px;
+  }
+}

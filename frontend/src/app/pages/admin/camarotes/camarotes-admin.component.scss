@@ -106,3 +106,21 @@
 .btn-icon.danger:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 760px) {
+  .card-head .actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card-head .actions .btn-ghost,
+  .card-head .actions .btn-primary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+}
