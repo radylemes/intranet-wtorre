@@ -11,6 +11,9 @@ import {
   MenuAdminNodeComponent,
 } from './menu-admin-node.component';
 import { MenuTopbarAdminComponent } from './menu-topbar-admin.component';
+import { MenuCarrosselAdminComponent } from './menu-carrossel-admin.component';
+import { MenuSistemasAdminComponent } from './menu-sistemas-admin.component';
+import { MenuHeaderChamadoAdminComponent } from './menu-header-chamado-admin.component';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AlertasService } from '../../../services/alertas.service';
 import { PaginaInterna, buildPaginasInternasLista } from '../../../data/paginas-internas';
@@ -32,7 +35,7 @@ interface PaiOption {
 @Component({
   selector: 'app-menu-admin',
   standalone: true,
-  imports: [ReactiveFormsModule, MenuAdminNodeComponent, AdminModalComponent, MenuTopbarAdminComponent],
+  imports: [ReactiveFormsModule, MenuAdminNodeComponent, AdminModalComponent, MenuTopbarAdminComponent, MenuCarrosselAdminComponent, MenuSistemasAdminComponent, MenuHeaderChamadoAdminComponent],
   templateUrl: './menu-admin.component.html',
   styleUrl: './menu-admin.component.scss',
 })

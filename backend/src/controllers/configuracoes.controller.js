@@ -93,7 +93,7 @@ async function putHeaderChamado(req, res) {
       abrir_nova_aba: abrir_nova_aba !== false,
     });
 
-    await contentVersionService.bump('configuracoes');
+    await contentVersionService.bump('menu');
     return res.json(config);
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });

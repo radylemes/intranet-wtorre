@@ -1,0 +1,169 @@
+<section class="card carrossel-card admin-page">
+  <div class="card-head">
+    <div>
+      <h2>Carrossel da página inicial</h2>
+      <p class="hint">Banner no topo da home — substitui o hero anterior</p>
+    </div>
+    <button type="button" class="btn-ghost btn-sm" (click)="adicionarSlide()">+ Adicionar slide</button>
+  </div>
+
+  @if (carregando()) {
+    <p class="loading-hint">Carregando...</p>
+  } @else {
+    <form class="card-body" [formGroup]="form" (ngSubmit)="salvar()">
+      <div class="globals-grid">
+        <div class="toggle-field">
+          <div>
+            <div class="tt">Reprodução automática</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" formControlName="autoplay" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="field">
+          <label for="carrossel-intervalo">Intervalo (ms)</label>
+          <input
+            id="carrossel-intervalo"
+            formControlName="intervaloMs"
+            type="number"
+            min="1000"
+            max="60000"
+            step="500"
+            [class.field-invalid]="campoInvalido(form.controls.intervaloMs)"
+          />
+          @if (campoInvalido(form.controls.intervaloMs)) {
+            <div class="field-error">{{ erroCampo(form.controls.intervaloMs) }}</div>
+          }
+        </div>
+        <div class="field">
+          <label for="carrossel-altura">Altura do banner (px)</label>
+          <input
+            id="carrossel-altura"
+            formControlName="alturaPx"
+            type="number"
+            min="200"
+            max="800"
+            step="10"
+            [class.field-invalid]="campoInvalido(form.controls.alturaPx)"
+          />
+          @if (campoInvalido(form.controls.alturaPx)) {
+            <div class="field-error">{{ erroCampo(form.controls.alturaPx) }}</div>
+          }
+        </div>
+      </div>
+
+      <div class="slides-list" formArrayName="slides">
+        @for (slideGroup of slidesArray().controls; track $index; let si = $index) {
+          <div class="slide-row" [formGroupName]="si">
+            <div class="slide-row-head">
+              <span class="slide-num">Slide {{ si + 1 }}</span>
+              <div class="slide-row-actions">
+                <button
+                  type="button"
+                  class="btn-icon"
+                  title="Mover para cima"
+                  [disabled]="si === 0"
+                  (click)="moverSlide(si, -1)"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon"
+                  title="Mover para baixo"
+                  [disabled]="si === slidesArray().length - 1"
+                  (click)="moverSlide(si, 1)"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon danger"
+                  title="Remover slide"
+                  (click)="removerSlide(si)"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div class="slide-fields">
+              <div class="field">
+                <label [for]="'slide-id-' + si">ID (slug)</label>
+                <input
+                  [id]="'slide-id-' + si"
+                  formControlName="id"
+                  type="text"
+                  [class.field-invalid]="campoInvalido(slideGroup.get('id'))"
+                />
+                @if (campoInvalido(slideGroup.get('id'))) {
+                  <div class="field-error">{{ erroCampo(slideGroup.get('id')) }}</div>
+                }
+              </div>
+              <div class="field">
+                <label [for]="'slide-alt-' + si">Texto alternativo (alt)</label>
+                <input [id]="'slide-alt-' + si" formControlName="alt" type="text" />
+              </div>
+              <div class="field field-full">
+                <label [for]="'slide-legenda-' + si">Legenda (opcional)</label>
+                <input
+                  [id]="'slide-legenda-' + si"
+                  formControlName="legenda"
+                  type="text"
+                  placeholder="Se vazio, usa o texto alt na exibição"
+                />
+              </div>
+              <div class="field field-full">
+                <label [for]="'slide-link-' + si">Link (opcional)</label>
+                <input
+                  [id]="'slide-link-' + si"
+                  formControlName="link"
+                  type="url"
+                  placeholder="https://..."
+                  [class.field-invalid]="campoInvalido(slideGroup.get('link'))"
+                />
+                @if (campoInvalido(slideGroup.get('link'))) {
+                  <div class="field-error">{{ erroCampo(slideGroup.get('link')) }}</div>
+                }
+              </div>
+            </div>
+
+            <div class="slide-imagem">
+              @if (slideGroup.get('url')?.value) {
+                <div class="slide-preview-slot">
+                  <img
+                    [src]="slideGroup.get('url')?.value"
+                    [alt]="slideGroup.get('alt')?.value || 'Preview'"
+                    class="slide-preview-img"
+                  />
+                </div>
+              }
+              <app-admin-dropzone
+                [disabled]="estaUploadando(si)"
+                hint="Arraste a imagem ou"
+                hintLink="clique para selecionar"
+                subhint="JPG, PNG ou WEBP. Imagens grandes serão compactadas automaticamente."
+                (fileSelected)="onSlideFile(si, $event)"
+              />
+              @if (campoInvalido(slideGroup.get('url'))) {
+                <div class="field-error">Imagem obrigatória.</div>
+              }
+              @if (estaUploadando(si)) {
+                <p class="upload-status">Enviando imagem...</p>
+              }
+            </div>
+          </div>
+        } @empty {
+          <p class="empty-hint">Nenhum slide cadastrado. A home exibirá uma faixa neutra.</p>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="salvando()">
+          {{ salvando() ? 'Salvando...' : 'Salvar carrossel' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

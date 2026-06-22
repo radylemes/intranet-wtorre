@@ -1,0 +1,81 @@
+<section class="card header-chamado-card admin-page">
+  <div class="card-head">
+    <div>
+      <h2>Botão do header</h2>
+      <p class="hint">CTA exibido no topo do header para todos os usuários logados</p>
+    </div>
+  </div>
+
+  @if (carregando()) {
+    <p class="loading-hint">Carregando...</p>
+  } @else {
+    <div class="card-body">
+      <form [formGroup]="form" (ngSubmit)="salvar()" class="config-form">
+        <div class="field">
+          <label for="header-label">Rótulo do botão</label>
+          <input id="header-label" formControlName="label" type="text" placeholder="Abrir Chamado" />
+        </div>
+
+        <div class="field">
+          <label for="header-tipo">Tipo de destino</label>
+          <select id="header-tipo" formControlName="tipo_destino">
+            <option value="interna">Página interna</option>
+            <option value="externa">Link externo</option>
+          </select>
+        </div>
+
+        @if (form.controls.tipo_destino.value === 'interna') {
+          <div class="field">
+            <label for="header-pagina">Página interna</label>
+            <select id="header-pagina" formControlName="pagina_interna">
+              <option value="">Selecione uma página</option>
+              @for (p of paginasInternas(); track p.path) {
+                <option [value]="p.path">{{ p.label }}</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (form.controls.tipo_destino.value === 'externa') {
+          <div class="field">
+            <label for="header-url">URL externa</label>
+            <input
+              id="header-url"
+              formControlName="url_externa"
+              type="url"
+              placeholder="https://..."
+            />
+          </div>
+        }
+
+        <div class="toggle-field">
+          <div>
+            <div class="tt">Botão ativo</div>
+            <div class="ts">Exibe o botão no topo do header para todos os usuários logados</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" formControlName="ativo" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-field">
+          <div>
+            <div class="tt">Abrir em nova aba</div>
+            <div class="ts">Recomendado para links externos</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" formControlName="abrir_nova_aba" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="salvando()">
+            {{ salvando() ? 'Salvando...' : 'Salvar botão' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+</section>

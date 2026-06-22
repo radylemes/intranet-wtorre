@@ -1,7 +1,6 @@
 const comunicadosRepo = require('../repositories/comunicados.repository');
+const catRepo = require('../repositories/comunicado-categorias.repository');
 const contentVersionService = require('../services/content-version.service');
-
-const CATEGORIAS_VALIDAS = new Set(['rh', 'ti', 'ev', 'com']);
 
 function criadoPor(req) {
   return req.user?.id || null;
@@ -13,9 +12,30 @@ function handleError(res, err) {
   });
 }
 
+async function validarCategoriaId(categoriaId) {
+  const id = Number(categoriaId);
+  if (!Number.isFinite(id) || id <= 0) {
+    const err = new Error('Categoria inválida.');
+    err.status = 400;
+    throw err;
+  }
+  const cat = await catRepo.buscarPorIdAtiva(id);
+  if (!cat) {
+    const err = new Error('Categoria não encontrada ou inativa.');
+    err.status = 400;
+    throw err;
+  }
+  return id;
+}
+
 function validarPayload(body, { parcial = false } = {}) {
   const titulo = body.titulo != null ? String(body.titulo).trim() : undefined;
-  const categoria = body.categoria != null ? String(body.categoria).trim() : undefined;
+  const categoriaId =
+    body.categoria_id != null
+      ? body.categoria_id
+      : body.categoriaId != null
+        ? body.categoriaId
+        : undefined;
   const dataPublicacao =
     body.data_publicacao != null
       ? String(body.data_publicacao).trim()
@@ -36,9 +56,9 @@ function validarPayload(body, { parcial = false } = {}) {
     }
   }
 
-  if (!parcial || categoria !== undefined) {
-    if (!categoria || !CATEGORIAS_VALIDAS.has(categoria)) {
-      const err = new Error('Categoria inválida.');
+  if (!parcial || categoriaId !== undefined) {
+    if (categoriaId === undefined || categoriaId === '') {
+      const err = new Error('Categoria é obrigatória.');
       err.status = 400;
       throw err;
     }
@@ -79,7 +99,7 @@ function validarPayload(body, { parcial = false } = {}) {
 
   return {
     titulo,
-    categoria,
+    categoria_id: categoriaId,
     data_publicacao: dataPublicacao,
     ordem,
     ativo,
@@ -121,6 +141,7 @@ async function obter(req, res) {
 async function criar(req, res) {
   try {
     const data = validarPayload(req.body);
+    data.categoria_id = await validarCategoriaId(data.categoria_id);
     const item = await comunicadosRepo.criar({
       ...data,
       criado_por: criadoPor(req),
@@ -141,9 +162,14 @@ async function atualizar(req, res) {
     }
 
     const partial = validarPayload(req.body, { parcial: true });
+    let categoriaId = partial.categoria_id ?? existing.categoriaId;
+    if (partial.categoria_id !== undefined) {
+      categoriaId = await validarCategoriaId(partial.categoria_id);
+    }
+
     const data = {
       titulo: partial.titulo ?? existing.titulo,
-      categoria: partial.categoria ?? existing.categoria,
+      categoria_id: categoriaId,
       data_publicacao: partial.data_publicacao ?? existing.dataPublicacao,
       ordem: partial.ordem !== undefined ? partial.ordem : existing.ordem,
       ativo: req.body.ativo !== undefined ? partial.ativo : existing.ativo,

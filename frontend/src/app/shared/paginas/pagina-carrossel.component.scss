@@ -10,7 +10,20 @@
   box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.25);
 }
 
-.viewport img {
+.viewport {
+  position: relative;
+}
+
+.slide {
+  position: relative;
+  width: 100%;
+}
+
+.slide-media a {
+  display: block;
+}
+
+.slide-media img {
   width: 100%;
   height: auto;
   display: block;
@@ -30,6 +43,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 4;
   width: 40px;
   height: 40px;
   border: none;
@@ -71,6 +85,77 @@
   background: var(--wtorre, #2f6bff);
 }
 
+/* Modo banner da home: slides empilhados + legenda sobreposta */
+.carrossel.overlay-legenda .viewport {
+  overflow: hidden;
+}
+
+.carrossel.overlay-legenda .slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.carrossel.overlay-legenda .slide.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.carrossel.overlay-legenda .slide-media {
+  width: 100%;
+  height: 100%;
+}
+
+.carrossel.overlay-legenda .slide-media a {
+  width: 100%;
+  height: 100%;
+}
+
+.carrossel.overlay-legenda .slide-media img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+}
+
+.carrossel.overlay-legenda .legenda {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 28px 24px 20px;
+  text-align: left;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  background: linear-gradient(transparent, rgba(16, 21, 31, 0.82));
+  border-radius: 0;
+  pointer-events: none;
+  opacity: 1;
+  transform: none;
+}
+
+.carrossel.overlay-legenda .dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  padding: 10px 12px 12px;
+  pointer-events: auto;
+}
+
+.carrossel.overlay-legenda .legenda {
+  padding-bottom: 44px;
+}
+
 @media (max-width: 760px) {
   .nav {
     width: 34px;
@@ -86,7 +171,12 @@
     right: 6px;
   }
 
-  .viewport img {
+  .slide-media img {
     max-height: 320px;
+  }
+
+  .carrossel.overlay-legenda .legenda {
+    font-size: 13px;
+    padding: 20px 16px 40px;
   }
 }

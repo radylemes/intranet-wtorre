@@ -2,6 +2,35 @@ const { getPool } = require('../db/pool');
 
 const FOOTER_CONFIG_KEY = 'footer.config';
 const TOPBAR_CONFIG_KEY = 'topbar.config';
+const HOME_CARROSSEL_KEY = 'home.carrossel';
+const HOME_SISTEMAS_KEY = 'home.sistemas';
+
+const HOME_CARROSSEL_DEFAULTS = {
+  autoplay: true,
+  intervaloMs: 5000,
+  alturaPx: 420,
+  slides: [],
+};
+
+const HOME_SISTEMAS_ICONES = new Set([
+  'user',
+  'wallet',
+  'badge',
+  'database',
+  'cloud',
+  'check',
+  'task',
+  'building',
+  'phone',
+]);
+
+const HOME_SISTEMAS_DEFAULTS = {
+  tag: 'Acesso rápido',
+  titulo: 'Sistemas Corporativos',
+  linkTodos: null,
+  linkTodosNovaAba: false,
+  itens: [],
+};
 
 const TOPBAR_DEFAULTS = {
   suporte: {
@@ -292,6 +321,107 @@ async function setTopbar(config) {
   return normalized;
 }
 
+function normalizeCarrosselSlide(slide, index) {
+  return {
+    id: String(slide?.id ?? '').trim(),
+    url: String(slide?.url ?? '').trim(),
+    alt: String(slide?.alt ?? '').trim(),
+    legenda: slide?.legenda?.trim() || null,
+    link: slide?.link?.trim() || null,
+    ordem: Number.isFinite(Number(slide?.ordem)) ? Number(slide.ordem) : index,
+  };
+}
+
+function normalizeHomeCarrossel(raw) {
+  const base = structuredClone(HOME_CARROSSEL_DEFAULTS);
+
+  if (raw && typeof raw === 'object') {
+    base.autoplay = raw.autoplay !== false;
+    const intervalo = Number(raw.intervaloMs);
+    if (Number.isFinite(intervalo)) base.intervaloMs = intervalo;
+    const altura = Number(raw.alturaPx);
+    if (Number.isFinite(altura)) base.alturaPx = altura;
+    if (Array.isArray(raw.slides)) {
+      base.slides = raw.slides
+        .map(normalizeCarrosselSlide)
+        .filter((s) => s.id && s.url)
+        .sort((a, b) => a.ordem - b.ordem);
+    }
+  }
+
+  base.intervaloMs = Math.min(60000, Math.max(1000, base.intervaloMs));
+  base.alturaPx = Math.min(800, Math.max(200, base.alturaPx));
+
+  return base;
+}
+
+async function getHomeCarrossel() {
+  const raw = await get(HOME_CARROSSEL_KEY);
+  if (!raw) return structuredClone(HOME_CARROSSEL_DEFAULTS);
+
+  try {
+    return normalizeHomeCarrossel(JSON.parse(raw));
+  } catch {
+    return structuredClone(HOME_CARROSSEL_DEFAULTS);
+  }
+}
+
+async function setHomeCarrossel(config) {
+  const normalized = normalizeHomeCarrossel(config);
+  await set(HOME_CARROSSEL_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+function normalizeHomeSistemaItem(item, index) {
+  const icon = String(item?.icon ?? 'user').trim();
+  return {
+    id: String(item?.id ?? '').trim() || `sistema-${index + 1}`,
+    nome: String(item?.nome ?? '').trim(),
+    subtitulo: String(item?.subtitulo ?? '').trim(),
+    icon: HOME_SISTEMAS_ICONES.has(icon) ? icon : 'user',
+    url: item?.url?.trim() || null,
+    abrirNovaAba: item?.abrirNovaAba === true,
+    ordem: Number.isFinite(Number(item?.ordem)) ? Number(item.ordem) : index + 1,
+    ativo: item?.ativo !== false,
+  };
+}
+
+function normalizeHomeSistemas(raw) {
+  const base = structuredClone(HOME_SISTEMAS_DEFAULTS);
+
+  if (raw && typeof raw === 'object') {
+    if (raw.tag?.trim()) base.tag = String(raw.tag).trim();
+    if (raw.titulo?.trim()) base.titulo = String(raw.titulo).trim();
+    base.linkTodos = raw.linkTodos?.trim() || null;
+    base.linkTodosNovaAba = raw.linkTodosNovaAba === true;
+    if (Array.isArray(raw.itens)) {
+      base.itens = raw.itens
+        .map(normalizeHomeSistemaItem)
+        .filter((item) => item.nome && item.subtitulo)
+        .sort((a, b) => a.ordem - b.ordem);
+    }
+  }
+
+  return base;
+}
+
+async function getHomeSistemas() {
+  const raw = await get(HOME_SISTEMAS_KEY);
+  if (!raw) return structuredClone(HOME_SISTEMAS_DEFAULTS);
+
+  try {
+    return normalizeHomeSistemas(JSON.parse(raw));
+  } catch {
+    return structuredClone(HOME_SISTEMAS_DEFAULTS);
+  }
+}
+
+async function setHomeSistemas(config) {
+  const normalized = normalizeHomeSistemas(config);
+  await set(HOME_SISTEMAS_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
 module.exports = {
   FOOTER_CONFIG_KEY,
   TOPBAR_CONFIG_KEY,
@@ -309,4 +439,14 @@ module.exports = {
   getTopbar,
   setTopbar,
   normalizeTopbarConfig,
+  HOME_CARROSSEL_KEY,
+  HOME_CARROSSEL_DEFAULTS,
+  getHomeCarrossel,
+  setHomeCarrossel,
+  normalizeHomeCarrossel,
+  HOME_SISTEMAS_KEY,
+  HOME_SISTEMAS_DEFAULTS,
+  getHomeSistemas,
+  setHomeSistemas,
+  normalizeHomeSistemas,
 };

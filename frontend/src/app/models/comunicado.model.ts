@@ -1,11 +1,21 @@
-export type ComunicadoCategoria = 'rh' | 'ti' | 'ev' | 'com';
+export interface ComunicadoCategoriaRecord {
+  id: number;
+  nome: string;
+  slug: string;
+  cor: string;
+  ordem: number;
+  ativo: boolean;
+  criado_em?: string;
+  atualizado_em?: string;
+}
 
 export interface Comunicado {
   id: number;
   titulo: string;
-  categoria: ComunicadoCategoria;
+  categoriaId: number;
   categoriaLabel: string;
-  catClasse: ComunicadoCategoria;
+  catClasse: string;
+  categoriaCor: string;
   dia: string;
   mes: string;
   dataPublicacao: string;
@@ -21,8 +31,15 @@ export interface ComunicadoAdmin extends Comunicado {
 
 export interface ComunicadoPayload {
   titulo: string;
-  categoria: ComunicadoCategoria;
+  categoriaId: number;
   dataPublicacao: string;
   ordem?: number | null;
+  ativo?: boolean;
+}
+
+export interface ComunicadoCategoriaPayload {
+  nome: string;
+  cor: string;
+  ordem?: number;
   ativo?: boolean;
 }

@@ -31,6 +31,7 @@ const { agendarJobsCamarotes } = require('./services/camarotes-cron.service');
 const { reconcileAll } = require('./services/doc-categoria-menu.sync');
 const { ensureFotosDir } = require('./controllers/colaboradores.controller');
 const { ensureGrupoLogosDir } = require('./config/grupo-logos-upload');
+const { ensureHomeCarrosselDir } = require('./config/home-carrossel-upload');
 
 try {
   validateEnv();
@@ -106,6 +107,11 @@ app.listen(env.port, () => {
     ensureGrupoLogosDir();
   } catch (err) {
     console.error('[topbar] Não foi possível preparar pasta de logos:', err.message);
+  }
+  try {
+    ensureHomeCarrosselDir();
+  } catch (err) {
+    console.error('[carrossel] Não foi possível preparar pasta de imagens:', err.message);
   }
   reconcileAll()
     .then((count) => console.log(`[documentos] Menu sincronizado com ${count} categoria(s) raiz.`))

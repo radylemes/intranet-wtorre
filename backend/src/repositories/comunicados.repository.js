@@ -2,15 +2,25 @@ const { getPool } = require('../db/pool');
 
 const MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
-const CATEGORIA_LABELS = {
-  rh: 'Recursos Humanos',
-  ti: 'Tecnologia',
-  ev: 'Nubank Parque',
-  com: 'Compliance',
-};
+const SELECT_BASE = `
+  SELECT c.*,
+         cat.nome AS cat_nome,
+         cat.slug AS cat_slug,
+         cat.cor AS cat_cor
+  FROM comunicados c
+  INNER JOIN comunicado_categorias cat ON cat.id = c.categoria_id
+`;
 
-function formatDataPublicacao(isoDate) {
-  const raw = String(isoDate).slice(0, 10);
+function formatDataPublicacao(value) {
+  let raw;
+  if (value instanceof Date) {
+    const year = value.getUTCFullYear();
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(value.getUTCDate()).padStart(2, '0');
+    raw = `${year}-${month}-${day}`;
+  } else {
+    raw = String(value).slice(0, 10);
+  }
   const [year, month, day] = raw.split('-').map(Number);
   if (!year || !month || !day) {
     return { dia: '', mes: '', dataPublicacao: raw };
@@ -28,9 +38,10 @@ function mapComunicado(row) {
   return {
     id: row.id,
     titulo: row.titulo,
-    categoria: row.categoria,
-    categoriaLabel: CATEGORIA_LABELS[row.categoria] || row.categoria,
-    catClasse: row.categoria,
+    categoriaId: row.categoria_id,
+    categoriaLabel: row.cat_nome,
+    catClasse: row.cat_slug,
+    categoriaCor: row.cat_cor,
     dia: dataFmt.dia,
     mes: dataFmt.mes,
     dataPublicacao: dataFmt.dataPublicacao,
@@ -44,12 +55,12 @@ function mapComunicado(row) {
 
 async function listarPublicos(limite = 20) {
   const pool = getPool();
+  const limitNum = Math.min(Math.max(Number(limite) || 20, 1), 100);
   const [rows] = await pool.execute(
-    `SELECT * FROM comunicados
-     WHERE ativo = 1
-     ORDER BY data_publicacao DESC, ordem IS NULL, ordem ASC, id DESC
-     LIMIT ?`,
-    [limite]
+    `${SELECT_BASE}
+     WHERE c.ativo = 1 AND cat.ativo = 1
+     ORDER BY c.data_publicacao DESC, c.ordem IS NULL, c.ordem ASC, c.id DESC
+     LIMIT ${limitNum}`
   );
   return rows.map(mapComunicado);
 }
@@ -60,14 +71,16 @@ async function listarAdmin({ busca } = {}) {
   const params = [];
 
   if (busca?.trim()) {
-    conditions.push('titulo LIKE ?');
-    params.push(`%${busca.trim()}%`);
+    conditions.push('(c.titulo LIKE ? OR cat.nome LIKE ?)');
+    const term = `%${busca.trim()}%`;
+    params.push(term, term);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const [rows] = await pool.execute(
-    `SELECT * FROM comunicados ${where}
-     ORDER BY data_publicacao DESC, ordem IS NULL, ordem ASC, id DESC`,
+    `${SELECT_BASE}
+     ${where}
+     ORDER BY c.data_publicacao DESC, c.ordem IS NULL, c.ordem ASC, c.id DESC`,
     params
   );
   return rows.map(mapComunicado);
@@ -75,18 +88,18 @@ async function listarAdmin({ busca } = {}) {
 
 async function buscarPorId(id) {
   const pool = getPool();
-  const [rows] = await pool.execute('SELECT * FROM comunicados WHERE id = ? LIMIT 1', [id]);
+  const [rows] = await pool.execute(`${SELECT_BASE} WHERE c.id = ? LIMIT 1`, [id]);
   return mapComunicado(rows[0]);
 }
 
 async function criar(data) {
   const pool = getPool();
   const [result] = await pool.execute(
-    `INSERT INTO comunicados (titulo, categoria, data_publicacao, ordem, ativo, criado_por)
+    `INSERT INTO comunicados (titulo, categoria_id, data_publicacao, ordem, ativo, criado_por)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [
       data.titulo,
-      data.categoria,
+      data.categoria_id,
       data.data_publicacao,
       data.ordem ?? null,
       data.ativo ? 1 : 0,
@@ -100,11 +113,11 @@ async function atualizar(id, data) {
   const pool = getPool();
   await pool.execute(
     `UPDATE comunicados
-     SET titulo = ?, categoria = ?, data_publicacao = ?, ordem = ?, ativo = ?
+     SET titulo = ?, categoria_id = ?, data_publicacao = ?, ordem = ?, ativo = ?
      WHERE id = ?`,
     [
       data.titulo,
-      data.categoria,
+      data.categoria_id,
       data.data_publicacao,
       data.ordem ?? null,
       data.ativo ? 1 : 0,
@@ -120,7 +133,6 @@ async function remover(id) {
 }
 
 module.exports = {
-  CATEGORIA_LABELS,
   listarPublicos,
   listarAdmin,
   buscarPorId,

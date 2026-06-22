@@ -1,44 +1,68 @@
 @if (total() > 0) {
   <div
     class="carrossel"
+    [class.overlay-legenda]="overlayLegenda()"
     role="region"
     aria-roledescription="carrossel"
     [attr.aria-label]="'Carrossel com ' + total() + ' slides'"
     tabindex="0"
     (keydown)="onKeydown($event)"
   >
-    <div class="viewport" aria-live="polite">
-      @if (slideAtual(); as slide) {
-        @if (slide.link) {
-          <a [href]="slide.link" [attr.target]="slide.link.startsWith('http') ? '_blank' : null" rel="noopener">
-            <img [src]="slide.url" [alt]="slide.alt || ''" />
-          </a>
-        } @else {
-          <img [src]="slide.url" [alt]="slide.alt || ''" />
-        }
-        @if (slide.legenda) {
-          <p class="legenda">{{ slide.legenda }}</p>
-        }
+    <div
+      class="viewport"
+      aria-live="polite"
+      [style.height]="alturaFixa() || null"
+    >
+      @for (slide of config().slides; track slide.url; let i = $index) {
+        <div
+          class="slide"
+          [class.active]="indice() === i"
+          [attr.aria-hidden]="indice() !== i"
+        >
+          <div class="slide-media">
+            @if (slide.link) {
+              <a
+                [href]="slide.link"
+                [attr.target]="slide.link.startsWith('http') ? '_blank' : null"
+                [attr.title]="textoLegenda(slide) || null"
+                rel="noopener"
+              >
+                <img [src]="slide.url" [alt]="slide.alt || ''" />
+              </a>
+            } @else {
+              <img
+                [src]="slide.url"
+                [alt]="slide.alt || ''"
+                [attr.title]="textoLegenda(slide) || null"
+              />
+            }
+          </div>
+          @if (textoLegenda(slide)) {
+            <p class="legenda">{{ textoLegenda(slide) }}</p>
+          }
+        </div>
+      }
+
+      @if (total() > 1) {
+        <div class="dots" role="tablist" aria-label="Slides">
+          @for (s of config().slides; track s.url; let i = $index) {
+            <button
+              type="button"
+              role="tab"
+              class="dot"
+              [class.active]="indice() === i"
+              [attr.aria-selected]="indice() === i"
+              [attr.aria-label]="'Slide ' + (i + 1)"
+              (click)="irPara(i)"
+            ></button>
+          }
+        </div>
       }
     </div>
 
     @if (total() > 1) {
       <button type="button" class="nav prev" aria-label="Slide anterior" (click)="anterior()">‹</button>
       <button type="button" class="nav next" aria-label="Próximo slide" (click)="proximo()">›</button>
-
-      <div class="dots" role="tablist" aria-label="Slides">
-        @for (s of config().slides; track $index; let i = $index) {
-          <button
-            type="button"
-            role="tab"
-            class="dot"
-            [class.active]="indice() === i"
-            [attr.aria-selected]="indice() === i"
-            [attr.aria-label]="'Slide ' + (i + 1)"
-            (click)="irPara(i)"
-          ></button>
-        }
-      </div>
     }
   </div>
 }

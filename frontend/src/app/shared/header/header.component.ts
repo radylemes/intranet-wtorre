@@ -36,7 +36,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private readonly onMediaChange = (e: MediaQueryListEvent) => this.mobile.set(e.matches);
 
   constructor() {
-    this.contentRefresh.configuracoesChanged$
+    this.contentRefresh.menuChanged$
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.recarregarChamado());
   }

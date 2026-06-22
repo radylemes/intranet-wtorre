@@ -1,5 +1,5 @@
 import { Component, OnDestroy, computed, effect, input, signal } from '@angular/core';
-import { BlocoCarrosselConfig } from '../../models/pagina.model';
+import { BlocoCarrosselConfig, CarrosselSlide } from '../../models/pagina.model';
 
 @Component({
   selector: 'app-pagina-carrossel',
@@ -9,28 +9,31 @@ import { BlocoCarrosselConfig } from '../../models/pagina.model';
 })
 export class PaginaCarrosselComponent implements OnDestroy {
   readonly config = input.required<BlocoCarrosselConfig>();
+  readonly overlayLegenda = input(false);
+  readonly alturaFixa = input<string | null>(null);
 
   readonly indice = signal(0);
 
   private autoplayTimer: ReturnType<typeof setInterval> | null = null;
 
-  readonly slideAtual = computed(() => {
-    const slides = this.config().slides || [];
-    const i = this.indice();
-    return slides[i] ?? slides[0];
-  });
-
   readonly total = computed(() => this.config().slides?.length || 0);
 
   constructor() {
     effect(() => {
-      this.config();
+      const total = this.config().slides?.length ?? 0;
+      if (total > 0 && this.indice() >= total) {
+        this.indice.set(0);
+      }
       this.reiniciarAutoplay();
     });
   }
 
   ngOnDestroy(): void {
     this.pararAutoplay();
+  }
+
+  textoLegenda(slide: CarrosselSlide): string {
+    return slide.legenda?.trim() || slide.alt?.trim() || '';
   }
 
   private reiniciarAutoplay(): void {

@@ -1,0 +1,19 @@
+<section class="home-carrossel" [style.--banner-height]="bannerHeight()">
+  <div class="wrap">
+    @if (carregando()) {
+      <div class="home-carrossel-placeholder" aria-hidden="true"></div>
+    } @else if (temSlides()) {
+      <div class="home-carrossel-wrap">
+        <app-pagina-carrossel
+          [config]="carrosselBloco()"
+          [overlayLegenda]="true"
+          [alturaFixa]="bannerHeight()"
+        />
+      </div>
+    } @else {
+      <div class="home-carrossel-empty" role="status">
+        <span>Banner em configuração</span>
+      </div>
+    }
+  </div>
+</section>

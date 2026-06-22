@@ -52,11 +52,9 @@
   gap: 10px;
 }
 
-.layout-2 {
-  display: grid;
-  grid-template-columns: 1.55fr 0.85fr;
-  gap: 24px;
-  align-items: start;
+app-mural {
+  display: block;
+  margin-top: 24px;
 }
 
 .sys-grid {
@@ -76,6 +74,8 @@
   border: 1px solid var(--line-solid);
   transition: 0.2s;
   box-shadow: 0 8px 20px -18px rgba(28, 42, 82, 0.3);
+  text-decoration: none;
+  color: inherit;
 }
 
 .sys:hover {
@@ -114,10 +114,6 @@
 }
 
 @media (max-width: 1080px) {
-  .layout-2 {
-    grid-template-columns: 1fr;
-  }
-
   .sys-grid {
     grid-template-columns: repeat(2, 1fr);
   }

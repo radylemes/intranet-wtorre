@@ -8,6 +8,16 @@ import {
   TopbarLogoUploadResponse,
   TOPBAR_DEFAULTS,
 } from '../models/topbar.model';
+import {
+  HomeCarrosselConfig,
+  HomeCarrosselUploadResponse,
+  HOME_CARROSSEL_DEFAULTS,
+} from '../models/home-carrossel.model';
+import {
+  HomeSistemasConfig,
+  HOME_SISTEMAS_DEFAULTS,
+} from '../models/home-sistemas.model';
+import { HeaderChamadoConfig } from '../models/configuracoes.model';
 import { navDataToMenuTree } from '../data/nav.data';
 
 @Injectable({ providedIn: 'root' })
@@ -100,5 +110,48 @@ export class MenuService {
       this.api(`/menu/topbar/logos/${encodeURIComponent(logoId)}/imagem`),
       form
     );
+  }
+
+  getHomeCarrossel(): Observable<HomeCarrosselConfig> {
+    return this.http.get<HomeCarrosselConfig>(this.api('/menu/carrossel')).pipe(
+      catchError(() => of(structuredClone(HOME_CARROSSEL_DEFAULTS)))
+    );
+  }
+
+  salvarHomeCarrossel(config: HomeCarrosselConfig): Observable<HomeCarrosselConfig> {
+    return this.http.put<HomeCarrosselConfig>(this.api('/menu/carrossel'), config);
+  }
+
+  uploadCarrosselImagem(file: File): Observable<HomeCarrosselUploadResponse> {
+    const form = new FormData();
+    form.append('imagem', file);
+    return this.http.post<HomeCarrosselUploadResponse>(
+      this.api('/menu/carrossel/upload'),
+      form
+    );
+  }
+
+  getHomeSistemas(): Observable<HomeSistemasConfig> {
+    return this.http.get<HomeSistemasConfig>(this.api('/menu/sistemas')).pipe(
+      catchError(() => of(structuredClone(HOME_SISTEMAS_DEFAULTS)))
+    );
+  }
+
+  salvarHomeSistemas(config: HomeSistemasConfig): Observable<HomeSistemasConfig> {
+    return this.http.put<HomeSistemasConfig>(this.api('/menu/sistemas'), config);
+  }
+
+  getHeaderChamado(): Observable<HeaderChamadoConfig> {
+    return this.http.get<HeaderChamadoConfig>(this.api('/menu/header-chamado'));
+  }
+
+  salvarHeaderChamado(body: {
+    label: string;
+    url: string | null;
+    ativo: boolean;
+    abrir_nova_aba: boolean;
+    tipo_destino: 'interna' | 'externa';
+  }): Observable<HeaderChamadoConfig> {
+    return this.http.put<HeaderChamadoConfig>(this.api('/menu/header-chamado'), body);
   }
 }

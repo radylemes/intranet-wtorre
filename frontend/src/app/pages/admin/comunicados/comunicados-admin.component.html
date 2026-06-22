@@ -4,66 +4,170 @@
     <p>Gerencie os avisos exibidos no mural da intranet.</p>
   </header>
 
-  <div class="toolbar">
-    <div class="search-wrap">
-      <input
-        type="search"
-        placeholder="Buscar por título ou categoria…"
-        (input)="onBuscaInput($any($event.target).value)"
-        aria-label="Buscar comunicados"
-      />
+  <div class="secao-comunicados">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <input
+          type="search"
+          placeholder="Buscar por título ou categoria…"
+          (input)="onBuscaInput($any($event.target).value)"
+          aria-label="Buscar comunicados"
+        />
+      </div>
+      <button type="button" class="btn-primary" (click)="novo()" [disabled]="!categoriasAtivas().length">
+        Novo comunicado
+      </button>
     </div>
-    <button type="button" class="btn-primary" (click)="novo()">Novo comunicado</button>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Lista de comunicados</h2>
+      </div>
+      <div class="card-body">
+        @if (carregando()) {
+          <p class="empty">Carregando…</p>
+        } @else if (!comunicadosFiltrados().length) {
+          <p class="empty">
+            @if (busca()) {
+              Nenhum comunicado encontrado para esta busca.
+            } @else {
+              Nenhum comunicado cadastrado ainda.
+            }
+          </p>
+        } @else {
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Categoria</th>
+                  <th>Título</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of comunicadosFiltrados(); track c.id) {
+                  <tr>
+                    <td>{{ dataLabel(c) }}</td>
+                    <td>
+                      <span class="cat-inline" [style.color]="c.categoriaCor">{{ c.categoriaLabel }}</span>
+                    </td>
+                    <td><strong>{{ c.titulo }}</strong></td>
+                    <td>
+                      <span class="status-badge" [class.on]="c.ativo" [class.off]="!c.ativo">
+                        {{ c.ativo ? 'Ativo' : 'Inativo' }}
+                      </span>
+                    </td>
+                    <td class="row-actions">
+                      <button type="button" class="iconbtn" title="Editar" (click)="editar(c)">✎</button>
+                      <button type="button" class="iconbtn del" title="Excluir" (click)="excluir(c)">✕</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
   </div>
 
-  <section class="card">
-    <div class="card-body">
-      @if (carregando()) {
-        <p class="empty">Carregando…</p>
-      } @else if (!comunicadosFiltrados().length) {
-        <p class="empty">
-          @if (busca()) {
-            Nenhum comunicado encontrado para esta busca.
-          } @else {
-            Nenhum comunicado cadastrado ainda.
-          }
-        </p>
-      } @else {
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Categoria</th>
-                <th>Título</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (c of comunicadosFiltrados(); track c.id) {
+  <div class="secao-categorias">
+    <section class="card">
+      <div class="card-head">
+        <h2>Categorias</h2>
+        <button type="button" class="btn-primary btn-sm" (click)="novaCategoria()">Nova categoria</button>
+      </div>
+      <div class="card-body">
+        @if (carregandoCategorias()) {
+          <p class="empty">Carregando categorias…</p>
+        } @else if (!categorias().length) {
+          <p class="empty">Nenhuma categoria cadastrada.</p>
+        } @else {
+          <div class="table-scroll">
+            <table>
+              <thead>
                 <tr>
-                  <td>{{ dataLabel(c) }}</td>
-                  <td>{{ categoriaLabel(c) }}</td>
-                  <td><strong>{{ c.titulo }}</strong></td>
-                  <td>
-                    <span class="status-badge" [class.on]="c.ativo" [class.off]="!c.ativo">
-                      {{ c.ativo ? 'Ativo' : 'Inativo' }}
-                    </span>
-                  </td>
-                  <td class="row-actions">
-                    <button type="button" class="iconbtn" title="Editar" (click)="editar(c)">✎</button>
-                    <button type="button" class="iconbtn del" title="Excluir" (click)="excluir(c)">✕</button>
-                  </td>
+                  <th>Nome</th>
+                  <th>Cor</th>
+                  <th>Ordem</th>
+                  <th>Status</th>
+                  <th></th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-  </section>
+              </thead>
+              <tbody>
+                @for (cat of categorias(); track cat.id) {
+                  <tr>
+                    <td><strong>{{ cat.nome }}</strong></td>
+                    <td>
+                      <span class="cor-preview">
+                        <span class="cor-dot" [style.background]="cat.cor"></span>
+                        <span class="cor-hex">{{ cat.cor }}</span>
+                      </span>
+                    </td>
+                    <td>{{ cat.ordem }}</td>
+                    <td>
+                      <span class="status-badge" [class.on]="cat.ativo" [class.off]="!cat.ativo">
+                        {{ cat.ativo ? 'Ativo' : 'Inativo' }}
+                      </span>
+                    </td>
+                    <td class="row-actions">
+                      <button type="button" class="iconbtn" title="Editar" (click)="editarCategoria(cat)">✎</button>
+                      <button type="button" class="iconbtn del" title="Excluir" (click)="excluirCategoria(cat)">✕</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
 </div>
+
+<app-admin-modal
+  [open]="modalCatAberto()"
+  [title]="tituloModalCat()"
+  [subtitle]="subtituloModalCat()"
+  icon="folder"
+  [salvando]="salvandoCat()"
+  [saveLabel]="salvandoCat() ? 'Salvando…' : 'Salvar'"
+  (save)="salvarCategoria()"
+  (cancel)="fecharModalCat()"
+>
+  <form [formGroup]="catForm" (ngSubmit)="salvarCategoria()">
+    <div class="field">
+      <label for="cat-nome">Nome *</label>
+      <input id="cat-nome" formControlName="nome" type="text" placeholder="Ex.: Recursos Humanos" />
+    </div>
+
+    <div class="field">
+      <label for="cat-cor">Cor *</label>
+      <div class="cor-field">
+        <input id="cat-cor" formControlName="cor" type="color" />
+        <span class="cor-hex">{{ catForm.controls.cor.value }}</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="cat-ordem">Ordem</label>
+      <input id="cat-ordem" formControlName="ordem" type="number" min="0" />
+    </div>
+
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Ativo</div>
+        <div class="ts">Categorias inativas não aparecem ao cadastrar comunicados</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="ativo" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </form>
+</app-admin-modal>
 
 <app-admin-modal
   [open]="modalAberto()"
@@ -83,11 +187,14 @@
 
     <div class="field">
       <label for="c-cat">Categoria *</label>
-      <select id="c-cat" formControlName="categoria">
-        @for (cat of categorias; track cat.codigo) {
-          <option [value]="cat.codigo">{{ cat.label }}</option>
+      <select id="c-cat" formControlName="categoriaId">
+        @for (cat of categoriasAtivas(); track cat.id) {
+          <option [value]="cat.id">{{ cat.nome }}</option>
         }
       </select>
+      @if (!categoriasAtivas().length) {
+        <div class="help">Cadastre ao menos uma categoria ativa.</div>
+      }
     </div>
 
     <div class="field">

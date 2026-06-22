@@ -8,6 +8,7 @@
       </div>
     </div>
 
+    <div class="sidebar-body">
     @if (auth.isAdmin() || auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('documentos') || auth.hasModulo('treinamentos') || auth.hasModulo('comunicados') || auth.hasModulo('containers') || auth.hasModulo('paginas')) {
       <div class="nav-group-label">Gestão de conteúdo</div>
       <nav class="sidebar-nav">
@@ -180,6 +181,7 @@
         </a>
       </nav>
     }
+    </div>
 
     <div class="sidebar-foot">
       <a routerLink="/inicio" class="back-link" (click)="closeSidebar()">← Voltar à intranet</a>

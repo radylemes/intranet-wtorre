@@ -1,10 +1,8 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
-import { HeroComponent } from './hero/hero.component';
-import { EmpresasComponent } from './empresas/empresas.component';
+import { HomeCarrosselComponent } from './home-carrossel/home-carrossel.component';
 import { SistemasComponent } from './sistemas/sistemas.component';
-import { ServicosComponent } from './servicos/servicos.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { AuthService } from '../../services/auth.service';
 
@@ -13,10 +11,8 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [
     PublicChromeComponent,
-    HeroComponent,
-    EmpresasComponent,
+    HomeCarrosselComponent,
     SistemasComponent,
-    ServicosComponent,
     FooterComponent,
   ],
   templateUrl: './inicio.component.html',

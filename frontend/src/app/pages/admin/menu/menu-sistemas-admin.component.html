@@ -1,0 +1,249 @@
+<section class="card sistemas-card admin-page">
+  <div class="card-head">
+    <div>
+      <h2>Sistemas Corporativos (home)</h2>
+      <p class="hint">Grid de acesso rápido na página inicial — cards com ícone, nome e link</p>
+    </div>
+    <button type="button" class="btn-ghost btn-sm" (click)="adicionarItem()">+ Adicionar sistema</button>
+  </div>
+
+  @if (carregando()) {
+    <p class="loading-hint">Carregando...</p>
+  } @else {
+    <form class="card-body" [formGroup]="form" (ngSubmit)="salvar()">
+      <div class="section-meta">
+        <h3>Seção</h3>
+        <div class="meta-grid">
+          <div class="field">
+            <label for="sistemas-tag">Tag</label>
+            <input
+              id="sistemas-tag"
+              formControlName="tag"
+              type="text"
+              [class.field-invalid]="campoInvalido(form.controls.tag)"
+            />
+            @if (campoInvalido(form.controls.tag)) {
+              <div class="field-error">{{ erroCampo(form.controls.tag) }}</div>
+            }
+          </div>
+          <div class="field">
+            <label for="sistemas-titulo">Título</label>
+            <input
+              id="sistemas-titulo"
+              formControlName="titulo"
+              type="text"
+              [class.field-invalid]="campoInvalido(form.controls.titulo)"
+            />
+            @if (campoInvalido(form.controls.titulo)) {
+              <div class="field-error">{{ erroCampo(form.controls.titulo) }}</div>
+            }
+          </div>
+        </div>
+
+        <div class="link-todos">
+          <h4>Link "Todos"</h4>
+          <div class="field">
+            <label for="sistemas-todos-tipo">Tipo de destino</label>
+            <select id="sistemas-todos-tipo" formControlName="tipo_destino_todos">
+              <option value="agrupador">Sem link</option>
+              <option value="interna">Página interna</option>
+              <option value="externa">URL externa</option>
+            </select>
+          </div>
+          @if (form.controls.tipo_destino_todos.value === 'interna') {
+            <div class="field">
+              <label for="sistemas-todos-interna">Página interna</label>
+              <select
+                id="sistemas-todos-interna"
+                formControlName="pagina_interna_todos"
+                [class.field-invalid]="campoInvalido(form.controls.pagina_interna_todos)"
+              >
+                <option value="">Selecione...</option>
+                @for (pag of paginasInternas(); track pag.path) {
+                  <option [value]="pag.path">{{ pag.label }}</option>
+                }
+              </select>
+              @if (campoInvalido(form.controls.pagina_interna_todos)) {
+                <div class="field-error">{{ erroCampo(form.controls.pagina_interna_todos) }}</div>
+              }
+            </div>
+          }
+          @if (form.controls.tipo_destino_todos.value === 'externa') {
+            <div class="field">
+              <label for="sistemas-todos-externa">URL externa</label>
+              <input
+                id="sistemas-todos-externa"
+                formControlName="url_externa_todos"
+                type="url"
+                placeholder="https://..."
+                [class.field-invalid]="campoInvalido(form.controls.url_externa_todos)"
+              />
+              @if (campoInvalido(form.controls.url_externa_todos)) {
+                <div class="field-error">{{ erroCampo(form.controls.url_externa_todos) }}</div>
+              }
+            </div>
+          }
+          @if (mostrarNovaAbaTodos()) {
+            <div class="toggle-field">
+              <div>
+                <div class="tt">Abrir em nova aba</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" formControlName="linkTodosNovaAba" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="itens-list" formArrayName="itens">
+        @for (itemGroup of itensArray().controls; track $index; let ii = $index) {
+          <div class="item-row" [formGroupName]="ii">
+            <div class="item-row-head">
+              <span class="item-num">Sistema {{ ii + 1 }}</span>
+              <div class="item-row-actions">
+                <button
+                  type="button"
+                  class="btn-icon"
+                  title="Mover para cima"
+                  [disabled]="ii === 0"
+                  (click)="moverItem(ii, -1)"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon"
+                  title="Mover para baixo"
+                  [disabled]="ii === itensArray().length - 1"
+                  (click)="moverItem(ii, 1)"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  class="btn-icon danger"
+                  title="Remover sistema"
+                  (click)="removerItem(ii)"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div class="item-fields">
+              <div class="field">
+                <label [for]="'sistema-nome-' + ii">Nome *</label>
+                <input
+                  [id]="'sistema-nome-' + ii"
+                  formControlName="nome"
+                  type="text"
+                  [class.field-invalid]="campoInvalido(itemGroup.get('nome'))"
+                />
+                @if (campoInvalido(itemGroup.get('nome'))) {
+                  <div class="field-error">{{ erroCampo(itemGroup.get('nome')) }}</div>
+                }
+              </div>
+              <div class="field">
+                <label [for]="'sistema-sub-' + ii">Subtítulo *</label>
+                <input
+                  [id]="'sistema-sub-' + ii"
+                  formControlName="subtitulo"
+                  type="text"
+                  [class.field-invalid]="campoInvalido(itemGroup.get('subtitulo'))"
+                />
+                @if (campoInvalido(itemGroup.get('subtitulo'))) {
+                  <div class="field-error">{{ erroCampo(itemGroup.get('subtitulo')) }}</div>
+                }
+              </div>
+              <div class="field">
+                <label [for]="'sistema-icon-' + ii">Ícone</label>
+                <div class="icon-picker">
+                  <span class="icon-preview">
+                    <app-sistema-icon [icon]="itemGroup.get('icon')?.value" />
+                  </span>
+                  <select [id]="'sistema-icon-' + ii" formControlName="icon">
+                    @for (ic of icones; track ic.value) {
+                      <option [value]="ic.value">{{ ic.label }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label [for]="'sistema-tipo-' + ii">Tipo de destino</label>
+                <select [id]="'sistema-tipo-' + ii" formControlName="tipo_destino">
+                  <option value="agrupador">Sem link</option>
+                  <option value="interna">Página interna</option>
+                  <option value="externa">URL externa</option>
+                </select>
+              </div>
+              @if (itemGroup.get('tipo_destino')?.value === 'interna') {
+                <div class="field field-full">
+                  <label [for]="'sistema-interna-' + ii">Página interna</label>
+                  <select
+                    [id]="'sistema-interna-' + ii"
+                    formControlName="pagina_interna"
+                    [class.field-invalid]="campoInvalido(itemGroup.get('pagina_interna'))"
+                  >
+                    <option value="">Selecione...</option>
+                    @for (pag of paginasInternas(); track pag.path) {
+                      <option [value]="pag.path">{{ pag.label }}</option>
+                    }
+                  </select>
+                  @if (campoInvalido(itemGroup.get('pagina_interna'))) {
+                    <div class="field-error">{{ erroCampo(itemGroup.get('pagina_interna')) }}</div>
+                  }
+                </div>
+              }
+              @if (itemGroup.get('tipo_destino')?.value === 'externa') {
+                <div class="field field-full">
+                  <label [for]="'sistema-externa-' + ii">URL externa</label>
+                  <input
+                    [id]="'sistema-externa-' + ii"
+                    formControlName="url_externa"
+                    type="url"
+                    placeholder="https://..."
+                    [class.field-invalid]="campoInvalido(itemGroup.get('url_externa'))"
+                  />
+                  @if (campoInvalido(itemGroup.get('url_externa'))) {
+                    <div class="field-error">{{ erroCampo(itemGroup.get('url_externa')) }}</div>
+                  }
+                </div>
+              }
+              @if (mostrarNovaAbaItem(itemGroup)) {
+                <div class="toggle-field field-full">
+                  <div>
+                    <div class="tt">Abrir em nova aba</div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" formControlName="abrir_nova_aba" />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              }
+              <div class="toggle-field field-full">
+                <div>
+                  <div class="tt">Ativo</div>
+                  <div class="ts">Itens inativos não aparecem na home</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" formControlName="ativo" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <p class="empty-hint">Nenhum sistema cadastrado. A home usará o fallback estático.</p>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="salvando()">
+          {{ salvando() ? 'Salvando...' : 'Salvar configuração' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

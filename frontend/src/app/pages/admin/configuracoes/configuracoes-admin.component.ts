@@ -1,10 +1,7 @@
 import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { forkJoin } from 'rxjs';
 import { ConfiguracoesService } from '../../../services/configuracoes.service';
-import { DocumentosService } from '../../../services/documentos.service';
-import { PaginaInterna, buildPaginasInternasLista } from '../../../data/paginas-internas';
 import { AlertasService } from '../../../services/alertas.service';
 import { AuthService } from '../../../services/auth.service';
 
@@ -17,30 +14,18 @@ import { AuthService } from '../../../services/auth.service';
 })
 export class ConfiguracoesAdminComponent implements OnInit {
   private readonly api = inject(ConfiguracoesService);
-  private readonly documentosService = inject(DocumentosService);
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly alertas = inject(AlertasService);
 
-  readonly paginasInternas = signal<PaginaInterna[]>(buildPaginasInternasLista());
   readonly mensagem = signal('');
   readonly erro = signal('');
-  readonly salvando = signal(false);
   readonly salvandoSmtp = signal(false);
   readonly verificandoSmtp = signal(false);
   readonly enviandoTesteSmtp = signal(false);
   readonly carregando = signal(true);
   readonly smtpHasPassword = signal(false);
   readonly mostrarSenhaSmtp = signal(false);
-
-  readonly form = this.fb.nonNullable.group({
-    label: ['Abrir Chamado', Validators.required],
-    tipo_destino: ['interna' as 'interna' | 'externa'],
-    pagina_interna: [''],
-    url_externa: [''],
-    ativo: [false],
-    abrir_nova_aba: [true],
-  });
 
   readonly smtpForm = this.fb.nonNullable.group({
     host: [''],
@@ -66,27 +51,8 @@ export class ConfiguracoesAdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.documentosService.listarCategorias().subscribe({
-      next: (categorias) => this.paginasInternas.set(buildPaginasInternasLista(categorias)),
-      error: () => this.paginasInternas.set(buildPaginasInternasLista()),
-    });
-
-    forkJoin({
-      admin: this.api.getAdmin(),
-      smtp: this.api.getSmtp(),
-    }).subscribe({
-      next: ({ admin, smtp }) => {
-        const c = admin.header_chamado;
-        const isInterna = c.tipo_destino === 'interna';
-        this.form.patchValue({
-          label: c.label,
-          tipo_destino: c.tipo_destino,
-          pagina_interna: isInterna && c.url ? c.url : '',
-          url_externa: !isInterna && c.url ? c.url : '',
-          ativo: c.ativo,
-          abrir_nova_aba: c.abrir_nova_aba,
-        });
-
+    this.api.getSmtp().subscribe({
+      next: (smtp) => {
         this.smtpHasPassword.set(smtp.has_password);
         this.smtpForm.patchValue({
           host: smtp.host,
@@ -99,7 +65,6 @@ export class ConfiguracoesAdminComponent implements OnInit {
           ativo: smtp.ativo,
           destinatario_teste: this.auth.usuario()?.email || '',
         });
-
         this.carregando.set(false);
       },
       error: (err: HttpErrorResponse) => {
@@ -107,42 +72,6 @@ export class ConfiguracoesAdminComponent implements OnInit {
         this.carregando.set(false);
       },
     });
-  }
-
-  salvar(): void {
-    if (this.form.invalid) return;
-
-    const raw = this.form.getRawValue();
-    const tipo = raw.tipo_destino;
-    const url =
-      tipo === 'interna' ? raw.pagina_interna.trim() : raw.url_externa.trim() || null;
-
-    if (raw.ativo && !url) {
-      this.erro.set('Informe o destino antes de ativar o botão.');
-      return;
-    }
-
-    this.salvando.set(true);
-    this.erro.set('');
-
-    this.api
-      .salvarHeaderChamado({
-        label: raw.label.trim(),
-        url: url || null,
-        ativo: raw.ativo,
-        abrir_nova_aba: raw.abrir_nova_aba,
-        tipo_destino: tipo,
-      })
-      .subscribe({
-        next: () => {
-          this.mensagem.set('Configurações salvas.');
-          this.salvando.set(false);
-        },
-        error: (err: HttpErrorResponse) => {
-          this.erro.set(err.error?.mensagem || 'Erro ao salvar.');
-          this.salvando.set(false);
-        },
-      });
   }
 
   salvarSmtp(): void {

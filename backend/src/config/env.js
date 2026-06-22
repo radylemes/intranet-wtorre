@@ -52,6 +52,10 @@ const env = {
     process.env.GRUPO_LOGOS_DIR ||
     path.join(__dirname, '..', '..', 'storage', 'grupo-logos'),
   grupoLogosUploadMaxMb: Number(process.env.GRUPO_LOGOS_UPLOAD_MAX_MB) || 2,
+  homeCarrosselDir:
+    process.env.HOME_CARROSSEL_DIR ||
+    path.join(__dirname, '..', '..', 'storage', 'home-carrossel'),
+  homeCarrosselUploadMaxMb: Number(process.env.HOME_CARROSSEL_UPLOAD_MAX_MB) || 8,
   paginasImagensContainer: process.env.PAGINAS_IMAGENS_CONTAINER || 'paginas',
   /** Tamanho máximo do arquivo enviado ao Blob (após compressão). */
   paginasImagensMaxMb: Number(process.env.PAGINAS_IMAGENS_MAX_MB) || 5,

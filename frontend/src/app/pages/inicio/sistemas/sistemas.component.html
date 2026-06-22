@@ -1,32 +1,106 @@
 <section class="block" appRevealOnScroll>
-  <div class="wrap layout-2">
+  <div class="wrap">
     <div>
       <div class="block-head">
         <div>
-          <div class="tag">Acesso rápido</div>
-          <h2>Sistemas Corporativos</h2>
+          <div class="tag">{{ tag() }}</div>
+          <h2>{{ titulo() }}</h2>
         </div>
-        <a class="more" href="#" (click)="$event.preventDefault()">
-          Todos
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M5 12h14M13 6l6 6-6 6"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </a>
+        @if (linkTodos()) {
+          @if (linkTodosInterno()) {
+            @if (linkTodosNovaAba()) {
+              <a
+                class="more"
+                [routerLink]="linkTodos()!"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Todos
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M5 12h14M13 6l6 6-6 6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+            } @else {
+              <a class="more" [routerLink]="linkTodos()!">
+                Todos
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M5 12h14M13 6l6 6-6 6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+            }
+          } @else {
+            <a
+              class="more"
+              [href]="linkTodos()!"
+              [target]="linkTodosNovaAba() ? '_blank' : '_self'"
+              rel="noopener noreferrer"
+            >
+              Todos
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M5 12h14M13 6l6 6-6 6"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </a>
+          }
+        }
       </div>
       <div class="sys-grid">
-        @for (sys of sistemas; track sys.nome) {
-          <div class="sys">
-            <span class="icn">
-              <app-sistema-icon [icon]="sys.icon" />
-            </span>
-            <span class="name">{{ sys.nome }}<small>{{ sys.subtitulo }}</small></span>
-          </div>
+        @for (sys of sistemas(); track sys.id) {
+          @if (sys.url) {
+            @if (sys.linkInterno) {
+              @if (sys.abrirNovaAba) {
+                <a
+                  class="sys"
+                  [routerLink]="sys.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span class="icn">
+                    <app-sistema-icon [icon]="sys.icon" />
+                  </span>
+                  <span class="name">{{ sys.nome }}<small>{{ sys.subtitulo }}</small></span>
+                </a>
+              } @else {
+                <a class="sys" [routerLink]="sys.url">
+                  <span class="icn">
+                    <app-sistema-icon [icon]="sys.icon" />
+                  </span>
+                  <span class="name">{{ sys.nome }}<small>{{ sys.subtitulo }}</small></span>
+                </a>
+              }
+            } @else {
+              <a class="sys" [href]="sys.url" target="_blank" rel="noopener noreferrer">
+                <span class="icn">
+                  <app-sistema-icon [icon]="sys.icon" />
+                </span>
+                <span class="name">{{ sys.nome }}<small>{{ sys.subtitulo }}</small></span>
+              </a>
+            }
+          } @else {
+            <div class="sys">
+              <span class="icn">
+                <app-sistema-icon [icon]="sys.icon" />
+              </span>
+              <span class="name">{{ sys.nome }}<small>{{ sys.subtitulo }}</small></span>
+            </div>
+          }
         }
       </div>
     </div>
