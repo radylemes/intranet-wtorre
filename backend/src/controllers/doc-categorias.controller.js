@@ -2,6 +2,7 @@ const { getPool } = require('../db/pool');
 const catRepo = require('../repositories/categorias-documentos.repository');
 const { slugify, uniqueSlug } = require('../utils/slug.util');
 const menuSync = require('../services/doc-categoria-menu.sync');
+const contentVersionService = require('../services/content-version.service');
 
 async function validateParent(parentId, selfId = null) {
   if (parentId == null || parentId === '') return null;
@@ -54,6 +55,7 @@ async function create(req, res) {
     data.slug = await uniqueSlug(pool, baseSlug);
     const item = await catRepo.create(data);
     await menuSync.syncOnCreate(item);
+    await contentVersionService.bumpMany(['documentos', 'menu']);
     return res.status(201).json(item);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
@@ -90,6 +92,7 @@ async function update(req, res) {
 
     const item = await catRepo.update(id, data);
     await menuSync.syncOnUpdate(existing, item);
+    await contentVersionService.bumpMany(['documentos', 'menu']);
     return res.json(item);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
@@ -107,6 +110,7 @@ async function remove(req, res) {
   }
   await catRepo.remove(id);
   await menuSync.syncOnDelete(existing);
+  await contentVersionService.bumpMany(['documentos', 'menu']);
   return res.json({ ok: true });
 }
 
@@ -142,6 +146,7 @@ async function reorder(req, res) {
 
     await catRepo.reorderBatch(normalized);
     await menuSync.syncCategoriasOrdemToMenu(normalized);
+    await contentVersionService.bumpMany(['documentos', 'menu']);
     return res.json({ ok: true });
   } catch (err) {
     return res.status(400).json({ mensagem: err.message });

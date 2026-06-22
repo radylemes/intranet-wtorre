@@ -20,8 +20,10 @@ const configuracoesRoutes = require('./routes/configuracoes.routes');
 const rodapeRoutes = require('./routes/rodape.routes');
 const paginasRoutes = require('./routes/paginas.routes');
 const camarotesRoutes = require('./routes/camarotes.routes');
+const solicitacaoColaboradorRoutes = require('./routes/solicitacao-colaborador.routes');
 const brandingRoutes = require('./routes/branding.routes');
 const grupoLogosRoutes = require('./routes/grupo-logos.routes');
+const contentVersionRoutes = require('./routes/content-version.routes');
 const assinaturasController = require('./controllers/assinaturas.controller');
 const { agendarSincronizacaoColaboradores } = require('./services/colaboradores.sync');
 const { agendarJobsCamarotes } = require('./services/camarotes-cron.service');
@@ -70,6 +72,8 @@ app.use('/api/v1/configuracoes', configuracoesRoutes);
 app.use('/api/v1/rodape', rodapeRoutes);
 app.use('/api/v1/paginas', paginasRoutes);
 app.use('/api/v1/camarotes', camarotesRoutes);
+app.use('/api/v1/solicitacao-colaborador', solicitacaoColaboradorRoutes);
+app.use('/api/v1/content-version', contentVersionRoutes);
 
 // Rotas públicas de assinaturas (sem JWT — usadas pelo instalador antes de qualquer login)
 app.get('/api/v1/assinaturas/script/instalar', assinaturasController.obterScriptBase);

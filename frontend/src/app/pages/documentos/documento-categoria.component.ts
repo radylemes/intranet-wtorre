@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DOCUMENT } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -8,6 +9,7 @@ import { forkJoin } from 'rxjs';
 import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { DocumentosService } from '../../services/documentos.service';
+import { ContentRefreshService } from '../../services/content-refresh.service';
 import { AuthService } from '../../services/auth.service';
 import { DocumentoListComponent } from './documento-list.component';
 import { DocumentoPreviewModalComponent } from './documento-preview-modal.component';
@@ -44,6 +46,7 @@ export class DocumentoCategoriaComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly contentRefresh = inject(ContentRefreshService);
 
   readonly categoria = signal<CategoriaDocumento | null>(null);
   readonly docsRaiz = signal<Documento[]>([]);
@@ -75,6 +78,12 @@ export class DocumentoCategoriaComponent implements OnInit, OnDestroy {
 
   private blobUrlAtual: string | null = null;
 
+  constructor() {
+    this.contentRefresh.documentosChanged$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.recarregar());
+  }
+
   ngOnInit(): void {
     this.document.body.classList.add('pagina-inicio');
     this.auth.carregarPerfil().subscribe();
@@ -91,8 +100,17 @@ export class DocumentoCategoriaComponent implements OnInit, OnDestroy {
     this.fecharModal();
   }
 
-  private resolverCategoria(slug: string): void {
-    this.carregando.set(true);
+  recarregar(): void {
+    const slug = this.route.snapshot.paramMap.get('slug');
+    if (slug) {
+      this.resolverCategoria(slug, false);
+    }
+  }
+
+  private resolverCategoria(slug: string, mostrarCarregando = true): void {
+    if (mostrarCarregando || !this.categoria()) {
+      this.carregando.set(true);
+    }
     this.erro.set('');
     this.documentosService.listarCategorias().subscribe({
       next: (tree) => {

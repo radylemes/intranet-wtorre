@@ -51,16 +51,21 @@ async function verifyConnection(config) {
   }
 }
 
-async function sendMail(config, { to, subject, html, text }) {
+async function sendMail(config, { to, subject, html, text, attachments }) {
   const transporter = createTransporter(config);
   try {
-    await transporter.sendMail({
+    const mailOptions = {
       from: formatFrom(config),
       to,
       subject,
       html,
       text,
-    });
+    };
+    if (attachments?.length) {
+      mailOptions.attachments = attachments;
+    }
+    const info = await transporter.sendMail(mailOptions);
+    return info;
   } catch (err) {
     const mapped = new Error(mapSmtpError(err));
     mapped.status = 400;
@@ -70,7 +75,7 @@ async function sendMail(config, { to, subject, html, text }) {
   }
 }
 
-async function sendMailBatched(config, { recipients, subject, html, text }) {
+async function sendMailBatched(config, { recipients, subject, html, text, attachments }) {
   const list = [...new Set(recipients.map((e) => String(e).trim().toLowerCase()).filter(Boolean))];
   if (!list.length) return { enviados: 0, erros: [] };
 
@@ -79,7 +84,7 @@ async function sendMailBatched(config, { recipients, subject, html, text }) {
 
   for (const to of list) {
     try {
-      await sendMail(config, { to, subject, html, text });
+      await sendMail(config, { to, subject, html, text, attachments });
       enviados += 1;
     } catch (err) {
       erros.push({ email: to, mensagem: err.message });

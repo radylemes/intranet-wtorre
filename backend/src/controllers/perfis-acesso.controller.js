@@ -3,6 +3,7 @@ const usersRepo = require('../repositories/users.repository');
 const colaboradoresRepo = require('../repositories/colaboradores.repository');
 const auditRepo = require('../repositories/auditLog.repository');
 const permissoesService = require('../services/permissoes.service');
+const contentVersionService = require('../services/content-version.service');
 
 function auditMeta(req) {
   return {
@@ -74,6 +75,7 @@ async function atualizarPerfil(req, res) {
 
     if (ativoMudou) {
       await permissoesService.invalidarCachePorPerfil(id);
+      await contentVersionService.bump('permissoes');
     }
 
     const auditEmail = ativoMudou ? `${perfil.nome} (ativo=${novoAtivo ? 1 : 0})` : perfil.nome;
@@ -109,6 +111,7 @@ async function excluirPerfil(req, res) {
 
     await permissoesService.invalidarCachePorPerfil(id);
     await permissoesRepo.deletePerfil(id);
+    await contentVersionService.bump('permissoes');
 
     await auditRepo.log({
       ...auditMeta(req),
@@ -138,6 +141,7 @@ async function definirModulosPerfil(req, res) {
     permissoesService.validarCodigosModulos(modulos);
     await permissoesRepo.setModulosDoPerfil(id, modulos);
     await permissoesService.invalidarCachePorPerfil(id);
+    await contentVersionService.bump('permissoes');
 
     await auditRepo.log({
       ...auditMeta(req),
@@ -254,6 +258,7 @@ async function atualizarUsuario(req, res) {
     await permissoesRepo.setPerfisDoUsuario(usuarioId, perfil_ids.map(Number));
     await permissoesRepo.setModulosExtra(usuarioId, modulos_extra);
     await permissoesService.invalidarCache(usuarioId);
+    await contentVersionService.bump('permissoes');
 
     await auditRepo.log({
       ...auditMeta(req),
@@ -303,6 +308,7 @@ async function patchPerfilUsuario(req, res) {
 
     const atualizado = await usersRepo.setPerfil(id, perfil);
     await permissoesService.invalidarCache(id);
+    await contentVersionService.bump('permissoes');
 
     await auditRepo.log({
       ...auditMeta(req),
@@ -344,6 +350,7 @@ async function patchAtivoUsuario(req, res) {
 
     const atualizado = await usersRepo.setAtivo(id, ativo);
     await permissoesService.invalidarCache(id);
+    await contentVersionService.bump('permissoes');
 
     await auditRepo.log({
       ...auditMeta(req),
@@ -379,6 +386,7 @@ async function excluirUsuario(req, res) {
     }
 
     await permissoesService.invalidarCache(id);
+    await contentVersionService.bump('permissoes');
     await usersRepo.deleteById(id);
 
     await auditRepo.log({

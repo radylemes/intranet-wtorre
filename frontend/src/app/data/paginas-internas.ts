@@ -21,6 +21,7 @@ export const PAGINAS_INTERNAS: PaginaInterna[] = [
   { path: '/aniversariantes', label: 'Aniversariantes' },
   { path: '/treinamentos', label: 'Treinamentos' },
   { path: '/assinaturas', label: 'Assinaturas de E-mail' },
+  { path: '/solicitacao-colaborador', label: 'Solicitação de Colaborador' },
   { path: '/bi/camarotes', label: 'BI / Camarotes' },
 ];
 

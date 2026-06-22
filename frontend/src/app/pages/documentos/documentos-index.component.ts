@@ -1,10 +1,12 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DOCUMENT } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { DocumentosService } from '../../services/documentos.service';
+import { ContentRefreshService } from '../../services/content-refresh.service';
 import { AuthService } from '../../services/auth.service';
 import { CategoriaDocumento } from '../../models/documento.model';
 
@@ -19,10 +21,17 @@ export class DocumentosIndexComponent implements OnInit, OnDestroy {
   private readonly documentosService = inject(DocumentosService);
   private readonly auth = inject(AuthService);
   private readonly document = inject(DOCUMENT);
+  private readonly contentRefresh = inject(ContentRefreshService);
 
   readonly categorias = signal<CategoriaDocumento[]>([]);
   readonly carregando = signal(true);
   readonly erro = signal('');
+
+  constructor() {
+    this.contentRefresh.documentosChanged$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.carregarCategorias(false));
+  }
 
   ngOnInit(): void {
     this.document.body.classList.add('pagina-inicio');
@@ -34,8 +43,10 @@ export class DocumentosIndexComponent implements OnInit, OnDestroy {
     this.document.body.classList.remove('pagina-inicio');
   }
 
-  carregarCategorias(): void {
-    this.carregando.set(true);
+  carregarCategorias(mostrarCarregando = true): void {
+    if (mostrarCarregando || this.categorias().length === 0) {
+      this.carregando.set(true);
+    }
     this.erro.set('');
     this.documentosService.listarCategorias().subscribe({
       next: (tree) => {

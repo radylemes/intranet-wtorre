@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const siteConfigRepo = require('../repositories/site-config.repository');
+const contentVersionService = require('../services/content-version.service');
 const { processLogoImage } = require('../services/grupo-logos-image.service');
 const { env } = require('../config/env');
 const { ensureGrupoLogosDir } = require('../config/grupo-logos-upload');
@@ -126,6 +127,7 @@ async function putTopbar(req, res) {
     }
 
     const config = await siteConfigRepo.setTopbar(validado);
+    await contentVersionService.bump('topbar');
     return res.json(config);
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });
@@ -160,6 +162,7 @@ async function uploadLogoImagem(req, res) {
       }
       logo.imagem_url = imagem_url;
       await siteConfigRepo.setTopbar(config);
+      await contentVersionService.bump('topbar');
     }
 
     return res.json({

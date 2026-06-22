@@ -1,0 +1,422 @@
+<app-public-chrome>
+  <div class="page-wrap">
+    <div class="top">
+      <h1>Solicitação de Colaborador</h1>
+      <div class="sub">
+        Preencha os dados do novo colaborador. As áreas envolvidas serão notificadas automaticamente.
+      </div>
+    </div>
+
+    @if (carregando()) {
+      <p class="loading">Carregando formulário…</p>
+    } @else {
+      <form (ngSubmit)="enviar()">
+        <div class="card">
+          <h2>Solicitante</h2>
+          <div class="grid g2">
+            <div class="field">
+              <label>Solicitante <span class="req">*</span></label>
+              <input
+                type="text"
+                [ngModel]="solicitante()"
+                (ngModelChange)="solicitante.set($event)"
+                name="solicitante"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>E-mail <span class="req">*</span></label>
+              <input
+                type="email"
+                [ngModel]="solicitanteEmail()"
+                (ngModelChange)="solicitanteEmail.set($event)"
+                name="solicitante_email"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Tipo da solicitação</h2>
+          <div class="radios">
+            <label class="opt" [class.sel]="tipo() === 'novo'">
+              <input type="radio" name="tipo" value="novo" [ngModel]="tipo()" (ngModelChange)="tipo.set($event)" />
+              Novo
+            </label>
+            <label class="opt" [class.sel]="tipo() === 'reposicao'">
+              <input
+                type="radio"
+                name="tipo"
+                value="reposicao"
+                [ngModel]="tipo()"
+                (ngModelChange)="tipo.set($event)"
+              />
+              Reposição
+            </label>
+            <label class="opt" [class.sel]="tipo() === 'mudanca'">
+              <input
+                type="radio"
+                name="tipo"
+                value="mudanca"
+                [ngModel]="tipo()"
+                (ngModelChange)="tipo.set($event)"
+              />
+              Mudança de área / empresa
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Dados do colaborador</h2>
+          <div class="grid g2 mb16">
+            <div class="field">
+              <label>Nome <span class="req">*</span></label>
+              <input type="text" [ngModel]="nome()" (ngModelChange)="nome.set($event)" name="nome" required />
+            </div>
+            <div class="field">
+              <label>Sobrenome <span class="req">*</span></label>
+              <input
+                type="text"
+                [ngModel]="sobrenome()"
+                (ngModelChange)="sobrenome.set($event)"
+                name="sobrenome"
+                required
+              />
+            </div>
+          </div>
+          <div class="field mb16">
+            <label>E-mail – novo colaborador</label>
+            <input type="email" [ngModel]="emailNovo()" (ngModelChange)="emailNovo.set($event)" name="email_novo" />
+          </div>
+          <div class="grid g3 mb16">
+            <div class="field">
+              <label>Data de nascimento <span class="req">*</span></label>
+              <input
+                type="date"
+                [ngModel]="dataNascimento()"
+                (ngModelChange)="dataNascimento.set($event)"
+                name="data_nascimento"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>CPF <span class="req">*</span></label>
+              <input
+                type="text"
+                placeholder="000.000.000-00"
+                [ngModel]="cpf()"
+                (ngModelChange)="cpf.set($event)"
+                name="cpf"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>RG <span class="req">*</span></label>
+              <input type="text" [ngModel]="rg()" (ngModelChange)="rg.set($event)" name="rg" required />
+            </div>
+          </div>
+          <div class="grid g3 mb16">
+            <div class="field">
+              <label>Departamento <span class="req">*</span></label>
+              <input
+                type="text"
+                [ngModel]="departamento()"
+                (ngModelChange)="departamento.set($event)"
+                name="departamento"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Cargo <span class="req">*</span></label>
+              <input type="text" [ngModel]="cargo()" (ngModelChange)="cargo.set($event)" name="cargo" required />
+            </div>
+            <div class="field">
+              <label>Supervisor <span class="req">*</span></label>
+              <input
+                type="text"
+                [ngModel]="supervisor()"
+                (ngModelChange)="supervisor.set($event)"
+                name="supervisor"
+                required
+              />
+            </div>
+          </div>
+          <div class="grid g3">
+            <div class="field">
+              <label>Centro de custo <span class="req">*</span></label>
+              <input
+                type="text"
+                [ngModel]="centroCusto()"
+                (ngModelChange)="centroCusto.set($event)"
+                name="centro_custo"
+                required
+              />
+            </div>
+            <div class="field">
+              <label>Empresa <span class="req">*</span></label>
+              <select [ngModel]="empresa()" (ngModelChange)="empresa.set($event)" name="empresa" required>
+                <option value="" disabled>Selecione…</option>
+                @for (e of empresas; track e) {
+                  <option [value]="e">{{ e }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label>Local de trabalho <span class="req">*</span></label>
+              <input
+                type="text"
+                [ngModel]="localTrabalho()"
+                (ngModelChange)="localTrabalho.set($event)"
+                name="local_trabalho"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Documentos</h2>
+          <p class="hint">
+            Imagens armazenadas com segurança (acesso restrito) e anexadas aos e-mails das áreas que precisam delas.
+          </p>
+          <div class="grid g2">
+            <div class="field">
+              <label>Foto <span class="req">*</span></label>
+              <div
+                class="dz"
+                [class.has-file]="!!fotoFile()"
+                [class.is-dragover]="fotoDragover()"
+                (click)="fotoInput.click()"
+                (dragover)="onDragOver($event, 'foto')"
+                (dragleave)="onDragLeave('foto')"
+                (drop)="onDrop($event, 'foto')"
+              >
+                <input
+                  #fotoInput
+                  type="file"
+                  hidden
+                  accept="image/jpeg,image/png,image/webp"
+                  (change)="onFileInput($event, 'foto')"
+                />
+                <div class="ic">⬆</div>
+                @if (fotoFile(); as f) {
+                  <b>{{ f.name }}</b>
+                  <small>Clique para trocar · JPG/PNG · até 5 MB</small>
+                } @else {
+                  <b>Arraste a imagem ou clique para enviar</b>
+                  <small>JPG/PNG · até 5 MB</small>
+                }
+              </div>
+            </div>
+            <div class="field">
+              <label>Mensagem de boas-vindas</label>
+              <div
+                class="dz"
+                [class.has-file]="!!boasVindasFile()"
+                [class.is-dragover]="boasDragover()"
+                (click)="boasInput.click()"
+                (dragover)="onDragOver($event, 'boas_vindas')"
+                (dragleave)="onDragLeave('boas_vindas')"
+                (drop)="onDrop($event, 'boas_vindas')"
+              >
+                <input
+                  #boasInput
+                  type="file"
+                  hidden
+                  accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx"
+                  (change)="onFileInput($event, 'boas_vindas')"
+                />
+                <div class="ic">⬆</div>
+                @if (boasVindasFile(); as f) {
+                  <b>{{ f.name }}</b>
+                  <small>Clique para trocar · Imagem ou PDF</small>
+                } @else {
+                  <b>Arraste o arquivo ou clique para enviar</b>
+                  <small>Imagem ou PDF</small>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Recursos &amp; acessos</h2>
+          <div class="grid g2 mb16">
+            <div class="field">
+              <label>Precisa de ramal? <span class="req">*</span></label>
+              <div class="radios">
+                <label class="opt" [class.sel]="precisaRamal()">
+                  <input
+                    type="radio"
+                    name="ramal"
+                    [ngModel]="precisaRamal()"
+                    [value]="true"
+                    (ngModelChange)="precisaRamal.set($event)"
+                  />
+                  Sim
+                </label>
+                <label class="opt" [class.sel]="!precisaRamal()">
+                  <input
+                    type="radio"
+                    name="ramal"
+                    [ngModel]="precisaRamal()"
+                    [value]="false"
+                    (ngModelChange)="precisaRamal.set($event)"
+                  />
+                  Não
+                </label>
+              </div>
+            </div>
+            <div class="field">
+              <label>Precisa de celular? <span class="req">*</span></label>
+              <div class="radios">
+                <label class="opt" [class.sel]="precisaCelular()">
+                  <input
+                    type="radio"
+                    name="cel"
+                    [ngModel]="precisaCelular()"
+                    [value]="true"
+                    (ngModelChange)="precisaCelular.set($event)"
+                  />
+                  Sim
+                </label>
+                <label class="opt" [class.sel]="!precisaCelular()">
+                  <input
+                    type="radio"
+                    name="cel"
+                    [ngModel]="precisaCelular()"
+                    [value]="false"
+                    (ngModelChange)="precisaCelular.set($event)"
+                  />
+                  Não
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="field mb16">
+            <label>Equipamento <span class="req">*</span></label>
+            <div class="radios">
+              <label class="opt" [class.sel]="equipamento() === 'desktop'">
+                <input
+                  type="radio"
+                  name="eq"
+                  value="desktop"
+                  [ngModel]="equipamento()"
+                  (ngModelChange)="equipamento.set($event)"
+                />
+                Desktop
+              </label>
+              <label class="opt" [class.sel]="equipamento() === 'notebook'">
+                <input
+                  type="radio"
+                  name="eq"
+                  value="notebook"
+                  [ngModel]="equipamento()"
+                  (ngModelChange)="equipamento.set($event)"
+                />
+                Notebook
+              </label>
+              <label class="opt" [class.sel]="equipamento() === 'nao'">
+                <input
+                  type="radio"
+                  name="eq"
+                  value="nao"
+                  [ngModel]="equipamento()"
+                  (ngModelChange)="equipamento.set($event)"
+                />
+                Não é necessário
+              </label>
+            </div>
+            <div class="note">
+              Se o perfil do novo colaborador não se adequar às regras já estabelecidas, será necessária autorização
+              do diretor da área.
+            </div>
+          </div>
+          <div class="grid g2">
+            <div class="field">
+              <label>Credencial de estacionamento? <span class="req">*</span></label>
+              <div class="radios">
+                <label class="opt" [class.sel]="credencialEstacionamento()">
+                  <input
+                    type="radio"
+                    name="est"
+                    [ngModel]="credencialEstacionamento()"
+                    [value]="true"
+                    (ngModelChange)="onCredencialEstacionamentoChange($event)"
+                  />
+                  Sim
+                </label>
+                <label class="opt" [class.sel]="!credencialEstacionamento()">
+                  <input
+                    type="radio"
+                    name="est"
+                    [ngModel]="credencialEstacionamento()"
+                    [value]="false"
+                    (ngModelChange)="onCredencialEstacionamentoChange($event)"
+                  />
+                  Não
+                </label>
+              </div>
+            </div>
+            <div class="field">
+              <label>Data de início <span class="req">*</span></label>
+              <input
+                type="date"
+                [ngModel]="dataInicio()"
+                (ngModelChange)="dataInicio.set($event)"
+                name="data_inicio"
+                required
+              />
+            </div>
+          </div>
+          <div class="field mt16" [class.hide]="!mostrarCredencialVeiculo()">
+            <label>Credencial do veículo <span class="req">*</span></label>
+            <div
+              class="dz"
+              [class.has-file]="!!credencialVeiculoFile()"
+              [class.is-dragover]="credDragover()"
+              (click)="credInput.click()"
+              (dragover)="onDragOver($event, 'credencial_veiculo')"
+              (dragleave)="onDragLeave('credencial_veiculo')"
+              (drop)="onDrop($event, 'credencial_veiculo')"
+            >
+              <input
+                #credInput
+                type="file"
+                hidden
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                (change)="onFileInput($event, 'credencial_veiculo')"
+              />
+              <div class="ic">⬆</div>
+              @if (credencialVeiculoFile(); as f) {
+                <b>{{ f.name }}</b>
+                <small>Clique para trocar · PDF ou imagem · até 10 MB</small>
+              } @else {
+                <b>Arraste o documento ou clique para enviar</b>
+                <small>PDF ou imagem · até 10 MB</small>
+              }
+            </div>
+            <div class="note">
+              Necessário quando há credencial de estacionamento. É anexado ao e-mail do Estacionamento.
+            </div>
+          </div>
+        </div>
+
+        @if (enviando() && progresso() > 0) {
+          <div class="progress-wrap">
+            <div class="progress-bar" [style.width.%]="progresso()"></div>
+          </div>
+        }
+
+        <div class="actions-bar">
+          <button type="button" class="btn btn-ghost" [disabled]="enviando()" (click)="limpar()">Limpar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="enviando()">
+            {{ enviando() ? 'Enviando…' : 'Enviar solicitação' }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+  <app-footer />
+</app-public-chrome>

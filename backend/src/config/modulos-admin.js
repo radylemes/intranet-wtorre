@@ -9,6 +9,7 @@ const MODULOS = [
   { codigo: 'configuracoes', nome: 'Configurações', ordem: 8 },
   { codigo: 'paginas', nome: 'Páginas', ordem: 9 },
   { codigo: 'camarotes', nome: 'Gestão de Camarotes', ordem: 10 },
+  { codigo: 'solicitacao-colaborador', nome: 'Solicitação de Colaborador', ordem: 11 },
 ];
 
 const CODIGOS = new Set(MODULOS.map((m) => m.codigo));

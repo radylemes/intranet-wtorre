@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import {
   ActivatedRoute,
   NavigationEnd,
@@ -11,6 +11,7 @@ import { filter, map } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { LogoWComponent } from '../../logo-w/logo-w.component';
 import { AuthService } from '../../../services/auth.service';
+import { ContentRefreshService } from '../../../services/content-refresh.service';
 
 @Component({
   selector: 'app-admin-layout',
@@ -19,10 +20,11 @@ import { AuthService } from '../../../services/auth.service';
   templateUrl: './admin-layout.component.html',
   styleUrl: './admin-layout.component.scss',
 })
-export class AdminLayoutComponent {
+export class AdminLayoutComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly contentRefresh = inject(ContentRefreshService);
 
   readonly sidebarOpen = signal(false);
 
@@ -33,6 +35,14 @@ export class AdminLayoutComponent {
     ),
     { initialValue: 'Administração' }
   );
+
+  ngOnInit(): void {
+    this.contentRefresh.start();
+  }
+
+  ngOnDestroy(): void {
+    this.contentRefresh.stop();
+  }
 
   private getTitleFromRoute(): string {
     let route: ActivatedRoute = this.route;

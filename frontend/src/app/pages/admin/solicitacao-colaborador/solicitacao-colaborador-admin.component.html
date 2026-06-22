@@ -1,0 +1,375 @@
+<div class="admin-page">
+  <div class="crumb">Administração · Pessoas / RH</div>
+  <h1>Solicitação de Colaborador</h1>
+
+  <div class="content">
+
+    <!-- Grupos de e-mail -->
+    <section class="card">
+      <div class="hd">
+        <div>
+          <h2>Grupos de e-mail</h2>
+          <p class="hint">
+            Cada grupo recebe um e-mail só com os campos selecionados. Uma solicitação dispara um e-mail por grupo
+            ativo. Destinatários: somente domínios internos.
+          </p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" (click)="novoGrupo()" [disabled]="editorAberto()">
+          + Novo grupo
+        </button>
+      </div>
+
+      @if (editandoNovo()) {
+        <div class="editor">
+          <div class="gh">
+            <span class="name">
+              <span class="dot" [class.off]="!grupoAtivo()"></span>
+              {{ grupoNome() || 'Novo grupo' }}
+              <span class="edit-tag">· editando</span>
+            </span>
+            <button
+              type="button"
+              class="toggle"
+              [class.off]="!grupoAtivo()"
+              [attr.aria-pressed]="grupoAtivo()"
+              aria-label="Grupo ativo"
+              (click)="grupoAtivo.set(!grupoAtivo())"
+            ></button>
+          </div>
+
+          <div class="field">
+            <label for="grupo-nome">Nome do grupo</label>
+            <input
+              id="grupo-nome"
+              type="text"
+              [ngModel]="grupoNome()"
+              (ngModelChange)="grupoNome.set($event)"
+              placeholder="Ex.: TI, Credenciamento…"
+            />
+          </div>
+
+          <div class="field">
+            <label>Destinatários (somente domínios internos)</label>
+            <div class="chips">
+              @for (email of grupoDestinatarios(); track email) {
+                <button type="button" class="chip mail" (click)="removerEmailGrupo(email)">
+                  {{ email }} ✕
+                </button>
+              }
+              <span class="chip add">
+                <input
+                  type="email"
+                  placeholder="+ adicionar"
+                  [ngModel]="grupoEmailNovo()"
+                  (ngModelChange)="grupoEmailNovo.set($event)"
+                  (keydown)="onEmailGrupoKeydown($event)"
+                  (blur)="adicionarEmailGrupo()"
+                />
+              </span>
+            </div>
+          </div>
+
+          <div class="lbl">Campos que este grupo recebe</div>
+          <div class="catalog">
+            @for (c of camposDisponiveis(); track c.chave) {
+              <label class="cat" [class.on]="grupoCamposSel().includes(c.chave)">
+                <input
+                  type="checkbox"
+                  [checked]="grupoCamposSel().includes(c.chave)"
+                  (change)="toggleCampoGrupo(c.chave)"
+                />
+                {{ c.label }}
+                @if (c.tipo === 'file') {
+                  <span class="file">arquivo</span>
+                }
+              </label>
+            }
+          </div>
+
+          <div class="actions-bar">
+            <button type="button" class="btn btn-ghost btn-sm" (click)="cancelarEditor()">Cancelar</button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="salvarGrupo()" [disabled]="salvandoGrupo()">
+              {{ salvandoGrupo() ? 'Salvando…' : 'Salvar grupo' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!grupos().length && !editandoNovo()) {
+        <p class="empty">Nenhum grupo cadastrado.</p>
+      }
+
+      @for (g of grupos(); track g.id) {
+        @if (editandoGrupoId() === g.id) {
+          <div class="editor">
+            <div class="gh">
+              <span class="name">
+                <span class="dot" [class.off]="!grupoAtivo()"></span>
+                {{ grupoNome() }}
+                <span class="edit-tag">· editando</span>
+              </span>
+              <button
+                type="button"
+                class="toggle"
+                [class.off]="!grupoAtivo()"
+                [attr.aria-pressed]="grupoAtivo()"
+                aria-label="Grupo ativo"
+                (click)="grupoAtivo.set(!grupoAtivo())"
+              ></button>
+            </div>
+
+            <div class="field">
+              <label for="grupo-nome-edit">Nome do grupo</label>
+              <input
+                id="grupo-nome-edit"
+                type="text"
+                [ngModel]="grupoNome()"
+                (ngModelChange)="grupoNome.set($event)"
+              />
+            </div>
+
+            <div class="field">
+              <label>Destinatários (somente domínios internos)</label>
+              <div class="chips">
+                @for (email of grupoDestinatarios(); track email) {
+                  <button type="button" class="chip mail" (click)="removerEmailGrupo(email)">
+                    {{ email }} ✕
+                  </button>
+                }
+                <span class="chip add">
+                  <input
+                    type="email"
+                    placeholder="+ adicionar"
+                    [ngModel]="grupoEmailNovo()"
+                    (ngModelChange)="grupoEmailNovo.set($event)"
+                    (keydown)="onEmailGrupoKeydown($event)"
+                    (blur)="adicionarEmailGrupo()"
+                  />
+                </span>
+              </div>
+            </div>
+
+            <div class="lbl">Campos que este grupo recebe</div>
+            <div class="catalog">
+              @for (c of camposDisponiveis(); track c.chave) {
+                <label class="cat" [class.on]="grupoCamposSel().includes(c.chave)">
+                  <input
+                    type="checkbox"
+                    [checked]="grupoCamposSel().includes(c.chave)"
+                    (change)="toggleCampoGrupo(c.chave)"
+                  />
+                  {{ c.label }}
+                  @if (c.tipo === 'file') {
+                    <span class="file">arquivo</span>
+                  }
+                </label>
+              }
+            </div>
+
+            <div class="actions-bar">
+              <button type="button" class="btn btn-ghost btn-sm" (click)="cancelarEditor()">Cancelar</button>
+              <button type="button" class="btn btn-primary btn-sm" (click)="salvarGrupo()" [disabled]="salvandoGrupo()">
+                {{ salvandoGrupo() ? 'Salvando…' : 'Salvar grupo' }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="grp">
+            <div class="gh">
+              <span class="name">
+                <span class="dot" [class.off]="!g.ativo"></span>
+                {{ g.nome }}
+              </span>
+              <div class="grp-actions">
+                <button
+                  type="button"
+                  class="toggle"
+                  [class.off]="!g.ativo"
+                  [attr.aria-pressed]="g.ativo"
+                  [attr.aria-label]="g.ativo ? 'Desativar grupo' : 'Ativar grupo'"
+                  (click)="toggleGrupoAtivo(g)"
+                ></button>
+                <button type="button" class="btn btn-ghost btn-sm" (click)="editarGrupo(g)">Editar</button>
+              </div>
+            </div>
+            <div class="lbl">Destinatários</div>
+            <div class="chips">
+              @for (email of g.destinatarios; track email) {
+                <span class="chip mail">{{ email }}</span>
+              }
+            </div>
+            <div class="lbl">Campos enviados</div>
+            <div class="chips">
+              @for (chave of g.campos; track chave) {
+                <span class="chip">{{ labelCampo(chave) }}</span>
+              }
+            </div>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- Visualizadores -->
+    <section class="card">
+      <div class="hd">
+        <div>
+          <h2>Quem pode abrir solicitação</h2>
+          <p class="hint">Apenas estes usuários veem e usam a página pública de cadastro.</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" (click)="abrirAdicionarViewer()">
+          + Adicionar
+        </button>
+      </div>
+
+      @if (adicionarViewerAberto()) {
+        <div class="viewer-add">
+          <input
+            type="search"
+            placeholder="Buscar colaborador por nome ou e-mail…"
+            [ngModel]="buscaTexto()"
+            (ngModelChange)="onBuscaVisualizador($event)"
+            [disabled]="adicionandoVisualizador()"
+            autofocus
+          />
+          @if (resultadosBusca().length) {
+            <ul class="busca-resultados">
+              @for (c of resultadosBusca(); track c.id) {
+                <li>
+                  <button type="button" (click)="adicionarVisualizador(c)" [disabled]="adicionandoVisualizador()">
+                    {{ c.nome }} — {{ c.email || '—' }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          <button type="button" class="btn btn-ghost btn-sm" (click)="adicionarViewerAberto.set(false)">
+            Cancelar
+          </button>
+        </div>
+      }
+
+      @if (!visualizadores().length) {
+        <p class="empty">Nenhum visualizador cadastrado. Admins e usuários com módulo já têm acesso automático.</p>
+      }
+
+      @for (v of visualizadores(); track v.usuario_id) {
+        <div class="viewer">
+          <div class="who">
+            <span class="av">{{ iniciais(v.nome_completo) }}</span>
+            {{ v.nome_completo }}@if (v.departamento) { · {{ v.departamento }} }
+          </div>
+          <button type="button" class="x" (click)="removerVisualizador(v)">remover ✕</button>
+        </div>
+      }
+    </section>
+
+    <!-- Histórico -->
+    <section class="card">
+      <h2>Histórico de solicitações</h2>
+      <p class="hint">Status do envio por grupo. Reenvie ou pré-visualize o e-mail de cada área.</p>
+
+      @if (carregando()) {
+        <p class="empty">Carregando…</p>
+      } @else if (!solicitacoes().length) {
+        <p class="empty">Nenhuma solicitação encontrada.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Solicitante</th>
+              <th>Colaborador</th>
+              <th>Tipo</th>
+              <th>Envio</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of solicitacoes(); track s.id) {
+              <tr [class.exp]="expandedSolicitacaoId() === s.id">
+                <td class="num">{{ s.criado_em | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ s.solicitante_nome }}</td>
+                <td>{{ s.nome }} {{ s.sobrenome }}</td>
+                <td>{{ labelTipo(s.tipo) }}</td>
+                <td>
+                  <span class="badge" [ngClass]="badgeClass(s.status)">{{ labelStatus(s.status) }}</span>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="toggleDetalhes(s)">
+                    detalhes
+                  </button>
+                </td>
+              </tr>
+              <tr class="exp" [class.hide]="expandedSolicitacaoId() !== s.id">
+                <td colspan="6">
+                  <div class="expand">
+                    @if (carregandoEnvios() === s.id) {
+                      <p class="empty">Carregando envios…</p>
+                    } @else if (!enviosExpandidos(s.id).length) {
+                      <div class="env">
+                        <div class="g">
+                          <span class="tick ok">✓</span>
+                          Nenhum envio registrado
+                        </div>
+                      </div>
+                    } @else {
+                      @for (e of enviosExpandidos(s.id); track e.id) {
+                        <div class="env">
+                          <div class="g">
+                            @if (e.status === 'ok') {
+                              <span class="tick ok">✓</span>
+                            } @else {
+                              <span class="tick err">✕</span>
+                            }
+                            {{ e.grupo_nome }}
+                            @if (e.status === 'erro') {
+                              <span class="fail-msg">— falha no envio</span>
+                            }
+                          </div>
+                          <div class="r">
+                            <span class="chip">{{ resumoDestinatarios(e.destinatarios) }}</span>
+                            @if (e.status === 'ok') {
+                              <button
+                                type="button"
+                                class="btn btn-ghost btn-sm"
+                                (click)="previewGrupo(s.id, e.grupo_id)"
+                              >
+                                Pré-visualizar
+                              </button>
+                            }
+                            <button
+                              type="button"
+                              class="btn"
+                              [class.btn-primary]="e.status === 'erro'"
+                              [class.btn-ghost]="e.status !== 'erro'"
+                              [class.btn-sm]="true"
+                              (click)="reenviarGrupo(s.id, e.grupo_id, e.grupo_nome)"
+                            >
+                              Reenviar
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+  </div>
+</div>
+
+@if (previewAberto()) {
+  <div class="preview-backdrop" (click)="fecharPreview()"></div>
+  <aside class="preview-panel">
+    <header>
+      <h3>Pré-visualização do e-mail</h3>
+      <button type="button" class="x" (click)="fecharPreview()">✕</button>
+    </header>
+    <div class="preview-frame" [innerHTML]="previewHtml()"></div>
+  </aside>
+}

@@ -2,6 +2,7 @@ const siteConfigRepo = require('../repositories/site-config.repository');
 const auditRepo = require('../repositories/auditLog.repository');
 const smtpConfigService = require('../services/smtp-config.service');
 const smtpMailService = require('../services/mail/smtp-mail.service');
+const contentVersionService = require('../services/content-version.service');
 const { isPaginaInterna } = require('../config/paginas-internas');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -92,6 +93,7 @@ async function putHeaderChamado(req, res) {
       abrir_nova_aba: abrir_nova_aba !== false,
     });
 
+    await contentVersionService.bump('configuracoes');
     return res.json(config);
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });

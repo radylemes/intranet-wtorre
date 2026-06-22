@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS camarotes_config (
   dias_vence_breve INT NOT NULL DEFAULT 90,
   cadencia ENUM('diaria','semanal') NOT NULL DEFAULT 'diaria',
   envio_ativo TINYINT(1) NOT NULL DEFAULT 1,
+  sync_automatica TINYINT(1) NOT NULL DEFAULT 1,
+  sync_frequencia ENUM('1h','6h','12h','24h','semanal') NOT NULL DEFAULT '24h',
   ultimo_envio TIMESTAMP NULL,
   ultima_sync TIMESTAMP NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

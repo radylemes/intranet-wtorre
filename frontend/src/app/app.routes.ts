@@ -5,6 +5,7 @@ import { guestGuard } from './guards/guest.guard';
 import { moduloGuardFromRoute } from './guards/modulo.guard';
 import { superAdminGuard } from './guards/super-admin.guard';
 import { camarotesViewerGuard } from './guards/camarotes-viewer.guard';
+import { solicitacaoViewerGuard } from './guards/solicitacao-viewer.guard';
 
 export const routes: Routes = [
   {
@@ -67,6 +68,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/bi/camarotes/camarotes-view.component').then(
         (m) => m.CamarotesViewComponent
+      ),
+  },
+  {
+    path: 'solicitacao-colaborador',
+    canActivate: [authGuard, solicitacaoViewerGuard],
+    loadComponent: () =>
+      import('./pages/solicitacao-colaborador/solicitacao-colaborador.component').then(
+        (m) => m.SolicitacaoColaboradorComponent
       ),
   },
   {
@@ -180,6 +189,15 @@ export const routes: Routes = [
             (m) => m.CamarotesAdminComponent
           ),
         data: { adminTitle: 'Configuração de Camarotes' },
+      },
+      {
+        path: 'solicitacao-colaborador',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/solicitacao-colaborador/solicitacao-colaborador-admin.component').then(
+            (m) => m.SolicitacaoColaboradorAdminComponent
+          ),
+        data: { adminTitle: 'Solicitação de Colaborador' },
       },
       {
         path: 'perfis',

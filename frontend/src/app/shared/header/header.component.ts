@@ -1,8 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, ViewEncapsulation, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ConfiguracoesService } from '../../services/configuracoes.service';
+import { ContentRefreshService } from '../../services/content-refresh.service';
 import { HeaderChamadoConfig } from '../../models/configuracoes.model';
 import { MenuService } from '../../services/menu.service';
 import { MenuItem } from '../../models/menu.model';
@@ -20,6 +22,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly menuService = inject(MenuService);
   private readonly configService = inject(ConfiguracoesService);
+  private readonly contentRefresh = inject(ContentRefreshService);
   readonly auth = inject(AuthService);
   readonly menuItems = signal<MenuItem[]>([]);
   readonly menuAberto = signal(false);
@@ -32,16 +35,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private mediaQuery?: MediaQueryList;
   private readonly onMediaChange = (e: MediaQueryListEvent) => this.mobile.set(e.matches);
 
+  constructor() {
+    this.contentRefresh.configuracoesChanged$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.recarregarChamado());
+  }
+
   ngOnInit(): void {
     this.menuService.menu$.subscribe((items) => {
       if (items.length) this.menuItems.set(items);
     });
     this.menuService.carregarMenu().subscribe();
 
-    this.configService.getHeaderChamado().subscribe({
-      next: (cfg) => this.chamadoConfig.set(cfg),
-      error: () => this.chamadoConfig.set(null),
-    });
+    this.recarregarChamado();
 
     if (typeof window !== 'undefined') {
       this.mediaQuery = window.matchMedia('(max-width: 760px)');
@@ -91,6 +97,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   fecharAvatarMenu(): void {
     this.avatarMenuAberto.set(false);
+  }
+
+  recarregarChamado(): void {
+    this.configService.getHeaderChamado().subscribe({
+      next: (cfg) => this.chamadoConfig.set(cfg),
+      error: () => this.chamadoConfig.set(null),
+    });
   }
 
   sair(): void {

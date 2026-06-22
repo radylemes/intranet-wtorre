@@ -65,6 +65,14 @@ const env = {
   camarotesMailFrom: process.env.CAMAROTES_MAIL_FROM || '',
   camarotesMailBatchSize: Number(process.env.CAMAROTES_MAIL_BATCH_SIZE) || 10,
   camarotesMailBatchDelayMs: Number(process.env.CAMAROTES_MAIL_BATCH_DELAY_MS) || 2000,
+  solicitacaoColaboradorContainer:
+    process.env.SOLICITACAO_COLABORADOR_CONTAINER || 'solicitacao-colaborador',
+  solicitacaoColaboradorTmpDir:
+    process.env.SOLICITACAO_COLABORADOR_TMP_DIR || os.tmpdir(),
+  solicitacaoColaboradorFotoMaxMb: Number(process.env.SOLICITACAO_FOTO_MAX_MB) || 5,
+  solicitacaoColaboradorArquivoMaxMb: Number(process.env.SOLICITACAO_ARQUIVO_MAX_MB) || 10,
+  solicitacaoColaboradorSmtpAnexoMaxMb:
+    Number(process.env.SOLICITACAO_SMTP_ANEXO_MAX_MB) || 25,
 };
 
 function validateEnv() {

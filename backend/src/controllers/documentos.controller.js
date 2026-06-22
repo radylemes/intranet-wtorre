@@ -1,6 +1,7 @@
 const fs = require('fs');
 const catRepo = require('../repositories/categorias-documentos.repository');
 const docRepo = require('../repositories/documentos.repository');
+const contentVersionService = require('../services/content-version.service');
 const {
   validateUploadFile,
   isPreviewable,
@@ -67,6 +68,7 @@ async function upload(req, res) {
       criado_por: req.user.id,
     });
 
+    await contentVersionService.bump('documentos');
     return res.status(201).json(doc);
   } catch (err) {
     if (req.file?.path) fs.unlink(req.file.path, () => {});
@@ -101,6 +103,7 @@ async function update(req, res) {
     }
 
     const doc = await docRepo.update(id, data);
+    await contentVersionService.bump('documentos');
     return res.json(doc);
   } catch (err) {
     return res.status(400).json({ mensagem: err.message });
@@ -124,6 +127,7 @@ async function remove(req, res) {
   }
 
   await docRepo.remove(id);
+  await contentVersionService.bump('documentos');
   return res.json({ ok: true });
 }
 

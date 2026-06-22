@@ -1,10 +1,13 @@
 const menuRepo = require('../repositories/menu.repository');
 const menuSync = require('../services/doc-categoria-menu.sync');
+const contentVersionService = require('../services/content-version.service');
 const { isValidMenuUrl, normalizeMenuUrl } = require('../utils/menu.validation');
 const { MAX_DEPTH, getDepth, isDescendant } = require('../utils/menu.tree');
 const { usuarioPodeVisualizar } = require('../services/camarotes-acesso.service');
+const { usuarioPodeVisualizar: usuarioPodeVisualizarSolicitacao } = require('../services/solicitacao-acesso.service');
 
 const CAMAROTES_BI_URL = '/bi/camarotes';
+const SOLICITACAO_COLABORADOR_URL = '/solicitacao-colaborador';
 
 function filterUrlFromTree(nodes, url) {
   const result = [];
@@ -67,6 +70,14 @@ async function getPublicTree(req, res) {
     tree = filterUrlFromTree(tree, CAMAROTES_BI_URL);
   }
 
+  const podeVisualizarSolicitacao = await usuarioPodeVisualizarSolicitacao(
+    req.user,
+    req.userModulos || []
+  );
+  if (!podeVisualizarSolicitacao) {
+    tree = filterUrlFromTree(tree, SOLICITACAO_COLABORADOR_URL);
+  }
+
   return res.json(tree);
 }
 
@@ -109,6 +120,7 @@ async function update(req, res) {
     }
 
     const item = await menuRepo.update(id, data);
+    await contentVersionService.bump('menu');
     return res.json(item);
   } catch (err) {
     return res.status(400).json({ mensagem: err.message });
@@ -122,6 +134,7 @@ async function remove(req, res) {
     return res.status(404).json({ mensagem: 'Item não encontrado.' });
   }
   await menuRepo.remove(id);
+  await contentVersionService.bump('menu');
   return res.json({ ok: true });
 }
 
@@ -157,6 +170,7 @@ async function reorder(req, res) {
 
     await menuRepo.reorderBatch(normalized);
     await menuSync.syncMenuOrdemToCategorias(normalized);
+    await contentVersionService.bump('menu');
     return res.json({ ok: true });
   } catch (err) {
     return res.status(400).json({ mensagem: err.message });

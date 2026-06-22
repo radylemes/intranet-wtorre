@@ -1,5 +1,6 @@
 const paginasRepo = require('../repositories/paginas.repository');
 const paginasService = require('../services/paginas.service');
+const contentVersionService = require('../services/content-version.service');
 const blobService = require('../services/blob.service');
 const { env } = require('../config/env');
 const fs = require('fs/promises');
@@ -74,6 +75,7 @@ async function criar(req, res) {
   try {
     const data = await paginasService.prepararCriacao(req.body, criadoPor(req));
     const pagina = await paginasRepo.criar(data);
+    await contentVersionService.bump('paginas');
     return res.status(201).json(pagina);
   } catch (err) {
     return handleError(res, err);
@@ -85,6 +87,7 @@ async function atualizar(req, res) {
     const id = Number(req.params.id);
     const data = await paginasService.prepararAtualizacao(id, req.body);
     const pagina = await paginasRepo.atualizar(id, data);
+    await contentVersionService.bump('paginas');
     return res.json(pagina);
   } catch (err) {
     return handleError(res, err);
@@ -99,6 +102,7 @@ async function remover(req, res) {
       return res.status(404).json({ mensagem: 'Página não encontrada.' });
     }
     await paginasRepo.remover(id);
+    await contentVersionService.bump('paginas');
     return res.json({ ok: true });
   } catch (err) {
     return handleError(res, err);

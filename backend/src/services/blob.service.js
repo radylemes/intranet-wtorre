@@ -147,6 +147,23 @@ async function gerarSasLeitura(container, blobName) {
   });
 }
 
+async function baixarBuffer(container, blobName) {
+  return withBlobError(async () => {
+    const client = svc.getContainerClient(container).getBlockBlobClient(blobName);
+    const exists = await client.exists();
+    if (!exists) {
+      const err = new Error('Arquivo não encontrado no storage.');
+      err.status = 404;
+      throw err;
+    }
+    const props = await client.getProperties();
+    const buffer = await client.downloadToBuffer();
+    const contentType = props.contentType || 'application/octet-stream';
+    const filename = blobName.includes('/') ? blobName.split('/').pop() : blobName;
+    return { buffer, contentType, filename };
+  });
+}
+
 function urlBlobPublico(container, blobName) {
   const baseUrl = svc.getContainerClient(container).getBlockBlobClient(blobName).url;
   return baseUrl;
@@ -160,6 +177,7 @@ module.exports = {
   enviarArquivo,
   removerBlob,
   gerarSasLeitura,
+  baixarBuffer,
   urlBlobPublico,
   novoBlobName,
 };

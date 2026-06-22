@@ -1,4 +1,5 @@
 const siteConfigRepo = require('../repositories/site-config.repository');
+const contentVersionService = require('../services/content-version.service');
 const { isPaginaInterna } = require('../config/paginas-internas');
 
 function validarUrl(url, tipo_destino) {
@@ -111,6 +112,7 @@ async function putFooter(req, res) {
   try {
     const validado = validarFooterConfig(req.body);
     const config = await siteConfigRepo.setFooter(validado);
+    await contentVersionService.bump('rodape');
     return res.json(config);
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });

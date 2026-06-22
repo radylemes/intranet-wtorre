@@ -1,5 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { MenuService } from '../../services/menu.service';
+import { ContentRefreshService } from '../../services/content-refresh.service';
 import { GRUPO_LOGOS } from '../../data/grupo-logos.data';
 import { TopbarLogo } from '../../models/topbar.model';
 
@@ -11,11 +14,22 @@ import { TopbarLogo } from '../../models/topbar.model';
 })
 export class TopbarComponent implements OnInit {
   private readonly menuService = inject(MenuService);
+  private readonly contentRefresh = inject(ContentRefreshService);
 
   readonly logos = signal<TopbarLogo[]>(this.fallbackLogos());
   readonly suporteTexto = signal('CCO: Ramal 6673 TEL.: (11) 4800 - 6673');
 
+  constructor() {
+    this.contentRefresh.topbarChanged$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.recarregar());
+  }
+
   ngOnInit(): void {
+    this.recarregar();
+  }
+
+  recarregar(): void {
     this.menuService.getTopbar().subscribe({
       next: (config) => {
         if (config.logos?.length) {

@@ -1,9 +1,11 @@
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { TreinamentosService } from '../../services/treinamentos.service';
+import { ContentRefreshService } from '../../services/content-refresh.service';
 import { Treinamento } from '../../models/treinamento.model';
 import {
   CAT,
@@ -24,6 +26,7 @@ import { TreinamentoCardComponent } from './treinamento-card/treinamento-card.co
 })
 export class TreinamentosComponent implements OnInit {
   private readonly treinamentosService = inject(TreinamentosService);
+  private readonly contentRefresh = inject(ContentRefreshService);
 
   readonly videos = signal<Treinamento[]>([]);
   readonly q = signal('');
@@ -69,14 +72,20 @@ export class TreinamentosComponent implements OnInit {
       document.addEventListener('keydown', handler);
       return () => document.removeEventListener('keydown', handler);
     });
+
+    this.contentRefresh.treinamentosChanged$
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.carregar(false));
   }
 
   ngOnInit(): void {
     this.carregar();
   }
 
-  carregar(): void {
-    this.carregando.set(true);
+  carregar(mostrarCarregando = true): void {
+    if (mostrarCarregando || this.videos().length === 0) {
+      this.carregando.set(true);
+    }
     this.erro.set('');
     this.treinamentosService.listar().subscribe({
       next: (list) => {

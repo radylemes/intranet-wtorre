@@ -2,6 +2,7 @@ const fs = require('fs/promises');
 const treinamentosRepo = require('../repositories/treinamentos.repository');
 const containersRepo = require('../repositories/storage-containers.repository');
 const blobService = require('../services/blob.service');
+const contentVersionService = require('../services/content-version.service');
 const { validarCategoria, parseDuracaoSeg } = require('../utils/treinamento-categoria.validation');
 
 function criadoPor(req) {
@@ -163,6 +164,7 @@ async function criar(req, res) {
       criado_por: criadoPor(req),
     });
 
+    await contentVersionService.bump('treinamentos');
     return res.status(201).json(treinamento);
   } catch (err) {
     if (uploadedVideo) {
@@ -269,6 +271,7 @@ async function atualizar(req, res) {
       await blobService.removerBlob(existing.container, oldThumb);
     }
 
+    await contentVersionService.bump('treinamentos');
     return res.json(updated);
   } catch (err) {
     if (uploadedVideo) {
@@ -299,6 +302,7 @@ async function excluir(req, res) {
       await blobService.removerBlob(removed.container, removed.thumb_blob);
     }
 
+    await contentVersionService.bump('treinamentos');
     return res.json({ ok: true });
   } catch (err) {
     return res.status(err.status || 500).json({
