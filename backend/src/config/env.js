@@ -52,6 +52,11 @@ const env = {
     process.env.GRUPO_LOGOS_DIR ||
     path.join(__dirname, '..', '..', 'storage', 'grupo-logos'),
   grupoLogosUploadMaxMb: Number(process.env.GRUPO_LOGOS_UPLOAD_MAX_MB) || 2,
+  documentosPaginasLogosDir:
+    process.env.DOCUMENTOS_PAGINAS_LOGOS_DIR ||
+    path.join(__dirname, '..', '..', 'storage', 'documentos-paginas-logos'),
+  documentosPaginasLogoUploadMaxMb:
+    Number(process.env.DOCUMENTOS_PAGINAS_LOGO_UPLOAD_MAX_MB) || 2,
   homeCarrosselDir:
     process.env.HOME_CARROSSEL_DIR ||
     path.join(__dirname, '..', '..', 'storage', 'home-carrossel'),

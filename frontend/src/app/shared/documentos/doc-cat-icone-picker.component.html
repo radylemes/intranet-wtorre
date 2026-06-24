@@ -1,0 +1,68 @@
+<div class="icone-picker">
+  <div class="icone-picker__search">
+    <input
+      type="search"
+      placeholder="Buscar ícone..."
+      [ngModel]="busca()"
+      (ngModelChange)="aplicarBusca($event)"
+      autocomplete="off"
+    />
+  </div>
+
+  <div class="icone-picker__chips" role="group" aria-label="Sugestões de busca">
+    @for (chip of chips(); track chip.label) {
+      @if (chipVisivel(chip)) {
+        <button type="button" class="chip" (click)="aplicarChip(chip)">{{ chip.label }}</button>
+      }
+    }
+  </div>
+
+  <div class="icone-picker__segments" role="tablist" aria-label="Tipo de ícone">
+    <button
+      type="button"
+      role="tab"
+      class="seg"
+      [class.active]="segmento() === 'lucide'"
+      [attr.aria-selected]="segmento() === 'lucide'"
+      (click)="setSegmento('lucide')"
+    >
+      Ícones
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="seg"
+      [class.active]="segmento() === 'brand'"
+      [attr.aria-selected]="segmento() === 'brand'"
+      (click)="setSegmento('brand')"
+    >
+      Marcas
+    </button>
+  </div>
+
+  <p class="icone-picker__hint">{{ contador() }}</p>
+
+  @if (carregando()) {
+    <p class="icone-picker__loading">Carregando catálogo…</p>
+  } @else if (!resultados().length) {
+    <p class="icone-picker__empty">Nenhum ícone encontrado.</p>
+  } @else {
+    <cdk-virtual-scroll-viewport class="icone-picker__grid" [itemSize]="itemSize">
+      <div
+        class="icone-picker__row"
+        *cdkVirtualFor="let row of linhas(); trackBy: trackRow"      >
+        @for (item of row; track item.namespaced) {
+          <button
+            type="button"
+            class="icone-picker__cell"
+            [class.sel]="selecionado(item.namespaced)"
+            [title]="item.label"
+            (click)="selecionar(item.namespaced)"
+          >
+            <app-doc-cat-icone [nome]="item.namespaced" [size]="20" />
+          </button>
+        }
+      </div>
+    </cdk-virtual-scroll-viewport>
+  }
+</div>

@@ -1,13 +1,36 @@
 const fs = require('fs');
 const catRepo = require('../repositories/categorias-documentos.repository');
 const docRepo = require('../repositories/documentos.repository');
+const setorRepo = require('../repositories/documentos-setores.repository');
 const contentVersionService = require('../services/content-version.service');
+const { unlinkArquivo } = require('../utils/documentos-arquivos.util');
 const {
   validateUploadFile,
   isPreviewable,
   resolveStoragePath,
   sanitizeFilename,
 } = require('../utils/documentos.validation');
+
+async function validateSetorId(setorId) {
+  if (setorId == null || setorId === '') {
+    const err = new Error('setor_id é obrigatório.');
+    err.status = 400;
+    throw err;
+  }
+  const id = Number(setorId);
+  if (!id) {
+    const err = new Error('setor_id inválido.');
+    err.status = 400;
+    throw err;
+  }
+  const setor = await setorRepo.findById(id);
+  if (!setor || !setor.ativo) {
+    const err = new Error('Setor não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+  return id;
+}
 
 async function list(req, res) {
   const categoriaRef = req.query.categoria;
@@ -25,7 +48,16 @@ async function list(req, res) {
     return res.status(404).json({ mensagem: 'Categoria não encontrada.' });
   }
 
-  const documentos = await docRepo.findByCategoria(categoriaId, { ativoOnly: true });
+  let setorFilter = { type: 'all' };
+  if (req.query.setor !== undefined && req.query.setor !== '') {
+    const resolved = await docRepo.resolveSetorFilter(req.query.setor);
+    if (resolved === null) {
+      return res.status(404).json({ mensagem: 'Setor não encontrado.' });
+    }
+    setorFilter = resolved;
+  }
+
+  const documentos = await docRepo.findByCategoria(categoriaId, { ativoOnly: true, setorFilter });
   return res.json(documentos);
 }
 
@@ -50,6 +82,14 @@ async function upload(req, res) {
       return res.status(400).json({ mensagem: 'categoria_id e titulo são obrigatórios.' });
     }
 
+    let setorId;
+    try {
+      setorId = await validateSetorId(req.body.setor_id);
+    } catch (err) {
+      if (req.file.path) fs.unlink(req.file.path, () => {});
+      return res.status(err.status || 400).json({ mensagem: err.message });
+    }
+
     const categoria = await catRepo.findById(categoriaId);
     if (!categoria) {
       if (req.file.path) fs.unlink(req.file.path, () => {});
@@ -66,6 +106,7 @@ async function upload(req, res) {
       extensao: validation.ext,
       tamanho_bytes: req.file.size,
       criado_por: req.user.id,
+      setor_id: setorId,
     });
 
     await contentVersionService.bump('documentos');
@@ -101,12 +142,17 @@ async function update(req, res) {
       }
       data.categoria_id = categoriaId;
     }
+    if (req.body.setor_id !== undefined) {
+      data.setor_id = await validateSetorId(req.body.setor_id);
+    } else if (existing.setor_id == null) {
+      return res.status(400).json({ mensagem: 'setor_id é obrigatório.' });
+    }
 
     const doc = await docRepo.update(id, data);
     await contentVersionService.bump('documentos');
     return res.json(doc);
   } catch (err) {
-    return res.status(400).json({ mensagem: err.message });
+    return res.status(err.status || 400).json({ mensagem: err.message });
   }
 }
 
@@ -117,14 +163,7 @@ async function remove(req, res) {
     return res.status(404).json({ mensagem: 'Documento não encontrado.' });
   }
 
-  try {
-    const filePath = resolveStoragePath(existing.arquivo_path);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  } catch (_err) {
-    // ignora erro de arquivo ausente
-  }
+  unlinkArquivo(existing.arquivo_path);
 
   await docRepo.remove(id);
   await contentVersionService.bump('documentos');

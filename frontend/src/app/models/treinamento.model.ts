@@ -2,11 +2,18 @@ export interface Treinamento {
   id: number;
   titulo: string;
   descricao?: string | null;
-  categoria: string;
   area?: string | null;
   duracaoSeg?: number | null;
   destaque: boolean;
   temThumb: boolean;
+  paginaId: number;
+  paginaSlug: string;
+  paginaNome?: string | null;
+  categoriaId?: number | null;
+  categoriaNome?: string | null;
+  categoriaSlug?: string | null;
+  categoriaIcone?: string | null;
+  temCategoria: boolean;
 }
 
 export interface TreinamentoAdmin extends Treinamento {

@@ -1,32 +1,46 @@
-import { Component, OnInit, effect, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AlertasService } from '../../../services/alertas.service';
 import { TreinamentosService } from '../../../services/treinamentos.service';
 import { ContainersService } from '../../../services/containers.service';
+import { DocumentosService } from '../../../services/documentos.service';
 import { TreinamentoAdmin } from '../../../models/treinamento.model';
 import { StorageContainer } from '../../../models/storage-container.model';
+import { CategoriaDocumento, DocumentoPagina } from '../../../models/documento.model';
+import { formatarDuracao, parseDuracaoInput } from '../../../utils/treinamento-categoria.util';
 import {
-  CATEGORIAS_LISTA,
-  formatarDuracao,
-  parseDuracaoInput,
-} from '../../../utils/treinamento-categoria.util';
+  DocAdminNodeAction,
+  DocAdminNodeComponent,
+} from '../documentos/doc-admin-node.component';
+import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
 
 @Component({
   selector: 'app-treinamentos-admin',
   standalone: true,
-  imports: [ReactiveFormsModule, AdminModalComponent],
+  imports: [
+    ReactiveFormsModule,
+    AdminModalComponent,
+    DocAdminNodeComponent,
+    DocCatIconeComponent,
+  ],
   templateUrl: './treinamentos-admin.component.html',
   styleUrl: './treinamentos-admin.component.scss',
 })
 export class TreinamentosAdminComponent implements OnInit {
   private readonly treinamentosService = inject(TreinamentosService);
   private readonly containersService = inject(ContainersService);
+  private readonly documentosService = inject(DocumentosService);
   private readonly fb = inject(FormBuilder);
   private readonly alertas = inject(AlertasService);
 
-  readonly categorias = CATEGORIAS_LISTA;
+  readonly paginas = signal<DocumentoPagina[]>([]);
+  readonly categoriasTree = signal<CategoriaDocumento[]>([]);
+  readonly categoriaSelecionadaId = signal<number | null>(null);
+  readonly categoriaSelecionadaNome = signal<string | null>(null);
+  readonly filtroPaginaId = signal<number | null>(null);
+
   readonly treinamentos = signal<TreinamentoAdmin[]>([]);
   readonly containers = signal<StorageContainer[]>([]);
   readonly mensagem = signal('');
@@ -42,12 +56,19 @@ export class TreinamentosAdminComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     titulo: ['', Validators.required],
     descricao: [''],
-    categoria: ['onboarding', Validators.required],
+    pagina_id: [0, Validators.required],
     area: [''],
     duracao: [''],
     destaque: [false],
     container: [''],
     ativo: [true],
+  });
+
+  readonly treinamentosFiltrados = computed(() => {
+    const filtro = this.filtroPaginaId();
+    const lista = this.treinamentos();
+    if (filtro == null) return lista;
+    return lista.filter((t) => t.paginaId === filtro);
   });
 
   constructor() {
@@ -62,16 +83,45 @@ export class TreinamentosAdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.carregarPaginas();
     this.carregar();
     this.carregarContainers();
   }
 
+  carregarPaginas(): void {
+    this.documentosService.listarPaginasAdmin().subscribe({
+      next: (list) => {
+        this.paginas.set(list.filter((p) => p.ativo));
+        const wtorre = list.find((p) => p.slug === 'wtorre');
+        if (wtorre?.id && !this.form.controls.pagina_id.value) {
+          this.form.patchValue({ pagina_id: wtorre.id });
+          this.carregarCategorias(wtorre.id);
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  carregarCategorias(paginaId: number): void {
+    this.documentosService.listarCategoriasAdmin(paginaId).subscribe({
+      next: (tree) => this.categoriasTree.set(tree),
+      error: () => this.categoriasTree.set([]),
+    });
+  }
+
   carregar(): void {
-    this.treinamentosService.listarAdmin().subscribe({
+    const paginaId = this.filtroPaginaId();
+    this.treinamentosService.listarAdmin(paginaId ?? undefined).subscribe({
       next: (list) => this.treinamentos.set(list),
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar treinamentos.'),
     });
+  }
+
+  onFiltroPaginaChange(raw: string): void {
+    const id = raw === '' ? null : Number(raw);
+    this.filtroPaginaId.set(id && Number.isFinite(id) ? id : null);
+    this.carregar();
   }
 
   carregarContainers(): void {
@@ -88,9 +138,34 @@ export class TreinamentosAdminComponent implements OnInit {
     });
   }
 
+  onPaginaChange(raw: string): void {
+    const paginaId = Number(raw);
+    if (!Number.isFinite(paginaId) || paginaId <= 0) return;
+    this.form.patchValue({ pagina_id: paginaId });
+    this.categoriaSelecionadaId.set(null);
+    this.categoriaSelecionadaNome.set(null);
+    this.carregarCategorias(paginaId);
+  }
+
+  onCategoriaNode(action: DocAdminNodeAction): void {
+    if (action.type !== 'select') return;
+    this.categoriaSelecionadaId.set(action.item.id);
+    this.categoriaSelecionadaNome.set(action.item.nome);
+  }
+
+  limparCategoria(): void {
+    this.categoriaSelecionadaId.set(null);
+    this.categoriaSelecionadaNome.set(null);
+  }
+
   novo(): void {
     this.cancelar();
     const padrao = this.containers().find((c) => c.padrao);
+    const paginaId = this.form.controls.pagina_id.value || this.paginas()[0]?.id;
+    if (paginaId) {
+      this.form.patchValue({ pagina_id: paginaId });
+      this.carregarCategorias(paginaId);
+    }
     this.form.patchValue({ container: padrao?.nome ?? '' });
     this.modalAberto.set(true);
   }
@@ -100,13 +175,16 @@ export class TreinamentosAdminComponent implements OnInit {
     this.form.patchValue({
       titulo: t.titulo,
       descricao: t.descricao ?? '',
-      categoria: t.categoria,
+      pagina_id: t.paginaId,
       area: t.area ?? '',
       duracao: formatarDuracao(t.duracaoSeg),
       destaque: t.destaque,
       container: t.container,
       ativo: t.ativo,
     });
+    this.categoriaSelecionadaId.set(t.categoriaId ?? null);
+    this.categoriaSelecionadaNome.set(t.categoriaNome ?? null);
+    this.carregarCategorias(t.paginaId);
     this.videoFile = null;
     this.thumbFile = null;
     this.modalAberto.set(true);
@@ -122,12 +200,16 @@ export class TreinamentosAdminComponent implements OnInit {
     this.videoFile = null;
     this.thumbFile = null;
     this.uploadProgress.set(0);
+    this.categoriaSelecionadaId.set(null);
+    this.categoriaSelecionadaNome.set(null);
+    const paginaId = this.paginas().find((p) => p.slug === 'wtorre')?.id ?? this.paginas()[0]?.id ?? 0;
     this.form.reset({
-      categoria: 'onboarding',
+      pagina_id: paginaId,
       destaque: false,
       ativo: true,
       container: this.containers().find((c) => c.padrao)?.nome ?? '',
     });
+    if (paginaId) this.carregarCategorias(paginaId);
   }
 
   tituloModal(): string {
@@ -162,7 +244,13 @@ export class TreinamentosAdminComponent implements OnInit {
     const formData = new FormData();
     formData.append('titulo', raw.titulo.trim());
     formData.append('descricao', raw.descricao.trim());
-    formData.append('categoria', raw.categoria);
+    formData.append('pagina_id', String(raw.pagina_id));
+    const catId = this.categoriaSelecionadaId();
+    if (catId != null) {
+      formData.append('categoria_id', String(catId));
+    } else {
+      formData.append('categoria_id', '');
+    }
     formData.append('area', raw.area.trim());
     const dur = parseDuracaoInput(raw.duracao);
     if (dur != null) formData.append('duracao_seg', String(dur));
@@ -219,5 +307,9 @@ export class TreinamentosAdminComponent implements OnInit {
 
   duracaoLabel(t: TreinamentoAdmin): string {
     return formatarDuracao(t.duracaoSeg);
+  }
+
+  categoriaLabel(t: TreinamentoAdmin): string {
+    return t.categoriaNome ?? 'Sem categoria';
   }
 }

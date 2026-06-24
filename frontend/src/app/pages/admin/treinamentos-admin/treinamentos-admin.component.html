@@ -1,16 +1,24 @@
 <div class="admin-page">
   <header class="page-head">
     <h1>Treinamentos</h1>
-    <p>Cadastre vídeos de capacitação e envie para o Azure Blob (container privado).</p>
+    <p>Cadastre vídeos de capacitação por entidade e categoria (árvore de Documentos).</p>
   </header>
 
   <section class="card">
     <div class="card-head">
       <h2>Biblioteca</h2>
-      <button type="button" class="btn-primary btn-sm" (click)="novo()">Novo treinamento</button>
+      <div class="card-head-actions">
+        <select class="filtro-pagina" (change)="onFiltroPaginaChange($any($event.target).value)">
+          <option value="">Todas as entidades</option>
+          @for (p of paginas(); track p.id) {
+            <option [value]="p.id" [selected]="filtroPaginaId() === p.id">{{ p.nome }}</option>
+          }
+        </select>
+        <button type="button" class="btn-primary btn-sm" (click)="novo()">Novo treinamento</button>
+      </div>
     </div>
     <div class="card-body">
-      @if (!treinamentos().length) {
+      @if (!treinamentosFiltrados().length) {
         <p class="empty">Nenhum treinamento cadastrado.</p>
       } @else {
         <div class="table-scroll">
@@ -18,6 +26,7 @@
           <thead>
             <tr>
               <th>Título</th>
+              <th>Entidade</th>
               <th>Categoria</th>
               <th>Container</th>
               <th>Duração</th>
@@ -26,7 +35,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (t of treinamentos(); track t.id) {
+            @for (t of treinamentosFiltrados(); track t.id) {
               <tr>
                 <td>
                   <strong>{{ t.titulo }}</strong>
@@ -34,7 +43,15 @@
                     <span class="badge-destaque">Destaque</span>
                   }
                 </td>
-                <td>{{ t.categoria }}</td>
+                <td>{{ t.paginaNome ?? t.paginaSlug }}</td>
+                <td>
+                  <span class="cat-cell">
+                    @if (t.categoriaIcone) {
+                      <app-doc-cat-icone [nome]="t.categoriaIcone" [size]="14" />
+                    }
+                    {{ categoriaLabel(t) }}
+                  </span>
+                </td>
                 <td class="mono">{{ t.container }}</td>
                 <td>{{ duracaoLabel(t) }}</td>
                 <td>
@@ -68,22 +85,41 @@
 >
   <form [formGroup]="form" (ngSubmit)="salvar()">
     <div class="field">
-      <label for="t-titulo">Título</label>
+      <label for="t-pagina">Entidade *</label>
+      <select id="t-pagina" formControlName="pagina_id" (change)="onPaginaChange($any($event.target).value)">
+        @for (p of paginas(); track p.id) {
+          <option [value]="p.id">{{ p.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Categoria (opcional)</label>
+      @if (categoriaSelecionadaNome()) {
+        <div class="cat-selecionada">
+          <span>{{ categoriaSelecionadaNome() }}</span>
+          <button type="button" class="linkbtn" (click)="limparCategoria()">Sem categoria</button>
+        </div>
+      } @else {
+        <p class="help">Nenhuma categoria selecionada.</p>
+      }
+      <div class="cat-tree">
+        <app-doc-admin-node
+          [items]="categoriasTree()"
+          [selecionadaId]="categoriaSelecionadaId()"
+          (action)="onCategoriaNode($event)"
+        />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="t-titulo">Título *</label>
       <input id="t-titulo" formControlName="titulo" type="text" />
     </div>
 
     <div class="field">
       <label for="t-desc">Descrição</label>
       <textarea id="t-desc" formControlName="descricao" rows="3"></textarea>
-    </div>
-
-    <div class="field">
-      <label for="t-cat">Categoria</label>
-      <select id="t-cat" formControlName="categoria">
-        @for (c of categorias; track c.slug) {
-          <option [value]="c.slug">{{ c.label }}</option>
-        }
-      </select>
     </div>
 
     <div class="field">

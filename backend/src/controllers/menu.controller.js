@@ -1,5 +1,5 @@
 const menuRepo = require('../repositories/menu.repository');
-const menuSync = require('../services/doc-categoria-menu.sync');
+const menuSync = require('../services/doc-pagina-menu.sync');
 const contentVersionService = require('../services/content-version.service');
 const { isValidMenuUrl, normalizeMenuUrl } = require('../utils/menu.validation');
 const { MAX_DEPTH, getDepth, isDescendant } = require('../utils/menu.tree');
@@ -169,7 +169,7 @@ async function reorder(req, res) {
     }));
 
     await menuRepo.reorderBatch(normalized);
-    await menuSync.syncMenuOrdemToCategorias(normalized);
+    await menuSync.syncMenuOrdemToPaginas(normalized);
     await contentVersionService.bump('menu');
     return res.json({ ok: true });
   } catch (err) {

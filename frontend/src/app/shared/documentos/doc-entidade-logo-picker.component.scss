@@ -1,0 +1,135 @@
+.logo-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.logo-picker__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
+}
+
+.logo-picker__hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--ink-dim, #8a93a8);
+}
+
+.logo-picker__loading,
+.logo-picker__empty,
+.logo-picker__status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-dim, #8a93a8);
+}
+
+.logo-picker__preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-solid, #e2e6ee);
+  border-radius: 12px;
+  background: var(--bg, #f4f5f8);
+}
+
+.logo-picker__preview-img {
+  max-width: 120px;
+  max-height: 40px;
+  object-fit: contain;
+}
+
+.logo-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.logo-picker__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 1px solid var(--line-solid, #e2e6ee);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.logo-picker__cell:hover:not(:disabled) {
+  border-color: rgba(29, 84, 230, 0.35);
+}
+
+.logo-picker__cell.sel {
+  border-color: var(--accent, #1d54e6);
+  box-shadow: 0 0 0 2px rgba(29, 84, 230, 0.12);
+}
+
+.logo-picker__cell:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.logo-picker__cell img {
+  max-width: 72px;
+  max-height: 28px;
+  object-fit: contain;
+}
+
+.logo-picker__cell-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.logo-picker__toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent, #1d54e6);
+  cursor: pointer;
+}
+
+.logo-picker__toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.logo-picker__advanced .field {
+  margin-top: 8px;
+}
+
+.logo-picker__advanced input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-ghost {
+  border: 1px solid var(--line-solid, #e8ecf4);
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-ghost:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  font-size: 12px;
+  padding: 5px 10px;
+}

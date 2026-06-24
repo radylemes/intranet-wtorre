@@ -29,3 +29,55 @@ INSERT INTO comunicado_categorias (nome, slug, cor, ordem, ativo)
 SELECT 'Compliance', 'com', '#a47d2e', 4, 1
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM comunicado_categorias WHERE slug = 'com' LIMIT 1);
+
+INSERT INTO comunicados (titulo, categoria_id, data_publicacao, ativo)
+SELECT
+  'Inscrições abertas para o programa de mentoria interna do grupo',
+  (SELECT id FROM comunicado_categorias WHERE slug = 'rh' LIMIT 1),
+  '2025-05-28',
+  1
+FROM DUAL
+WHERE NOT EXISTS (
+  SELECT 1 FROM comunicados
+  WHERE titulo = 'Inscrições abertas para o programa de mentoria interna do grupo'
+  LIMIT 1
+);
+
+INSERT INTO comunicados (titulo, categoria_id, data_publicacao, ativo)
+SELECT
+  'Manutenção programada do Oracle EBS no sábado, das 22h às 02h',
+  (SELECT id FROM comunicado_categorias WHERE slug = 'ti' LIMIT 1),
+  '2025-05-26',
+  1
+FROM DUAL
+WHERE NOT EXISTS (
+  SELECT 1 FROM comunicados
+  WHERE titulo = 'Manutenção programada do Oracle EBS no sábado, das 22h às 02h'
+  LIMIT 1
+);
+
+INSERT INTO comunicados (titulo, categoria_id, data_publicacao, ativo)
+SELECT
+  'Novo fluxo de credenciamento para dias de jogo já disponível',
+  (SELECT id FROM comunicado_categorias WHERE slug = 'ev' LIMIT 1),
+  '2025-05-24',
+  1
+FROM DUAL
+WHERE NOT EXISTS (
+  SELECT 1 FROM comunicados
+  WHERE titulo = 'Novo fluxo de credenciamento para dias de jogo já disponível'
+  LIMIT 1
+);
+
+INSERT INTO comunicados (titulo, categoria_id, data_publicacao, ativo)
+SELECT
+  'Atualização da Política de Privacidade e Segurança da Informação',
+  (SELECT id FROM comunicado_categorias WHERE slug = 'com' LIMIT 1),
+  '2025-05-21',
+  1
+FROM DUAL
+WHERE NOT EXISTS (
+  SELECT 1 FROM comunicados
+  WHERE titulo = 'Atualização da Política de Privacidade e Segurança da Informação'
+  LIMIT 1
+);

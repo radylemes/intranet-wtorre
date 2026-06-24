@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "build:icons": "node scripts/build-icon-catalog.mjs",
+    "prebuild": "node scripts/build-icon-catalog.mjs",
     "start": "ng serve --port 4201",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
@@ -29,7 +31,9 @@
     "@angular/cli": "^21.2.13",
     "@angular/compiler-cli": "^21.2.0",
     "jsdom": "^28.0.0",
+    "lucide-static": "^1.21.0",
     "prettier": "^3.8.1",
+    "simple-icons": "^16.24.0",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"
   }

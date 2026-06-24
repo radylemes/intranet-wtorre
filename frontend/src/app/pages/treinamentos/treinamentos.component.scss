@@ -65,6 +65,46 @@
   font-size: 14px;
 }
 
+.pagina-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 8px;
+}
+
+.switcher-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-solid, #e2e6ee);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.switcher-item:hover {
+  border-color: #c5d0ea;
+}
+
+.switcher-item.active {
+  background: rgba(29, 84, 230, 0.08);
+  border-color: rgba(29, 84, 230, 0.35);
+  color: var(--wtorre, #1d54e6);
+}
+
+.switcher-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
 .toolbar {
   position: relative;
   z-index: 5;
@@ -116,6 +156,9 @@
 }
 
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -337,6 +380,13 @@
   color: #fff;
   padding: 4px 10px;
   border-radius: 20px;
+}
+
+.tag-icone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(29, 84, 230, 0.85);
 }
 
 .novo {

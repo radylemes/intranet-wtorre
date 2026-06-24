@@ -215,11 +215,11 @@ export class MenuSistemasAdminComponent implements OnInit, OnDestroy {
 
   private carregarPaginasInternas(): void {
     forkJoin({
-      categorias: this.documentosService.listarCategorias(),
+      paginasDocumentos: this.documentosService.listarPaginas(),
       paginas: this.paginasService.listarPublicadas(),
     }).subscribe({
-      next: ({ categorias, paginas }) =>
-        this.paginasInternas.set(buildPaginasInternasLista(categorias, paginas)),
+      next: ({ paginasDocumentos, paginas }) =>
+        this.paginasInternas.set(buildPaginasInternasLista(paginasDocumentos, paginas)),
       error: () => this.paginasInternas.set(buildPaginasInternasLista()),
     });
   }

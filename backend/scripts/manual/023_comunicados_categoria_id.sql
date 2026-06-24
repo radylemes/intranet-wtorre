@@ -1,4 +1,5 @@
--- Executar manualmente UMA VEZ após 023_comunicado_categorias.sql
+-- Executar manualmente UMA VEZ apenas em bancos legados que ainda têm a coluna `categoria` (ENUM).
+-- Installs novos: 022/023 já usam categoria_id — este script NÃO é necessário.
 -- (ALTER não entra no migrate automático — ver docs/padrao-modulos-admin.md)
 
 ALTER TABLE comunicados ADD COLUMN categoria_id INT NULL AFTER titulo;

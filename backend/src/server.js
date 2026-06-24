@@ -28,10 +28,11 @@ const comunicadosRoutes = require('./routes/comunicados.routes');
 const assinaturasController = require('./controllers/assinaturas.controller');
 const { agendarSincronizacaoColaboradores } = require('./services/colaboradores.sync');
 const { agendarJobsCamarotes } = require('./services/camarotes-cron.service');
-const { reconcileAll } = require('./services/doc-categoria-menu.sync');
+const { reconcileAll } = require('./services/doc-pagina-menu.sync');
 const { ensureFotosDir } = require('./controllers/colaboradores.controller');
 const { ensureGrupoLogosDir } = require('./config/grupo-logos-upload');
 const { ensureHomeCarrosselDir } = require('./config/home-carrossel-upload');
+const { ensureDocumentosPaginasLogosDir } = require('./config/documentos-paginas-logo-upload');
 
 try {
   validateEnv();
@@ -113,9 +114,14 @@ app.listen(env.port, () => {
   } catch (err) {
     console.error('[carrossel] Não foi possível preparar pasta de imagens:', err.message);
   }
+  try {
+    ensureDocumentosPaginasLogosDir();
+  } catch (err) {
+    console.error('[documentos] Não foi possível preparar pasta de logos de entidades:', err.message);
+  }
   reconcileAll()
-    .then((count) => console.log(`[documentos] Menu sincronizado com ${count} categoria(s) raiz.`))
-    .catch((err) => console.error('[documentos] Falha ao sincronizar menu de categorias:', err.message));
+    .then((count) => console.log(`[documentos] Menu sincronizado com ${count} página(s).`))
+    .catch((err) => console.error('[documentos] Falha ao sincronizar menu de páginas:', err.message));
   agendarSincronizacaoColaboradores();
   agendarJobsCamarotes();
 });

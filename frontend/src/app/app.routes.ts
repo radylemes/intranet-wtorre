@@ -63,6 +63,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'treinamentos/:paginaSlug',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/treinamentos/treinamentos.component').then(
+        (m) => m.TreinamentosComponent
+      ),
+  },
+  {
     path: 'bi/camarotes',
     canActivate: [authGuard, camarotesViewerGuard],
     loadComponent: () =>

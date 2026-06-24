@@ -5,8 +5,14 @@ import { environment } from '../../environments/environment';
 import {
   CategoriaDocumento,
   CategoriaDocumentoPayload,
+  CategoriaLegacyResolve,
   CategoriaReorderItem,
   Documento,
+  DocumentoPagina,
+  DocumentoPaginaPayload,
+  DocumentoPaginaLogoUploadResponse,
+  DocumentoSetor,
+  DocumentoSetorPayload,
   DocumentoUpdatePayload,
 } from '../models/documento.model';
 
@@ -18,18 +24,82 @@ export class DocumentosService {
     return `${environment.apiBaseUrl}${path}`;
   }
 
+  listarPaginas(): Observable<DocumentoPagina[]> {
+    return this.http.get<DocumentoPagina[]>(this.api('/documentos/paginas'));
+  }
+
+  listarPaginasAdmin(): Observable<DocumentoPagina[]> {
+    return this.http.get<DocumentoPagina[]>(this.api('/documentos/paginas/admin'));
+  }
+
+  criarPagina(payload: DocumentoPaginaPayload): Observable<DocumentoPagina> {
+    return this.http.post<DocumentoPagina>(this.api('/documentos/paginas/admin'), payload);
+  }
+
+  atualizarPagina(id: number, payload: DocumentoPaginaPayload): Observable<DocumentoPagina> {
+    return this.http.put<DocumentoPagina>(this.api(`/documentos/paginas/admin/${id}`), payload);
+  }
+
+  removerPagina(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(this.api(`/documentos/paginas/admin/${id}`));
+  }
+
+  uploadPaginaLogo(file: File): Observable<DocumentoPaginaLogoUploadResponse> {
+    const form = new FormData();
+    form.append('imagem', file);
+    return this.http.post<DocumentoPaginaLogoUploadResponse>(
+      this.api('/documentos/paginas/admin/upload-logo'),
+      form
+    );
+  }
+
+  listarSetores(): Observable<DocumentoSetor[]> {
+    return this.http.get<DocumentoSetor[]>(this.api('/documentos/setores'));
+  }
+
+  listarSetoresAdmin(): Observable<DocumentoSetor[]> {
+    return this.http.get<DocumentoSetor[]>(this.api('/documentos/setores/admin'));
+  }
+
+  criarSetor(payload: DocumentoSetorPayload): Observable<DocumentoSetor> {
+    return this.http.post<DocumentoSetor>(this.api('/documentos/setores/admin'), payload);
+  }
+
+  atualizarSetor(id: number, payload: DocumentoSetorPayload): Observable<DocumentoSetor> {
+    return this.http.put<DocumentoSetor>(this.api(`/documentos/setores/admin/${id}`), payload);
+  }
+
+  removerSetor(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(this.api(`/documentos/setores/admin/${id}`));
+  }
+
   listarCategorias(): Observable<CategoriaDocumento[]> {
     return this.http.get<CategoriaDocumento[]>(this.api('/doc-categorias'));
   }
 
-  listarCategoriasAdmin(): Observable<CategoriaDocumento[]> {
-    return this.http.get<CategoriaDocumento[]>(this.api('/doc-categorias/admin'));
+  listarCategoriasPorPagina(paginaSlug: string): Observable<CategoriaDocumento[]> {
+    return this.http.get<CategoriaDocumento[]>(this.api(`/doc-categorias/por-pagina/${paginaSlug}`));
   }
 
-  listarDocumentos(categoriaIdOrSlug: string | number): Observable<Documento[]> {
-    return this.http.get<Documento[]>(this.api('/documentos'), {
-      params: { categoria: String(categoriaIdOrSlug) },
+  listarCategoriasAdmin(paginaId: number): Observable<CategoriaDocumento[]> {
+    return this.http.get<CategoriaDocumento[]>(this.api('/doc-categorias/admin'), {
+      params: { pagina_id: String(paginaId) },
     });
+  }
+
+  resolverSlugLegado(slug: string): Observable<CategoriaLegacyResolve> {
+    return this.http.get<CategoriaLegacyResolve>(this.api(`/doc-categorias/resolve/${slug}`));
+  }
+
+  listarDocumentos(
+    categoriaIdOrSlug: string | number,
+    setor?: string | null
+  ): Observable<Documento[]> {
+    const params: Record<string, string> = { categoria: String(categoriaIdOrSlug) };
+    if (setor) {
+      params['setor'] = setor;
+    }
+    return this.http.get<Documento[]>(this.api('/documentos'), { params });
   }
 
   urlView(id: number): string {

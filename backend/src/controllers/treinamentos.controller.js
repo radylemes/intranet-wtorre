@@ -1,9 +1,15 @@
 const fs = require('fs/promises');
 const treinamentosRepo = require('../repositories/treinamentos.repository');
 const containersRepo = require('../repositories/storage-containers.repository');
+const paginaRepo = require('../repositories/documentos-paginas.repository');
+const catRepo = require('../repositories/categorias-documentos.repository');
 const blobService = require('../services/blob.service');
 const contentVersionService = require('../services/content-version.service');
-const { validarCategoria, parseDuracaoSeg } = require('../utils/treinamento-categoria.validation');
+const {
+  parseDuracaoSeg,
+  parseCategoriaId,
+  parsePaginaId,
+} = require('../utils/treinamento-categoria.validation');
 
 function criadoPor(req) {
   return req.user?.nome_completo || req.user?.nome || req.user?.email || null;
@@ -18,18 +24,66 @@ async function unlinkSafe(filePath) {
   }
 }
 
+async function validarPaginaAtiva(paginaId) {
+  const pagina = await paginaRepo.findById(paginaId);
+  if (!pagina || !pagina.ativo) {
+    const err = new Error('Página (entidade) inválida ou inativa.');
+    err.status = 400;
+    throw err;
+  }
+  return pagina;
+}
+
+async function validarCategoriaParaPagina(categoriaId, paginaId) {
+  if (categoriaId == null) return null;
+  const cat = await catRepo.findById(categoriaId);
+  if (!cat || !cat.ativo) {
+    const err = new Error('Categoria inválida ou inativa.');
+    err.status = 400;
+    throw err;
+  }
+  if (cat.pagina_id !== paginaId) {
+    const err = new Error('Categoria deve pertencer à mesma entidade do treinamento.');
+    err.status = 400;
+    throw err;
+  }
+  return cat;
+}
+
+function parseListOptions(req) {
+  const pagina = req.query.pagina?.trim() || req.params.paginaSlug?.trim() || 'wtorre';
+  const categoria = req.query.categoria?.trim() || null;
+  const semCategoria =
+    req.query.sem_categoria === '1' ||
+    req.query.sem_categoria === 'true' ||
+    categoria === '__sem__';
+  return {
+    paginaSlug: pagina,
+    categoriaSlug: semCategoria ? null : categoria,
+    semCategoria,
+  };
+}
+
 async function listar(req, res) {
   try {
-    const lista = await treinamentosRepo.findAllPublico();
+    const opts = parseListOptions(req);
+    const lista = await treinamentosRepo.findAllPublico(opts);
     return res.json(lista);
   } catch (err) {
     return res.status(500).json({ mensagem: err.message || 'Erro ao listar treinamentos.' });
   }
 }
 
+async function listarPorPagina(req, res) {
+  return listar(req, res);
+}
+
 async function listarAdmin(req, res) {
   try {
-    const lista = await treinamentosRepo.findAllAdmin();
+    const paginaId = req.query.pagina_id != null ? Number(req.query.pagina_id) : null;
+    const lista = await treinamentosRepo.findAllAdmin({
+      paginaId: paginaId && Number.isFinite(paginaId) ? paginaId : null,
+    });
     return res.json(lista);
   } catch (err) {
     return res.status(500).json({ mensagem: err.message || 'Erro ao listar treinamentos.' });
@@ -123,8 +177,13 @@ async function criar(req, res) {
       return res.status(400).json({ mensagem: 'titulo é obrigatório.' });
     }
 
-    const cat = validarCategoria(req.body.categoria);
-    if (!cat.ok) return res.status(400).json({ mensagem: cat.mensagem });
+    const paginaId = parsePaginaId(req.body);
+    await validarPaginaAtiva(paginaId);
+    let categoriaId = null;
+    if (req.body.categoria_id !== undefined || req.body.categoriaId !== undefined) {
+      categoriaId = parseCategoriaId(req.body);
+    }
+    await validarCategoriaParaPagina(categoriaId, paginaId);
 
     container = await resolverContainer(req.body.container);
     await blobService.garantirContainer(container);
@@ -153,7 +212,8 @@ async function criar(req, res) {
     const treinamento = await treinamentosRepo.criar({
       titulo,
       descricao: req.body.descricao?.trim() || null,
-      categoria: cat.categoria,
+      pagina_id: paginaId,
+      categoria_id: categoriaId ?? null,
       area: req.body.area?.trim() || null,
       duracao_seg: parseDuracaoSeg(req.body.duracao_seg),
       container,
@@ -205,11 +265,27 @@ async function atualizar(req, res) {
     if (req.body.descricao !== undefined) {
       data.descricao = req.body.descricao?.trim() || null;
     }
-    if (req.body.categoria !== undefined) {
-      const cat = validarCategoria(req.body.categoria);
-      if (!cat.ok) return res.status(400).json({ mensagem: cat.mensagem });
-      data.categoria = cat.categoria;
+
+    let paginaId = existing.pagina_id;
+    if (req.body.pagina_id !== undefined || req.body.paginaId !== undefined) {
+      paginaId = parsePaginaId(req.body);
+      await validarPaginaAtiva(paginaId);
+      data.pagina_id = paginaId;
     }
+
+    if (req.body.categoria_id !== undefined || req.body.categoriaId !== undefined) {
+      const categoriaId = parseCategoriaId(req.body);
+      await validarCategoriaParaPagina(categoriaId ?? null, paginaId);
+      data.categoria_id = categoriaId ?? null;
+    } else if (data.pagina_id !== undefined && data.pagina_id !== existing.pagina_id) {
+      if (existing.categoria_id != null) {
+        const cat = await catRepo.findById(existing.categoria_id);
+        if (!cat || cat.pagina_id !== paginaId) {
+          data.categoria_id = null;
+        }
+      }
+    }
+
     if (req.body.area !== undefined) {
       data.area = req.body.area?.trim() || null;
     }
@@ -313,6 +389,7 @@ async function excluir(req, res) {
 
 module.exports = {
   listar,
+  listarPorPagina,
   listarAdmin,
   obter,
   playback,

@@ -1,5 +1,10 @@
 @if (modo === 'featured') {
   <div class="thumb featured-thumb" [ngStyle]="thumbStyle()">
+    @if (!thumbUrl()) {
+      <span class="thumb-icon">
+        <app-doc-cat-icone [nome]="catIcone()" [size]="32" />
+      </span>
+    }
     <span class="cat">{{ catLabel() }}</span>
     <span class="dur">{{ duracao() }}</span>
     <span class="play">
@@ -27,6 +32,11 @@
 } @else {
   <div class="vcard" (click)="onClick()" role="button" tabindex="0" (keyup.enter)="onClick()">
     <div class="thumb" [ngStyle]="thumbStyle()">
+      @if (!thumbUrl()) {
+        <span class="thumb-icon">
+          <app-doc-cat-icone [nome]="catIcone()" [size]="28" />
+        </span>
+      }
       <span class="cat">{{ catLabel() }}</span>
       <span class="dur">{{ duracao() }}</span>
       <span class="play">

@@ -5,6 +5,8 @@ const requireModulo = require('../middleware/requireModulo.middleware');
 
 const router = Router();
 
+router.get('/resolve/:slug', requireJwt, controller.resolveLegacySlug);
+router.get('/por-pagina/:paginaSlug', requireJwt, controller.getTreeByPagina);
 router.get('/', requireJwt, controller.getPublicTree);
 router.get('/admin', requireJwt, requireModulo('documentos'), controller.getAdminTree);
 router.put('/reorder', requireJwt, requireModulo('documentos'), controller.reorder);

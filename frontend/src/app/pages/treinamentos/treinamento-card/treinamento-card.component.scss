@@ -2,6 +2,10 @@
   display: contents;
 }
 
+:host(.modo-featured) {
+  display: contents;
+}
+
 .thumb {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -12,6 +16,19 @@
 
 .featured-thumb {
   min-height: 100%;
+}
+
+:host-context(.featured-row) .featured-thumb {
+  aspect-ratio: auto;
+  min-height: 220px;
+  height: 100%;
+}
+
+:host-context(.featured-row) .meta p {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .thumb::after {
@@ -175,4 +192,11 @@
   background: rgba(28, 158, 98, 0.12);
   padding: 2px 7px;
   border-radius: 20px;
+}
+
+.thumb-icon {
+  position: relative;
+  z-index: 1;
+  opacity: 0.85;
+  color: #fff;
 }

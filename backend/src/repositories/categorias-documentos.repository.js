@@ -9,6 +9,7 @@ function mapCategoria(row) {
     descricao: row.descricao,
     icone: row.icone,
     parent_id: row.parent_id,
+    pagina_id: row.pagina_id,
     ordem: row.ordem,
     ativo: !!row.ativo,
     documentos_count: row.documentos_count != null ? Number(row.documentos_count) : undefined,
@@ -52,12 +53,13 @@ function buildTree(rows, options = {}) {
   sortChildren(roots);
 
   const formatNodes = (items, isRootLevel = false) =>
-    items.map(({ parent_id, ativo, children, documentos_count, ...rest }) => {
+    items.map(({ parent_id, pagina_id, ativo, children, documentos_count, ...rest }) => {
       const childNodes = formatNodes(children || [], false);
       const node = { ...rest, children: childNodes };
       if (includeAdminFields) {
         node.ativo = ativo;
         node.parent_id = parent_id;
+        node.pagina_id = pagina_id;
         if (documentos_count != null) node.documentos_count = documentos_count;
       } else if (includeRootCounts && isRootLevel) {
         const withChildren = { ...node, documentos_count: documentos_count ?? 0, children: childNodes };
@@ -69,14 +71,26 @@ function buildTree(rows, options = {}) {
   return formatNodes(roots, true);
 }
 
-async function findAllFlat(includeCounts = false) {
+async function findAllFlat({ includeCounts = false, paginaId = null } = {}) {
   const pool = getPool();
+  const conditions = [];
+  const params = [];
+
+  if (paginaId != null) {
+    conditions.push('c.pagina_id = ?');
+    params.push(paginaId);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
   const sql = includeCounts
     ? `SELECT c.*, (SELECT COUNT(*) FROM documentos d WHERE d.categoria_id = c.id AND d.ativo = 1) AS documentos_count
-       FROM categorias_documentos c
+       FROM categorias_documentos c ${where}
        ORDER BY c.parent_id IS NULL DESC, c.parent_id, c.ordem, c.id`
-    : 'SELECT * FROM categorias_documentos ORDER BY parent_id IS NULL DESC, parent_id, ordem, id';
-  const [rows] = await pool.execute(sql);
+    : `SELECT * FROM categorias_documentos c ${where}
+       ORDER BY c.parent_id IS NULL DESC, c.parent_id, c.ordem, c.id`;
+
+  const [rows] = await pool.execute(sql, params);
   return rows.map(mapCategoria);
 }
 
@@ -86,8 +100,15 @@ async function findById(id) {
   return mapCategoria(rows[0]);
 }
 
-async function findBySlug(slug) {
+async function findBySlug(slug, paginaId = null) {
   const pool = getPool();
+  if (paginaId != null) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM categorias_documentos WHERE slug = ? AND pagina_id = ? LIMIT 1',
+      [slug, paginaId]
+    );
+    return mapCategoria(rows[0]);
+  }
   const [rows] = await pool.execute(
     'SELECT * FROM categorias_documentos WHERE slug = ? LIMIT 1',
     [slug]
@@ -95,17 +116,67 @@ async function findBySlug(slug) {
   return mapCategoria(rows[0]);
 }
 
+/** @deprecated Legado — redirect de URLs antigas; tiebreak por menor id. */
+async function findAllBySlugLegacy(slug) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT * FROM categorias_documentos WHERE slug = ? ORDER BY id ASC',
+    [slug]
+  );
+  return rows.map(mapCategoria);
+}
+
+async function collectSubtreeIds(rootId) {
+  const all = await findAllFlat();
+  const ids = new Set([rootId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const row of all) {
+      if (row.parent_id != null && ids.has(row.parent_id) && !ids.has(row.id)) {
+        ids.add(row.id);
+        changed = true;
+      }
+    }
+  }
+  return [...ids];
+}
+
+async function findArquivoPathsByCategoriaSubtree(categoriaId) {
+  const ids = await collectSubtreeIds(categoriaId);
+  if (!ids.length) return [];
+  const pool = getPool();
+  const placeholders = ids.map(() => '?').join(',');
+  const [rows] = await pool.execute(
+    `SELECT arquivo_path FROM documentos WHERE categoria_id IN (${placeholders})`,
+    ids
+  );
+  return rows.map((r) => r.arquivo_path);
+}
+
+async function findArquivoPathsByPaginaId(paginaId) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT d.arquivo_path FROM documentos d
+     INNER JOIN categorias_documentos c ON d.categoria_id = c.id
+     WHERE c.pagina_id = ?`,
+    [paginaId]
+  );
+  return rows.map((r) => r.arquivo_path);
+}
+
 async function create(data) {
   const pool = getPool();
   const [result] = await pool.execute(
-    `INSERT INTO categorias_documentos (nome, slug, descricao, icone, parent_id, ordem, ativo)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO categorias_documentos (nome, slug, descricao, icone, parent_id, pagina_id, ordem, ativo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.nome,
       data.slug,
       data.descricao ?? null,
       data.icone ?? null,
       data.parent_id ?? null,
+      data.pagina_id,
       data.ordem ?? 0,
       data.ativo !== false ? 1 : 0,
     ]
@@ -117,7 +188,7 @@ async function update(id, data) {
   const pool = getPool();
   const fields = [];
   const values = [];
-  const allowed = ['nome', 'slug', 'descricao', 'icone', 'parent_id', 'ordem', 'ativo'];
+  const allowed = ['nome', 'slug', 'descricao', 'icone', 'parent_id', 'pagina_id', 'ordem', 'ativo'];
 
   for (const key of allowed) {
     if (data[key] !== undefined) {
@@ -178,6 +249,9 @@ module.exports = {
   findAllFlat,
   findById,
   findBySlug,
+  findAllBySlugLegacy,
+  findArquivoPathsByCategoriaSubtree,
+  findArquivoPathsByPaginaId,
   create,
   update,
   remove,
@@ -185,4 +259,5 @@ module.exports = {
   buildTree,
   mapCategoria,
   isDescendant,
+  collectSubtreeIds,
 };

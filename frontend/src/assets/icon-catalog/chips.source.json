@@ -1,0 +1,11 @@
+[
+  { "label": "Documentos", "query": "file" },
+  { "label": "Pessoas", "query": "user" },
+  { "label": "Segurança", "query": "shield" },
+  { "label": "Educação", "query": "graduation-cap" },
+  { "label": "Financeiro", "query": "wallet" },
+  { "label": "TI", "query": "server" },
+  { "label": "Jurídico", "query": "scale" },
+  { "label": "Comunicação", "query": "mail" },
+  { "label": "Marcas", "query": "", "segment": "brand" }
+]

@@ -34,6 +34,24 @@
         <p class="erro-msg">{{ erro() }}</p>
       }
 
+      @if (paginas().length) {
+        <nav class="pagina-switcher" aria-label="Entidades">
+          @for (pag of paginas(); track pag.id) {
+            <button
+              type="button"
+              class="switcher-item"
+              [class.active]="pagina()?.slug === pag.slug"
+              (click)="selecionarPagina(pag.slug)"
+            >
+              @if (pag.logo_url) {
+                <img [src]="pag.logo_url" [alt]="pag.nome" class="switcher-logo" />
+              }
+              {{ pag.nome }}
+            </button>
+          }
+        </nav>
+      }
+
       <div class="toolbar">
         <div class="search">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -58,15 +76,25 @@
         >
           Todas as categorias
         </button>
-        @for (c of categorias; track c.slug) {
+        <button
+          type="button"
+          class="chip"
+          [class.active]="catFiltro() === SEM_CATEGORIA"
+          (click)="selecionarCat(SEM_CATEGORIA)"
+        >
+          Sem categoria
+        </button>
+        @for (c of categoriasRaiz(); track c.id) {
           <button
             type="button"
             class="chip"
             [class.active]="catFiltro() === c.slug"
             (click)="selecionarCat(c.slug)"
           >
-            <span class="cd" [style.background]="c.cor"></span>
-            {{ c.label }}
+            @if (c.icone) {
+              <app-doc-cat-icone [nome]="c.icone" [size]="14" />
+            }
+            {{ c.nome }}
           </button>
         }
       </div>
@@ -110,7 +138,7 @@
 >
   @if (videoAtivo(); as v) {
     <div class="player" (click)="$event.stopPropagation()">
-      <div class="stage" [style.background]="catGrad(v.categoria)">
+      <div class="stage stage-neutral">
         <button type="button" class="closex" aria-label="Fechar" (click)="fecharPlayer()">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="2" stroke-linecap="round" />
@@ -130,7 +158,14 @@
       </div>
       <div class="pbody">
         <div class="tagrow">
-          <span class="tag" [style.background]="catCor(v.categoria)">{{ catLabel(v.categoria) }}</span>
+          @if (v.categoriaIcone) {
+            <span class="tag tag-icone">
+              <app-doc-cat-icone [nome]="v.categoriaIcone" [size]="14" />
+              {{ categoriaLabel(v) }}
+            </span>
+          } @else {
+            <span class="tag">{{ categoriaLabel(v) }}</span>
+          }
           @if (v.destaque) {
             <span class="novo">Destaque</span>
           }
@@ -144,7 +179,9 @@
           @if (v.area) {
             <span>Área: <b>{{ v.area }}</b></span>
           }
-          <span>Categoria: <b>{{ catLabel(v.categoria) }}</b></span>
+          @if (v.paginaNome) {
+            <span>Entidade: <b>{{ v.paginaNome }}</b></span>
+          }
         </div>
       </div>
     </div>

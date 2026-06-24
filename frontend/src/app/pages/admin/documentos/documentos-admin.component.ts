@@ -4,16 +4,22 @@ import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { DocumentosService } from '../../../services/documentos.service';
 import {
   ALLOWED_EXTENSIONS,
-  CATEGORIA_ICONES,
   CategoriaDocumento,
   Documento,
+  DocumentoPagina,
+  DocumentoSetor,
+  ICONE_PADRAO,
   MAX_UPLOAD_MB,
 } from '../../../models/documento.model';
 import { DocAdminNodeAction, DocAdminNodeComponent } from './doc-admin-node.component';
-import { AdminDrawerComponent } from '../../../shared/admin/admin-drawer/admin-drawer.component';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AdminDropzoneComponent } from '../../../shared/admin/admin-dropzone/admin-dropzone.component';
 import { AlertasService } from '../../../services/alertas.service';
+import { DocCatIconePickerComponent } from '../../../shared/documentos/doc-cat-icone-picker.component';
+import { DocEntidadeLogoPickerComponent } from '../../../shared/documentos/doc-entidade-logo-picker.component';
+import { DocCatIconeService } from '../../../shared/documentos/doc-cat-icone.service';
+
+type AdminTab = 'paginas' | 'setores' | 'categorias';
 
 interface PaiOption {
   id: number;
@@ -27,20 +33,25 @@ interface PaiOption {
   imports: [
     ReactiveFormsModule,
     DocAdminNodeComponent,
-    AdminDrawerComponent,
     AdminModalComponent,
     AdminDropzoneComponent,
+    DocCatIconePickerComponent,
+    DocEntidadeLogoPickerComponent,
   ],
   templateUrl: './documentos-admin.component.html',
   styleUrl: './documentos-admin.component.scss',
 })
 export class DocumentosAdminComponent implements OnInit {
   readonly MAX_UPLOAD_MB = MAX_UPLOAD_MB;
-  readonly iconesCategoria = CATEGORIA_ICONES;
   private readonly documentosService = inject(DocumentosService);
   private readonly fb = inject(FormBuilder);
   private readonly alertas = inject(AlertasService);
+  private readonly iconeService = inject(DocCatIconeService);
 
+  readonly abaAtiva = signal<AdminTab>('categorias');
+  readonly paginas = signal<DocumentoPagina[]>([]);
+  readonly setores = signal<DocumentoSetor[]>([]);
+  readonly paginaSelecionadaId = signal<number | null>(null);
   readonly categorias = signal<CategoriaDocumento[]>([]);
   readonly documentos = signal<Documento[]>([]);
   readonly categoriaSelecionada = signal<CategoriaDocumento | null>(null);
@@ -49,15 +60,19 @@ export class DocumentosAdminComponent implements OnInit {
   readonly salvando = signal(false);
   readonly editandoCatId = signal<number | null>(null);
   readonly editandoDocId = signal<number | null>(null);
+  readonly editandoPaginaId = signal<number | null>(null);
+  readonly editandoSetorId = signal<number | null>(null);
   readonly uploadProgress = signal(0);
   readonly uploadando = signal(false);
   readonly modalCatAberto = signal(false);
-  readonly drawerDocAberto = signal(false);
+  readonly modalDocAberto = signal(false);
+  readonly modalPaginaAberto = signal(false);
+  readonly modalSetorAberto = signal(false);
 
   readonly catForm = this.fb.nonNullable.group({
     nome: ['', Validators.required],
     descricao: [''],
-    icone: ['folder'],
+    icone: [ICONE_PADRAO],
     parent_id: ['' as string | number],
     ordem: [0],
     ativo: [true],
@@ -67,6 +82,24 @@ export class DocumentosAdminComponent implements OnInit {
     titulo: ['', Validators.required],
     descricao: [''],
     categoria_id: ['' as string | number, Validators.required],
+    setor_id: ['' as string | number, Validators.required],
+  });
+
+  readonly paginaForm = this.fb.nonNullable.group({
+    nome: ['', Validators.required],
+    slug: [''],
+    descricao: [''],
+    logo_url: [''],
+    ordem: [0],
+    ativo: [true],
+  });
+
+  readonly setorForm = this.fb.nonNullable.group({
+    nome: ['', Validators.required],
+    slug: [''],
+    cor: ['#1d54e6'],
+    ordem: [0],
+    ativo: [true],
   });
 
   selectedFile: File | null = null;
@@ -83,11 +116,48 @@ export class DocumentosAdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.carregarPaginas();
+    this.carregarSetores();
+  }
+
+  selecionarAba(aba: AdminTab): void {
+    this.abaAtiva.set(aba);
+  }
+
+  carregarPaginas(): void {
+    this.documentosService.listarPaginasAdmin().subscribe({
+      next: (items) => {
+        this.paginas.set(items);
+        if (!this.paginaSelecionadaId() && items.length) {
+          this.selecionarPaginaAdmin(items[0].id);
+        } else if (this.paginaSelecionadaId()) {
+          this.carregarCategorias();
+        }
+      },
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar páginas.'),
+    });
+  }
+
+  carregarSetores(): void {
+    this.documentosService.listarSetoresAdmin().subscribe({
+      next: (items) => this.setores.set(items),
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar setores.'),
+    });
+  }
+
+  selecionarPaginaAdmin(id: number): void {
+    this.paginaSelecionadaId.set(id);
+    this.categoriaSelecionada.set(null);
+    this.documentos.set([]);
     this.carregarCategorias();
   }
 
   carregarCategorias(): void {
-    this.documentosService.listarCategoriasAdmin().subscribe({
+    const paginaId = this.paginaSelecionadaId();
+    if (!paginaId) return;
+    this.documentosService.listarCategoriasAdmin(paginaId).subscribe({
       next: (tree) => this.categorias.set(tree),
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar categorias.'),
@@ -102,6 +172,11 @@ export class DocumentosAdminComponent implements OnInit {
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar documentos.'),
     });
+  }
+
+  paginaSelecionada(): DocumentoPagina | null {
+    const id = this.paginaSelecionadaId();
+    return this.paginas().find((p) => p.id === id) ?? null;
   }
 
   paisDisponiveis(): PaiOption[] {
@@ -128,6 +203,145 @@ export class DocumentosAdminComponent implements OnInit {
     }
   }
 
+  novaPagina(): void {
+    this.editandoPaginaId.set(null);
+    this.paginaForm.reset({ nome: '', slug: '', descricao: '', logo_url: '', ordem: 0, ativo: true });
+    this.modalPaginaAberto.set(true);
+  }
+
+  editarPagina(item: DocumentoPagina): void {
+    this.editandoPaginaId.set(item.id);
+    this.paginaForm.patchValue({
+      nome: item.nome,
+      slug: item.slug,
+      descricao: item.descricao || '',
+      logo_url: item.logo_url || '',
+      ordem: item.ordem ?? 0,
+      ativo: item.ativo !== false,
+    });
+    this.modalPaginaAberto.set(true);
+  }
+
+  fecharModalPagina(): void {
+    this.modalPaginaAberto.set(false);
+    this.editandoPaginaId.set(null);
+  }
+
+  salvarPagina(): void {
+    if (this.paginaForm.invalid) return;
+    this.salvando.set(true);
+    const raw = this.paginaForm.getRawValue();
+    const payload = {
+      nome: raw.nome,
+      slug: raw.slug || undefined,
+      descricao: raw.descricao || null,
+      logo_url: raw.logo_url || null,
+      ordem: Number(raw.ordem),
+      ativo: raw.ativo,
+    };
+    const editId = this.editandoPaginaId();
+    const req = editId
+      ? this.documentosService.atualizarPagina(editId, payload)
+      : this.documentosService.criarPagina(payload);
+    req.subscribe({
+      next: () => {
+        this.mensagem.set(editId ? 'Página atualizada.' : 'Página criada.');
+        this.salvando.set(false);
+        this.modalPaginaAberto.set(false);
+        this.carregarPaginas();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao salvar página.');
+        this.salvando.set(false);
+      },
+    });
+  }
+
+  async excluirPagina(item: DocumentoPagina): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Remover a entidade "${item.nome}" e todas as categorias/documentos?`,
+    });
+    if (!ok) return;
+    this.documentosService.removerPagina(item.id).subscribe({
+      next: () => {
+        this.mensagem.set('Página removida.');
+        if (this.paginaSelecionadaId() === item.id) {
+          this.paginaSelecionadaId.set(null);
+        }
+        this.carregarPaginas();
+      },
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao remover página.'),
+    });
+  }
+
+  novoSetor(): void {
+    this.editandoSetorId.set(null);
+    this.setorForm.reset({ nome: '', slug: '', cor: '#1d54e6', ordem: 0, ativo: true });
+    this.modalSetorAberto.set(true);
+  }
+
+  editarSetor(item: DocumentoSetor): void {
+    this.editandoSetorId.set(item.id);
+    this.setorForm.patchValue({
+      nome: item.nome,
+      slug: item.slug,
+      cor: item.cor || '#1d54e6',
+      ordem: item.ordem ?? 0,
+      ativo: item.ativo !== false,
+    });
+    this.modalSetorAberto.set(true);
+  }
+
+  fecharModalSetor(): void {
+    this.modalSetorAberto.set(false);
+    this.editandoSetorId.set(null);
+  }
+
+  salvarSetor(): void {
+    if (this.setorForm.invalid) return;
+    this.salvando.set(true);
+    const raw = this.setorForm.getRawValue();
+    const payload = {
+      nome: raw.nome,
+      slug: raw.slug || undefined,
+      cor: raw.cor || null,
+      ordem: Number(raw.ordem),
+      ativo: raw.ativo,
+    };
+    const editId = this.editandoSetorId();
+    const req = editId
+      ? this.documentosService.atualizarSetor(editId, payload)
+      : this.documentosService.criarSetor(payload);
+    req.subscribe({
+      next: () => {
+        this.mensagem.set(editId ? 'Setor atualizado.' : 'Setor criado.');
+        this.salvando.set(false);
+        this.modalSetorAberto.set(false);
+        this.carregarSetores();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao salvar setor.');
+        this.salvando.set(false);
+      },
+    });
+  }
+
+  async excluirSetor(item: DocumentoSetor): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Remover o setor "${item.nome}"?`,
+    });
+    if (!ok) return;
+    this.documentosService.removerSetor(item.id).subscribe({
+      next: () => {
+        this.mensagem.set('Setor removido.');
+        this.carregarSetores();
+      },
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao remover setor.'),
+    });
+  }
+
   novaCategoria(): void {
     this.cancelarCategoria();
     this.modalCatAberto.set(true);
@@ -138,7 +352,7 @@ export class DocumentosAdminComponent implements OnInit {
     this.catForm.patchValue({
       nome: item.nome,
       descricao: item.descricao || '',
-      icone: this.normalizarIcone(item.icone),
+      icone: this.iconeService.normalizarParaLeitura(item.icone),
       parent_id: item.parent_id ?? '',
       ordem: item.ordem ?? 0,
       ativo: item.ativo !== false,
@@ -156,16 +370,11 @@ export class DocumentosAdminComponent implements OnInit {
     this.catForm.reset({
       nome: '',
       descricao: '',
-      icone: 'folder',
+      icone: ICONE_PADRAO,
       parent_id: '',
       ordem: 0,
       ativo: true,
     });
-  }
-
-  normalizarIcone(icone: string | null | undefined): string {
-    const val = icone?.trim().toLowerCase() || 'folder';
-    return CATEGORIA_ICONES.some((i) => i.value === val) ? val : 'folder';
   }
 
   selecionarIcone(value: string): void {
@@ -182,6 +391,11 @@ export class DocumentosAdminComponent implements OnInit {
 
   salvarCategoria(): void {
     if (this.catForm.invalid) return;
+    const paginaId = this.paginaSelecionadaId();
+    if (!paginaId) {
+      this.erro.set('Selecione uma entidade antes de criar categorias.');
+      return;
+    }
     this.salvando.set(true);
     this.erro.set('');
     this.mensagem.set('');
@@ -189,8 +403,9 @@ export class DocumentosAdminComponent implements OnInit {
     const payload = {
       nome: raw.nome,
       descricao: raw.descricao || null,
-      icone: raw.icone || null,
+      icone: this.iconeService.normalizarParaSalvar(raw.icone),
       parent_id: raw.parent_id === '' ? null : Number(raw.parent_id),
+      pagina_id: paginaId,
       ordem: Number(raw.ordem),
       ativo: raw.ativo,
     };
@@ -200,17 +415,8 @@ export class DocumentosAdminComponent implements OnInit {
       : this.documentosService.criarCategoria(payload);
 
     req.subscribe({
-      next: (saved) => {
-        const isRaiz = payload.parent_id == null;
-        if (!editId && isRaiz && saved?.slug) {
-          this.mensagem.set(`Categoria criada. Página disponível em /documentos/${saved.slug}`);
-        } else if (editId && isRaiz && saved?.slug) {
-          this.mensagem.set(`Categoria atualizada. Página em /documentos/${saved.slug}`);
-        } else if (!editId && !isRaiz) {
-          this.mensagem.set('Subcategoria criada. Ela aparece na página da categoria pai.');
-        } else {
-          this.mensagem.set(editId ? 'Categoria atualizada.' : 'Categoria criada.');
-        }
+      next: () => {
+        this.mensagem.set(editId ? 'Categoria atualizada.' : 'Categoria criada.');
         this.salvando.set(false);
         this.modalCatAberto.set(false);
         this.cancelarCategoria();
@@ -260,18 +466,18 @@ export class DocumentosAdminComponent implements OnInit {
       const baseName = file.name.replace(/\.[^.]+$/, '');
       this.docForm.patchValue({ titulo: baseName });
     }
-    this.abrirDrawerDoc(false);
+    this.abrirModalDoc(false);
   }
 
-  abrirDrawerDoc(reset = true): void {
+  abrirModalDoc(reset = true): void {
     if (reset && !this.editandoDocId()) {
       this.cancelarDocumento();
     }
-    this.drawerDocAberto.set(true);
+    this.modalDocAberto.set(true);
   }
 
-  fecharDrawerDoc(): void {
-    this.drawerDocAberto.set(false);
+  fecharModalDoc(): void {
+    this.modalDocAberto.set(false);
     this.cancelarDocumento();
   }
 
@@ -281,15 +487,17 @@ export class DocumentosAdminComponent implements OnInit {
       titulo: doc.titulo,
       descricao: doc.descricao || '',
       categoria_id: doc.categoria_id,
+      setor_id: doc.setor_id ?? '',
     });
     this.selectedFile = null;
-    this.drawerDocAberto.set(true);
+    this.modalDocAberto.set(true);
   }
 
   cancelarDocumento(): void {
     this.editandoDocId.set(null);
     const catId = this.categoriaSelecionada()?.id ?? '';
-    this.docForm.reset({ titulo: '', descricao: '', categoria_id: catId });
+    const primeiroSetor = this.setores().find((s) => s.ativo)?.id ?? '';
+    this.docForm.reset({ titulo: '', descricao: '', categoria_id: catId, setor_id: primeiroSetor });
     this.selectedFile = null;
     this.uploadProgress.set(0);
   }
@@ -308,12 +516,13 @@ export class DocumentosAdminComponent implements OnInit {
           titulo: raw.titulo,
           descricao: raw.descricao || null,
           categoria_id: Number(raw.categoria_id),
+          setor_id: Number(raw.setor_id),
         })
         .subscribe({
           next: () => {
             this.mensagem.set('Documento atualizado.');
             this.salvando.set(false);
-            this.drawerDocAberto.set(false);
+            this.modalDocAberto.set(false);
             this.cancelarDocumento();
             const cat = this.categoriaSelecionada();
             if (cat) this.carregarDocumentos(cat);
@@ -337,6 +546,7 @@ export class DocumentosAdminComponent implements OnInit {
     formData.append('titulo', raw.titulo);
     formData.append('descricao', raw.descricao || '');
     formData.append('categoria_id', String(raw.categoria_id));
+    formData.append('setor_id', String(raw.setor_id));
 
     this.uploadando.set(true);
     this.uploadProgress.set(0);
@@ -351,7 +561,7 @@ export class DocumentosAdminComponent implements OnInit {
           this.mensagem.set('Documento enviado com sucesso.');
           this.uploadando.set(false);
           this.uploadProgress.set(0);
-          this.drawerDocAberto.set(false);
+          this.modalDocAberto.set(false);
           this.cancelarDocumento();
           const cat = this.categoriaSelecionada();
           if (cat) this.carregarDocumentos(cat);
@@ -403,6 +613,7 @@ export class DocumentosAdminComponent implements OnInit {
   formatarMetaDoc(doc: Documento): string {
     const partes = [
       doc.extensao.toUpperCase(),
+      doc.setor?.nome,
       this.formatarTamanho(doc.tamanho_bytes),
       this.formatarData(doc.criado_em),
     ].filter(Boolean);
@@ -417,7 +628,7 @@ export class DocumentosAdminComponent implements OnInit {
     return 'default';
   }
 
-  tituloDrawerDoc(): string {
+  tituloModalDoc(): string {
     return this.editandoDocId() ? 'Editar documento' : 'Upload de documento';
   }
 
@@ -429,6 +640,10 @@ export class DocumentosAdminComponent implements OnInit {
 
   categoriasFlatSelect(): PaiOption[] {
     return this.flattenTreeOptions(this.categorias());
+  }
+
+  setoresAtivos(): DocumentoSetor[] {
+    return this.setores().filter((s) => s.ativo !== false);
   }
 
   private flattenTreeOptions(items: CategoriaDocumento[], depth = 0): PaiOption[] {

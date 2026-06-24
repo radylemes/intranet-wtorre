@@ -1,98 +1,287 @@
 <div class="admin-page docs-admin">
   <header class="page-head">
     <h1>Gestão de Documentos</h1>
-    <p>Organize as categorias e faça upload dos arquivos corporativos.</p>
+    <p>Entidades, setores, categorias e upload de arquivos corporativos.</p>
   </header>
 
-  <div class="grid-docs">
-    <section class="card cat-card">
+  <nav class="admin-tabs" aria-label="Seções">
+    <button type="button" class="tab" [class.active]="abaAtiva() === 'paginas'" (click)="selecionarAba('paginas')">
+      Entidades
+    </button>
+    <button type="button" class="tab" [class.active]="abaAtiva() === 'setores'" (click)="selecionarAba('setores')">
+      Setores
+    </button>
+    <button type="button" class="tab" [class.active]="abaAtiva() === 'categorias'" (click)="selecionarAba('categorias')">
+      Categorias &amp; Docs
+    </button>
+  </nav>
+
+  @if (abaAtiva() === 'paginas') {
+    <section class="card">
       <div class="card-head">
         <div>
-          <h2>Categorias</h2>
-          <p class="hint">Clique para gerenciar os documentos</p>
+          <h2>Entidades</h2>
+          <p class="hint">WTorre, Nubank Parque e demais páginas de documentos</p>
         </div>
-        <button type="button" class="btn-primary btn-sm btn-nova" (click)="novaCategoria()">
-          + Nova
-        </button>
+        <button type="button" class="btn-primary btn-sm btn-nova" (click)="novaPagina()">+ Nova</button>
       </div>
-      <div class="card-body cat-tree">
-        @if (!categorias().length) {
-          <p class="empty">Nenhuma categoria cadastrada.</p>
+      <div class="card-body table-wrap">
+        @if (!paginas().length) {
+          <p class="empty">Nenhuma entidade cadastrada.</p>
         } @else {
-          <app-doc-admin-node
-            [items]="categorias()"
-            [selecionadaId]="categoriaSelecionada()?.id ?? null"
-            (action)="onNodeAction($event)"
-          />
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Slug</th>
+                <th>Ordem</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (pag of paginas(); track pag.id) {
+                <tr>
+                  <td>{{ pag.nome }}</td>
+                  <td><code>/documentos/{{ pag.slug }}</code></td>
+                  <td>{{ pag.ordem }}</td>
+                  <td>{{ pag.ativo !== false ? 'Ativo' : 'Inativo' }}</td>
+                  <td class="row-actions">
+                    <button type="button" class="btn-ghost btn-sm" (click)="editarPagina(pag)">Editar</button>
+                    <button type="button" class="iconbtn del" title="Remover" (click)="excluirPagina(pag)">✕</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         }
       </div>
     </section>
+  }
 
-    @if (categoriaSelecionada(); as cat) {
-      <section class="card docs-panel">
+  @if (abaAtiva() === 'setores') {
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>Setores</h2>
+          <p class="hint">Etiquetas de filtro nos documentos (TI, Operações, RH…)</p>
+        </div>
+        <button type="button" class="btn-primary btn-sm btn-nova" (click)="novoSetor()">+ Novo</button>
+      </div>
+      <div class="card-body table-wrap">
+        @if (!setores().length) {
+          <p class="empty">Nenhum setor cadastrado.</p>
+        } @else {
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Cor</th>
+                <th>Ordem</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (setor of setores(); track setor.id) {
+                <tr>
+                  <td>{{ setor.nome }}</td>
+                  <td>
+                    <span class="cor-chip" [style.background]="setor.cor || '#1d54e6'"></span>
+                    {{ setor.cor || '—' }}
+                  </td>
+                  <td>{{ setor.ordem }}</td>
+                  <td>{{ setor.ativo !== false ? 'Ativo' : 'Inativo' }}</td>
+                  <td class="row-actions">
+                    <button type="button" class="btn-ghost btn-sm" (click)="editarSetor(setor)">Editar</button>
+                    <button type="button" class="iconbtn del" title="Remover" (click)="excluirSetor(setor)">✕</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    </section>
+  }
+
+  @if (abaAtiva() === 'categorias') {
+    <div class="field pagina-select">
+      <label for="pagina-admin">Entidade</label>
+      <select id="pagina-admin" [value]="paginaSelecionadaId() ?? ''" (change)="selecionarPaginaAdmin(+$any($event.target).value)">
+        @for (pag of paginas(); track pag.id) {
+          <option [value]="pag.id">{{ pag.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="grid-docs">
+      <section class="card cat-card">
         <div class="card-head">
           <div>
-            <h2>{{ cat.nome }}</h2>
-            <p class="hint">{{ documentos().length }} documento{{ documentos().length === 1 ? '' : 's' }}</p>
+            <h2>Categorias</h2>
+            <p class="hint">Clique para gerenciar os documentos</p>
           </div>
+          <button type="button" class="btn-primary btn-sm btn-nova" (click)="novaCategoria()" [disabled]="!paginaSelecionadaId()">
+            + Nova
+          </button>
         </div>
-        <div class="card-body">
-          <app-admin-dropzone
-            [disabled]="uploadando()"
-            subhint="PDF, DOCX, XLSX, PPTX, PNG, JPG, ZIP · até {{ MAX_UPLOAD_MB }} MB"
-            (fileSelected)="onFileSelected($event)"
-          />
-
-          @if (uploadando()) {
-            <div class="progress-wrap">
-              <div class="progress-bar" [style.width.%]="uploadProgress()"></div>
-            </div>
-            <p class="hint upload-status">Enviando... {{ uploadProgress() }}%</p>
-          }
-
-          @if (documentos().length) {
-            <div class="doc-list">
-              @for (doc of documentos(); track doc.id) {
-                <div class="doc-card">
-                  <span class="fileicon" [class]="fileIconClass(doc.extensao)">
-                    {{ doc.extensao.toUpperCase().slice(0, 3) }}
-                  </span>
-                  <div class="doc-card-info">
-                    <strong>{{ doc.titulo }}</strong>
-                    <div class="doc-row-meta">{{ formatarMetaDoc(doc) }}</div>
-                  </div>
-                  <div class="row-actions">
-                    <button type="button" class="btn-ghost btn-sm" (click)="editarDocumento(doc)">
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      class="iconbtn del"
-                      title="Remover"
-                      (click)="excluirDocumento(doc)"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
+        <div class="card-body cat-tree">
+          @if (!categorias().length) {
+            <p class="empty">Nenhuma categoria nesta entidade.</p>
+          } @else {
+            <app-doc-admin-node
+              [items]="categorias()"
+              [selecionadaId]="categoriaSelecionada()?.id ?? null"
+              (action)="onNodeAction($event)"
+            />
           }
         </div>
       </section>
-    } @else {
-      <section class="card docs-panel docs-panel-empty">
-        <div class="card-body">
-          <p class="empty">Selecione uma categoria para ver e enviar documentos.</p>
-        </div>
-      </section>
-    }
-  </div>
+
+      @if (categoriaSelecionada(); as cat) {
+        <section class="card docs-panel">
+          <div class="card-head">
+            <div>
+              <h2>{{ cat.nome }}</h2>
+              <p class="hint">{{ documentos().length }} documento{{ documentos().length === 1 ? '' : 's' }}</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <app-admin-dropzone
+              [disabled]="uploadando()"
+              subhint="PDF, DOCX, XLSX, PPTX, PNG, JPG, ZIP · até {{ MAX_UPLOAD_MB }} MB"
+              (fileSelected)="onFileSelected($event)"
+            />
+
+            @if (uploadando()) {
+              <div class="progress-wrap">
+                <div class="progress-bar" [style.width.%]="uploadProgress()"></div>
+              </div>
+              <p class="hint upload-status">Enviando... {{ uploadProgress() }}%</p>
+            }
+
+            @if (documentos().length) {
+              <div class="doc-list">
+                @for (doc of documentos(); track doc.id) {
+                  <div class="doc-card">
+                    <span class="fileicon" [class]="fileIconClass(doc.extensao)">
+                      {{ doc.extensao.toUpperCase().slice(0, 3) }}
+                    </span>
+                    <div class="doc-card-info">
+                      <strong>{{ doc.titulo }}</strong>
+                      <div class="doc-row-meta">{{ formatarMetaDoc(doc) }}</div>
+                    </div>
+                    <div class="row-actions">
+                      <button type="button" class="btn-ghost btn-sm" (click)="editarDocumento(doc)">Editar</button>
+                      <button type="button" class="iconbtn del" title="Remover" (click)="excluirDocumento(doc)">✕</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      } @else {
+        <section class="card docs-panel docs-panel-empty">
+          <div class="card-body">
+            <p class="empty">Selecione uma categoria para ver e enviar documentos.</p>
+          </div>
+        </section>
+      }
+    </div>
+  }
 </div>
+
+<app-admin-modal
+  [open]="modalPaginaAberto()"
+  [title]="editandoPaginaId() ? 'Editar entidade' : 'Nova entidade'"
+  [salvando]="salvando()"
+  saveLabel="Salvar entidade"
+  (save)="salvarPagina()"
+  (cancel)="fecharModalPagina()"
+>
+  <form [formGroup]="paginaForm" (ngSubmit)="salvarPagina()">
+    <div class="field">
+      <label for="pag-nome">Nome</label>
+      <input id="pag-nome" formControlName="nome" placeholder="Ex.: WTorre" />
+    </div>
+    <div class="field">
+      <label for="pag-slug">Slug <span class="label-hint">· opcional</span></label>
+      <input id="pag-slug" formControlName="slug" placeholder="wtorre" />
+    </div>
+    <div class="field">
+      <label for="pag-desc">Descrição</label>
+      <input id="pag-desc" formControlName="descricao" placeholder="Opcional" />
+    </div>
+    <div class="field">
+      <app-doc-entidade-logo-picker formControlName="logo_url" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="pag-ordem">Ordem</label>
+        <input id="pag-ordem" formControlName="ordem" type="number" min="0" />
+      </div>
+      <div class="field field-toggle">
+        <div class="toggle-field">
+          <div>
+            <div class="tt">Ativa</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" formControlName="ativo" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </form>
+</app-admin-modal>
+
+<app-admin-modal
+  [open]="modalSetorAberto()"
+  [title]="editandoSetorId() ? 'Editar setor' : 'Novo setor'"
+  [salvando]="salvando()"
+  saveLabel="Salvar setor"
+  (save)="salvarSetor()"
+  (cancel)="fecharModalSetor()"
+>
+  <form [formGroup]="setorForm" (ngSubmit)="salvarSetor()">
+    <div class="field">
+      <label for="set-nome">Nome</label>
+      <input id="set-nome" formControlName="nome" placeholder="Ex.: TI" />
+    </div>
+    <div class="field">
+      <label for="set-slug">Slug <span class="label-hint">· opcional</span></label>
+      <input id="set-slug" formControlName="slug" placeholder="ti" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="set-cor">Cor</label>
+        <input id="set-cor" formControlName="cor" type="color" />
+      </div>
+      <div class="field">
+        <label for="set-ordem">Ordem</label>
+        <input id="set-ordem" formControlName="ordem" type="number" min="0" />
+      </div>
+    </div>
+    <div class="field field-toggle">
+      <div class="toggle-field">
+        <div>
+          <div class="tt">Ativo</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" formControlName="ativo" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </form>
+</app-admin-modal>
 
 <app-admin-modal
   [open]="modalCatAberto()"
   [title]="tituloModalCat()"
+  [headerIcon]="iconeSelecionado()"
   [salvando]="salvando()"
   [saveLabel]="'Salvar categoria'"
   (save)="salvarCategoria()"
@@ -117,81 +306,10 @@
 
     <div class="field">
       <label>Ícone</label>
-      <div class="iconpick" role="group" aria-label="Selecionar ícone">
-        <button
-          type="button"
-          class="opt"
-          [class.sel]="iconeSelecionado() === 'folder'"
-          (click)="selecionarIcone('folder')"
-        >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <span>Pasta</span>
-        </button>
-        <button
-          type="button"
-          class="opt"
-          [class.sel]="iconeSelecionado() === 'shield'"
-          (click)="selecionarIcone('shield')"
-        >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <span>Escudo</span>
-        </button>
-        <button
-          type="button"
-          class="opt"
-          [class.sel]="iconeSelecionado() === 'brand'"
-          (click)="selecionarIcone('brand')"
-        >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
-            <path d="M8 14l4-8 4 8" stroke="currentColor" stroke-width="2" />
-          </svg>
-          <span>Marca</span>
-        </button>
-        <button
-          type="button"
-          class="opt"
-          [class.sel]="iconeSelecionado() === 'cap'"
-          (click)="selecionarIcone('cap')"
-        >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M3 9l9-5 9 5-9 5-9-5z"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linejoin="round"
-            />
-            <path d="M7 11v5c2 1.4 8 1.4 10 0v-5" stroke="currentColor" stroke-width="2" />
-          </svg>
-          <span>Capelo</span>
-        </button>
-        <button
-          type="button"
-          class="opt"
-          [class.sel]="iconeSelecionado() === 'file'"
-          (click)="selecionarIcone('file')"
-        >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" />
-            <path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          </svg>
-          <span>Doc</span>
-        </button>
-      </div>
+      <app-doc-cat-icone-picker
+        [value]="iconeSelecionado()"
+        (valueChange)="selecionarIcone($event)"
+      />
     </div>
 
     <div class="row2">
@@ -225,13 +343,13 @@
   </form>
 </app-admin-modal>
 
-<app-admin-drawer
-  [open]="drawerDocAberto()"
-  [title]="tituloDrawerDoc()"
+<app-admin-modal
+  [open]="modalDocAberto()"
+  [title]="tituloModalDoc()"
   [salvando]="salvando() || uploadando()"
   [saveLabel]="labelSalvarDoc()"
   (save)="salvarDocumento()"
-  (cancel)="fecharDrawerDoc()"
+  (cancel)="fecharModalDoc()"
 >
   <form [formGroup]="docForm" (ngSubmit)="salvarDocumento()">
     @if (!editandoDocId() && selectedFile) {
@@ -253,6 +371,15 @@
         }
       </select>
     </div>
+    <div class="field">
+      <label for="doc-setor">Setor</label>
+      <select id="doc-setor" formControlName="setor_id">
+        <option value="">Selecione...</option>
+        @for (s of setoresAtivos(); track s.id) {
+          <option [value]="s.id">{{ s.nome }}</option>
+        }
+      </select>
+    </div>
     @if (uploadando()) {
       <div class="progress-wrap">
         <div class="progress-bar" [style.width.%]="uploadProgress()"></div>
@@ -260,4 +387,4 @@
       <p class="hint">Enviando... {{ uploadProgress() }}%</p>
     }
   </form>
-</app-admin-drawer>
+</app-admin-modal>

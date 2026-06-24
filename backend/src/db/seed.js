@@ -29,10 +29,56 @@ async function seedAdmin(pool) {
   console.log(`Admin criado: ${email}`);
 }
 
+async function seedDocumentosPaginas(pool) {
+  const paginas = [
+    { nome: 'WTorre', slug: 'wtorre', ordem: 1 },
+    { nome: 'Nubank Parque', slug: 'nubank-parque', ordem: 2 },
+    { nome: 'Base Coworking', slug: 'base-coworking', ordem: 3 },
+    { nome: 'Novo Anhangabaú', slug: 'novo-anhangabau', ordem: 4 },
+  ];
+
+  for (const p of paginas) {
+    await pool.execute(
+      `INSERT IGNORE INTO documentos_paginas (nome, slug, ordem, ativo) VALUES (?, ?, ?, 1)`,
+      [p.nome, p.slug, p.ordem]
+    );
+  }
+
+  const [rows] = await pool.execute('SELECT COUNT(*) AS total FROM documentos_paginas');
+  if (rows[0].total > 0) {
+    console.log('Páginas de documentos verificadas.');
+  }
+}
+
+async function seedDocumentosSetores(pool) {
+  const setores = [
+    { nome: 'TI', slug: 'ti', cor: '#1d54e6', ordem: 1 },
+    { nome: 'Operações', slug: 'operacoes', cor: '#1a9d57', ordem: 2 },
+    { nome: 'RH', slug: 'rh', cor: '#c8881b', ordem: 3 },
+  ];
+
+  for (const s of setores) {
+    await pool.execute(
+      `INSERT IGNORE INTO documentos_setores (nome, slug, cor, ordem, ativo) VALUES (?, ?, ?, ?, 1)`,
+      [s.nome, s.slug, s.cor, s.ordem]
+    );
+  }
+}
+
 async function seedCategoriasDocumentos(pool) {
   const [rows] = await pool.execute('SELECT COUNT(*) AS total FROM categorias_documentos');
   if (rows[0].total > 0) {
     console.log('Categorias de documentos já existem, seed ignorado.');
+    return;
+  }
+
+  const [paginaRows] = await pool.execute(
+    'SELECT id FROM documentos_paginas WHERE slug = ? LIMIT 1',
+    ['wtorre']
+  );
+  const paginaId = paginaRows[0]?.id;
+  if (!paginaId) {
+    console.warn('Página WTorre não encontrada — seed de categorias ignorado.');
     return;
   }
 
@@ -46,9 +92,9 @@ async function seedCategoriasDocumentos(pool) {
   const rootIds = {};
   for (const cat of roots) {
     const [result] = await pool.execute(
-      `INSERT INTO categorias_documentos (nome, slug, icone, ordem, ativo)
-       VALUES (?, ?, ?, ?, 1)`,
-      [cat.nome, cat.slug, cat.icone, cat.ordem]
+      `INSERT INTO categorias_documentos (nome, slug, icone, pagina_id, ordem, ativo)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      [cat.nome, cat.slug, cat.icone, paginaId, cat.ordem]
     );
     rootIds[cat.slug] = result.insertId;
   }
@@ -66,9 +112,9 @@ async function seedCategoriasDocumentos(pool) {
 
   for (const child of children) {
     await pool.execute(
-      `INSERT INTO categorias_documentos (nome, slug, parent_id, ordem, ativo)
-       VALUES (?, ?, ?, ?, 1)`,
-      [child.nome, child.slug, rootIds[child.parentSlug], child.ordem]
+      `INSERT INTO categorias_documentos (nome, slug, parent_id, pagina_id, ordem, ativo)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      [child.nome, child.slug, rootIds[child.parentSlug], paginaId, child.ordem]
     );
   }
 
@@ -78,6 +124,8 @@ async function seedCategoriasDocumentos(pool) {
 async function seed() {
   const pool = getPool();
   await seedAdmin(pool);
+  await seedDocumentosPaginas(pool);
+  await seedDocumentosSetores(pool);
   await seedCategoriasDocumentos(pool);
   process.exit(0);
 }

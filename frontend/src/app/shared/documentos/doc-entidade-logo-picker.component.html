@@ -1,0 +1,82 @@
+<div class="logo-picker">
+  <label class="logo-picker__label">Logo</label>
+
+  @if (valorAtual()) {
+    <div class="logo-picker__preview">
+      <img [src]="valorAtual()" alt="Preview do logo" class="logo-picker__preview-img" />
+      <button
+        type="button"
+        class="btn-ghost btn-sm"
+        [disabled]="estaDesabilitado()"
+        (click)="removerLogo()"
+      >
+        Remover logo
+      </button>
+    </div>
+  }
+
+  <div class="logo-picker__section">
+    <p class="logo-picker__hint">Selecionar logo do grupo</p>
+    @if (carregandoLogos()) {
+      <p class="logo-picker__loading">Carregando logos…</p>
+    } @else if (!logosGrupo().length) {
+      <p class="logo-picker__empty">Nenhum logo do grupo disponível.</p>
+    } @else {
+      <div class="logo-picker__grid" role="listbox" aria-label="Logos do grupo">
+        @for (logo of logosGrupo(); track logo.id) {
+          <button
+            type="button"
+            class="logo-picker__cell"
+            [class.sel]="logoSelecionado(logo.imagem_url)"
+            [disabled]="estaDesabilitado()"
+            [attr.aria-selected]="logoSelecionado(logo.imagem_url)"
+            [title]="logo.nome"
+            (click)="selecionarLogo(logo.imagem_url)"
+          >
+            <img [src]="logo.imagem_url" [alt]="logo.alt || logo.nome" />
+            <span class="logo-picker__cell-name">{{ logo.nome }}</span>
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="logo-picker__section">
+    <p class="logo-picker__hint">Ou envie uma imagem</p>
+    <app-admin-dropzone
+      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+      [disabled]="estaDesabilitado() || uploadando()"
+      hint="Arraste a imagem ou"
+      hintLink="clique para selecionar"
+      subhint="PNG, SVG, JPG ou WEBP. Imagens grandes serão compactadas (máx. 240×60 px)."
+      (fileSelected)="onLogoFile($event)"
+    />
+    @if (uploadando()) {
+      <p class="logo-picker__status">Enviando imagem…</p>
+    }
+  </div>
+
+  <div class="logo-picker__section logo-picker__advanced">
+    <button
+      type="button"
+      class="logo-picker__toggle"
+      [disabled]="estaDesabilitado()"
+      (click)="alternarUrlManual()"
+    >
+      {{ urlManualAberta() ? 'Ocultar URL manual' : 'Usar URL manual' }}
+    </button>
+    @if (urlManualAberta()) {
+      <div class="field">
+        <label for="pag-logo-url">URL do logo</label>
+        <input
+          id="pag-logo-url"
+          type="text"
+          placeholder="https://..."
+          [disabled]="estaDesabilitado()"
+          [ngModel]="valorAtual()"
+          (ngModelChange)="onUrlManualInput($event)"
+        />
+      </div>
+    }
+  </div>
+</div>

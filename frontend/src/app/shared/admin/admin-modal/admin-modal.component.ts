@@ -1,10 +1,12 @@
 import { Component, input, output, ViewEncapsulation } from '@angular/core';
+import { DocCatIconeComponent } from '../../documentos/doc-cat-icone.component';
 
 export type AdminModalIcon = 'folder' | 'tenant';
 
 @Component({
   selector: 'app-admin-modal',
   standalone: true,
+  imports: [DocCatIconeComponent],
   templateUrl: './admin-modal.component.html',
   styleUrl: './admin-modal.component.scss',
   encapsulation: ViewEncapsulation.None,
@@ -14,6 +16,7 @@ export class AdminModalComponent {
   readonly title = input('');
   readonly subtitle = input('');
   readonly icon = input<AdminModalIcon>('folder');
+  readonly headerIcon = input<string | null>(null);
   readonly salvando = input(false);
   readonly saveLabel = input('Salvar');
 

@@ -8,7 +8,7 @@ import { FooterComponent } from '../../shared/footer/footer.component';
 import { DocumentosService } from '../../services/documentos.service';
 import { ContentRefreshService } from '../../services/content-refresh.service';
 import { AuthService } from '../../services/auth.service';
-import { CategoriaDocumento } from '../../models/documento.model';
+import { DocumentoPagina } from '../../models/documento.model';
 
 @Component({
   selector: 'app-documentos-index',
@@ -23,44 +23,40 @@ export class DocumentosIndexComponent implements OnInit, OnDestroy {
   private readonly document = inject(DOCUMENT);
   private readonly contentRefresh = inject(ContentRefreshService);
 
-  readonly categorias = signal<CategoriaDocumento[]>([]);
+  readonly paginas = signal<DocumentoPagina[]>([]);
   readonly carregando = signal(true);
   readonly erro = signal('');
 
   constructor() {
     this.contentRefresh.documentosChanged$
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.carregarCategorias(false));
+      .subscribe(() => this.carregarPaginas(false));
   }
 
   ngOnInit(): void {
     this.document.body.classList.add('pagina-inicio');
     this.auth.carregarPerfil().subscribe();
-    this.carregarCategorias();
+    this.carregarPaginas();
   }
 
   ngOnDestroy(): void {
     this.document.body.classList.remove('pagina-inicio');
   }
 
-  carregarCategorias(mostrarCarregando = true): void {
-    if (mostrarCarregando || this.categorias().length === 0) {
+  carregarPaginas(mostrarCarregando = true): void {
+    if (mostrarCarregando || this.paginas().length === 0) {
       this.carregando.set(true);
     }
     this.erro.set('');
-    this.documentosService.listarCategorias().subscribe({
-      next: (tree) => {
-        this.categorias.set(tree);
+    this.documentosService.listarPaginas().subscribe({
+      next: (items) => {
+        this.paginas.set(items);
         this.carregando.set(false);
       },
       error: (err: HttpErrorResponse) => {
-        this.erro.set(err.error?.mensagem || 'Erro ao carregar categorias.');
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar entidades.');
         this.carregando.set(false);
       },
     });
-  }
-
-  iconeCategoria(icone: string | null | undefined): string {
-    return icone || 'folder';
   }
 }

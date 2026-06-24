@@ -68,9 +68,17 @@
   flex-shrink: 0;
 }
 
-.cat-icon svg {
-  width: 22px;
-  height: 22px;
+.cat-logo {
+  max-width: 36px;
+  max-height: 28px;
+  object-fit: contain;
+}
+
+.cat-initial {
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--wtorre, #1d54e6);
 }
 
 .cat-body {

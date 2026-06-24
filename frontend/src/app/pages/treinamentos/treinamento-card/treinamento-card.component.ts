@@ -1,17 +1,15 @@
-import { Component, inject, Input, OnInit, output, signal } from '@angular/core';
+import { Component, HostBinding, inject, Input, OnInit, output, signal } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { Treinamento } from '../../../models/treinamento.model';
 import { TreinamentosService } from '../../../services/treinamentos.service';
-import {
-  categoriaGrad,
-  categoriaLabel,
-  formatarDuracao,
-} from '../../../utils/treinamento-categoria.util';
+import { formatarDuracao, THUMB_FALLBACK_GRAD } from '../../../utils/treinamento-categoria.util';
+import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
+import { ICONE_PADRAO } from '../../../models/documento.model';
 
 @Component({
   selector: 'app-treinamento-card',
   standalone: true,
-  imports: [NgStyle],
+  imports: [NgStyle, DocCatIconeComponent],
   templateUrl: './treinamento-card.component.html',
   styleUrl: './treinamento-card.component.scss',
 })
@@ -20,6 +18,11 @@ export class TreinamentoCardComponent implements OnInit {
 
   @Input({ required: true }) video!: Treinamento;
   @Input() modo: 'card' | 'featured' = 'card';
+
+  @HostBinding('class.modo-featured')
+  get modoFeatured(): boolean {
+    return this.modo === 'featured';
+  }
 
   readonly play = output<void>();
 
@@ -49,11 +52,15 @@ export class TreinamentoCardComponent implements OnInit {
         backgroundPosition: 'center',
       };
     }
-    return { background: categoriaGrad(this.video.categoria) };
+    return { background: THUMB_FALLBACK_GRAD };
   }
 
   catLabel(): string {
-    return categoriaLabel(this.video.categoria);
+    return this.video.categoriaNome ?? 'Geral';
+  }
+
+  catIcone(): string {
+    return this.video.categoriaIcone?.trim() || ICONE_PADRAO;
   }
 
   duracao(): string {

@@ -97,8 +97,8 @@ export class RodapeAdminComponent implements OnInit, OnDestroy {
   }
 
   private inicializar(): void {
-    this.documentosService.listarCategorias().subscribe({
-      next: (categorias) => this.paginasInternas.set(buildPaginasInternasLista(categorias)),
+    this.documentosService.listarPaginas().subscribe({
+      next: (paginasDocumentos) => this.paginasInternas.set(buildPaginasInternasLista(paginasDocumentos)),
       error: () => this.paginasInternas.set(buildPaginasInternasLista()),
     });
 

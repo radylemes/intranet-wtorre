@@ -1,5 +1,6 @@
 import { Component, input, output } from '@angular/core';
-import { CategoriaDocumento } from '../../../models/documento.model';
+import { CategoriaDocumento, ICONE_PADRAO } from '../../../models/documento.model';
+import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
 
 export interface DocAdminNodeAction {
   type: 'edit' | 'remove' | 'select';
@@ -9,6 +10,7 @@ export interface DocAdminNodeAction {
 @Component({
   selector: 'app-doc-admin-node',
   standalone: true,
+  imports: [DocCatIconeComponent],
   templateUrl: './doc-admin-node.component.html',
   styleUrl: './doc-admin-node.component.scss',
 })
@@ -23,7 +25,7 @@ export class DocAdminNodeComponent {
     const icone = item.icone?.trim();
     if (icone) return icone.toLowerCase();
     if (this.depth() > 0 && this.parentIcon()) return this.parentIcon()!;
-    return 'folder';
+    return ICONE_PADRAO;
   }
 
   childParentIcon(item: CategoriaDocumento): string | null {

@@ -3,32 +3,39 @@
     <section class="doc-section">
       <div class="wrap">
         <nav class="breadcrumb" aria-label="Navegação">
-          <a routerLink="/documentos">Documentos</a>
-          @if (categoria(); as cat) {
-            <span class="sep">/</span>
-            <span class="current">{{ cat.nome }}</span>
-          }
+          <a routerLink="/inicio">Início</a>
+          <span class="sep">›</span>
+          <span class="current">Documentos</span>
         </nav>
 
-        @if (categoria(); as cat) {
-          <header class="page-head">
-            <h1>{{ cat.nome }}</h1>
-            @if (cat.descricao) {
-              <p class="lead">{{ cat.descricao }}</p>
+        @if (paginas().length) {
+          <nav class="pagina-switcher" aria-label="Entidades">
+            @for (pag of paginas(); track pag.id) {
+              <button
+                type="button"
+                class="switcher-item"
+                [class.active]="pagina()?.slug === pag.slug"
+                (click)="selecionarPagina(pag.slug)"
+              >
+                @if (pag.logo_url) {
+                  <img [src]="pag.logo_url" [alt]="pag.nome" class="switcher-logo" />
+                } @else {
+                  <span class="switcher-initial">{{ pag.nome.charAt(0) }}</span>
+                  <span class="switcher-label">{{ pag.nome }}</span>
+                }
+              </button>
             }
-          </header>
+          </nav>
+        }
 
-          <div class="search-bar">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
-              <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Buscar documento..."
-              [ngModel]="busca()"
-              (ngModelChange)="busca.set($event)"
-            />
+        @if (pagina(); as pag) {
+          <div class="entity-head">
+            @if (pag.logo_url) {
+              <img [src]="pag.logo_url" [alt]="pag.nome" class="entity-logo" />
+            } @else {
+              <h1 class="entity-name">{{ pag.nome }}</h1>
+            }
+            <p class="entity-desc">{{ descricaoEntidade(pag) }}</p>
           </div>
         }
 
@@ -38,38 +45,170 @@
 
         @if (carregando()) {
           <p class="loading">Carregando documentos...</p>
-        } @else if (!temResultados()) {
-          <div class="empty">
-            <p>Nenhum documento nesta categoria.</p>
+        } @else if (arvore().length) {
+          <div class="doc-layout">
+            <nav class="doc-sidebar" aria-label="Categorias">
+              <div class="sidebar-label">Categorias</div>
+
+              @for (cat of arvore(); track cat.id) {
+                <div class="nav-group" [class.active]="isCategoriaAtiva(cat)">
+                  <div class="nav-root-row">
+                    <button
+                      type="button"
+                      class="nav-item nav-root"
+                      [class.active]="isCategoriaAtiva(cat)"
+                      (click)="selecionarCategoriaRaiz(cat)"
+                    >
+                      <app-doc-cat-icone class="nav-icon" [nome]="cat.icone" [size]="18" />
+                      <span class="nav-label">{{ cat.nome }}</span>
+                      @if (totalCount(cat) > 0) {
+                        <span class="nav-count">{{ totalCount(cat) }}</span>
+                      }
+                    </button>
+                    @if (temFilhos(cat)) {
+                      <button
+                        type="button"
+                        class="nav-chevron"
+                        [class.expanded]="isExpandida(cat)"
+                        [attr.aria-label]="isExpandida(cat) ? 'Recolher' : 'Expandir'"
+                        (click)="toggleExpandirCategoria(cat.slug, $event)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                      </button>
+                    }
+                  </div>
+
+                  @if (isExpandida(cat) && temFilhos(cat)) {
+                    @for (child of cat.children; track child.id) {
+                      <button
+                        type="button"
+                        class="nav-item nav-child"
+                        [class.active]="isSubcategoriaSidebarAtiva(cat, child)"
+                        (click)="selecionarSubcategoriaSidebar(cat, child)"
+                      >
+                        <span class="nav-label">{{ child.nome }}</span>
+                        @if (child.documentos_count != null && child.documentos_count > 0) {
+                          <span class="nav-count">{{ child.documentos_count }}</span>
+                        }
+                      </button>
+                    }
+                  }
+                </div>
+              }
+            </nav>
+
+            <div class="doc-main">
+              <div class="content-panel">
+                <div class="search">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+                    <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Buscar treinamento por título, tema ou área..."
+                    [ngModel]="busca()"
+                    (ngModelChange)="busca.set($event)"
+                  />
+                </div>
+
+                @if (temSubcategorias()) {
+                  <div class="chips" role="group" aria-label="Filtrar por subcategoria">
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="subAtiva() === 'geral'"
+                      (click)="selecionarSub('geral')"
+                    >
+                      Todas as categorias
+                    </button>
+                    @for (child of categoriaRaiz()?.children ?? []; track child.id; let i = $index) {
+                      <button
+                        type="button"
+                        class="chip"
+                        [class.active]="subAtiva() === child.slug"
+                        [style.--chip-cor]="corSubcategoria(i)"
+                        (click)="selecionarSub(child.slug)"
+                      >
+                        <span class="chip-dot"></span>
+                        {{ child.nome }}
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <div class="chips" role="group" aria-label="Filtrar por setor">
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="!setorAtivo()"
+                      (click)="selecionarSetor(null)"
+                    >
+                      Todos
+                    </button>
+                    @for (setor of setores(); track setor.id) {
+                      <button
+                        type="button"
+                        class="chip"
+                        [class.active]="setorAtivo() === setor.slug"
+                        [style.--chip-cor]="setor.cor || '#1d54e6'"
+                        (click)="selecionarSetor(setor.slug)"
+                      >
+                        <span class="chip-dot"></span>
+                        {{ setor.nome }}
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="chip"
+                      [class.active]="setorAtivo() === 'sem-setor'"
+                      (click)="selecionarSetor('sem-setor')"
+                    >
+                      Sem setor
+                    </button>
+                  </div>
+                }
+
+                @if (carregandoConteudo()) {
+                  <p class="loading">Carregando conteúdo…</p>
+                } @else if (temResultados()) {
+                  <div class="content-body">
+                    @if (temTreinamentos()) {
+                      <div class="featured-list">
+                        @for (v of treinamentosFiltrados(); track v.id) {
+                          <div
+                            class="featured-row"
+                            role="button"
+                            tabindex="0"
+                            (click)="abrirTreinamento(v)"
+                            (keyup.enter)="abrirTreinamento(v)"
+                          >
+                            <app-treinamento-card [video]="v" [modo]="'featured'" />
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    @if (temDocumentos()) {
+                      <app-documento-list
+                        [documentos]="documentosFiltrados()"
+                        (visualizar)="visualizar($event)"
+                        (baixar)="baixar($event)"
+                      />
+                    }
+                  </div>
+                } @else {
+                  <div class="empty">
+                    <p>Nenhum documento ou treinamento nesta categoria.</p>
+                  </div>
+                }
+              </div>
+            </div>
           </div>
         } @else {
-          <div class="doc-content">
-            @if (docsRaizFiltrados().length) {
-              <section class="subcategoria-section">
-                @if (secoes().length) {
-                  <h2 class="section-title">Geral</h2>
-                }
-                <app-documento-list
-                  [documentos]="docsRaizFiltrados()"
-                  (visualizar)="visualizar($event)"
-                  (baixar)="baixar($event)"
-                />
-              </section>
-            }
-
-            @for (secao of secoesFiltradas(); track secao.categoria.id) {
-              <section class="subcategoria-section">
-                <h2 class="section-title">{{ secao.categoria.nome }}</h2>
-                @if (secao.categoria.descricao) {
-                  <p class="section-desc">{{ secao.categoria.descricao }}</p>
-                }
-                <app-documento-list
-                  [documentos]="secao.documentos"
-                  (visualizar)="visualizar($event)"
-                  (baixar)="baixar($event)"
-                />
-              </section>
-            }
+          <div class="empty">
+            <p>Nenhuma categoria disponível nesta entidade.</p>
           </div>
         }
       </div>
@@ -86,3 +225,63 @@
   [carregando]="modalCarregando()"
   (fechar)="fecharModal()"
 />
+
+<div
+  class="overlay"
+  [class.open]="playerAberto()"
+  (click)="onOverlayClick($event)"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-hidden]="!playerAberto()"
+>
+  @if (videoAtivo(); as v) {
+    <div class="player" (click)="$event.stopPropagation()">
+      <div class="stage stage-neutral">
+        <button type="button" class="closex" aria-label="Fechar" (click)="fecharPlayer()">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+        @if (sasUrl()) {
+          <video
+            class="video-el"
+            [src]="sasUrl()!"
+            controls
+            autoplay
+            playsinline
+          ></video>
+        } @else if (playerCarregando()) {
+          <div class="loading-play">Carregando vídeo…</div>
+        }
+      </div>
+      <div class="pbody">
+        <div class="tagrow">
+          @if (v.categoriaIcone) {
+            <span class="tag tag-icone">
+              <app-doc-cat-icone [nome]="v.categoriaIcone" [size]="14" />
+              {{ categoriaLabel(v) }}
+            </span>
+          } @else {
+            <span class="tag">{{ categoriaLabel(v) }}</span>
+          }
+          @if (v.destaque) {
+            <span class="novo">Destaque</span>
+          }
+        </div>
+        <h2>{{ v.titulo }}</h2>
+        @if (v.descricao) {
+          <p>{{ v.descricao }}</p>
+        }
+        <div class="info">
+          <span>Duração: <b>{{ duracao(v) }}</b></span>
+          @if (v.area) {
+            <span>Área: <b>{{ v.area }}</b></span>
+          }
+          @if (v.paginaNome) {
+            <span>Entidade: <b>{{ v.paginaNome }}</b></span>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

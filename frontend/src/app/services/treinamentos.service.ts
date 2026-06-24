@@ -1,4 +1,4 @@
-import { HttpClient, HttpEvent } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -18,14 +18,27 @@ export class TreinamentosService {
     return `${environment.apiBaseUrl}${path}`;
   }
 
-  listar(): Observable<Treinamento[]> {
+  listar(
+    paginaSlug: string,
+    opts?: { categoriaSlug?: string | null; semCategoria?: boolean }
+  ): Observable<Treinamento[]> {
+    let params = new HttpParams().set('pagina', paginaSlug);
+    if (opts?.semCategoria) {
+      params = params.set('sem_categoria', '1');
+    } else if (opts?.categoriaSlug) {
+      params = params.set('categoria', opts.categoriaSlug);
+    }
     return this.http
-      .get<Record<string, unknown>[]>(this.api('/treinamentos'))
+      .get<Record<string, unknown>[]>(this.api('/treinamentos'), { params })
       .pipe(map((rows) => rows.map(mapTreinamentoApi)));
   }
 
-  listarAdmin(): Observable<TreinamentoAdmin[]> {
-    return this.http.get<TreinamentoAdmin[]>(this.api('/treinamentos/admin')).pipe(
+  listarAdmin(paginaId?: number | null): Observable<TreinamentoAdmin[]> {
+    let params = new HttpParams();
+    if (paginaId != null) {
+      params = params.set('pagina_id', String(paginaId));
+    }
+    return this.http.get<TreinamentoAdmin[]>(this.api('/treinamentos/admin'), { params }).pipe(
       map((rows) =>
         rows.map((r) => ({
           ...mapTreinamentoApi(r as unknown as Record<string, unknown>),

@@ -5,7 +5,7 @@
         <header class="page-head">
           <p class="eyebrow">Repositórios</p>
           <h1>Documentos</h1>
-          <p class="lead">Acesse os documentos organizados por categoria.</p>
+          <p class="lead">Selecione a entidade para acessar os documentos.</p>
         </header>
 
         @if (erro()) {
@@ -13,73 +13,26 @@
         }
 
         @if (carregando()) {
-          <p class="loading">Carregando categorias...</p>
-        } @else if (!categorias().length) {
+          <p class="loading">Carregando entidades...</p>
+        } @else if (!paginas().length) {
           <div class="empty">
-            <p>Nenhuma categoria disponível.</p>
+            <p>Nenhuma entidade disponível.</p>
           </div>
         } @else {
           <div class="cat-grid">
-            @for (cat of categorias(); track cat.id) {
-              <a class="cat-card" [routerLink]="['/documentos', cat.slug]">
-                <span class="cat-icon" [attr.data-icon]="iconeCategoria(cat.icone)">
-                  @switch (iconeCategoria(cat.icone)) {
-                    @case ('shield') {
-                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    }
-                    @case ('file') {
-                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M8 4h6l4 4v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                          stroke-linejoin="round"
-                        />
-                        <path d="M14 4v4h4" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-                      </svg>
-                    }
-                    @case ('brand') {
-                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6" />
-                        <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                      </svg>
-                    }
-                    @case ('cap') {
-                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M4 10l8-4 8 4-8 4-8-4zM6 12v4c0 1 2.5 2 6 2s6-1 6-2v-4"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    }
-                    @default {
-                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M3 7a2 2 0 012-2h5l2 2h9a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                          stroke-linejoin="round"
-                        />
-                      </svg>
-                    }
+            @for (pag of paginas(); track pag.id) {
+              <a class="cat-card" [routerLink]="['/documentos', pag.slug]">
+                <span class="cat-icon">
+                  @if (pag.logo_url) {
+                    <img [src]="pag.logo_url" [alt]="pag.nome" class="cat-logo" />
+                  } @else {
+                    <span class="cat-initial">{{ pag.nome.charAt(0) }}</span>
                   }
                 </span>
                 <div class="cat-body">
-                  <h2>{{ cat.nome }}</h2>
-                  @if (cat.descricao) {
-                    <p>{{ cat.descricao }}</p>
-                  }
-                  @if (cat.documentos_count != null && cat.documentos_count > 0) {
-                    <span class="cat-badge">{{ cat.documentos_count }} documento(s)</span>
+                  <h2>{{ pag.nome }}</h2>
+                  @if (pag.descricao) {
+                    <p>{{ pag.descricao }}</p>
                   }
                 </div>
                 <span class="cat-arrow" aria-hidden="true">

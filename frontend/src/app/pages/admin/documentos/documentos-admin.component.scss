@@ -3,6 +3,69 @@
   width: 100%;
 }
 
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: 1px solid var(--line-solid, #e2e6ee);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
+  cursor: pointer;
+}
+
+.tab.active {
+  background: rgba(29, 84, 230, 0.08);
+  border-color: rgba(29, 84, 230, 0.35);
+  color: var(--accent, #1d54e6);
+}
+
+.pagina-select {
+  max-width: 320px;
+  margin-bottom: 16px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-solid, #e2e6ee);
+  text-align: left;
+}
+
+.admin-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim, #8a93a8);
+}
+
+.cor-chip {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+
 .docs-admin {
   max-width: none;
   width: 100%;

@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS treinamentos (
   titulo        VARCHAR(180) NOT NULL,
   descricao     TEXT NULL,
   categoria     VARCHAR(40) NOT NULL,
+  pagina_id     INT NULL,
+  categoria_id  INT NULL,
   area          VARCHAR(80) NULL,
   duracao_seg   INT NULL,
   container     VARCHAR(63) NOT NULL,
@@ -26,6 +28,8 @@ CREATE TABLE IF NOT EXISTS treinamentos (
   criado_em     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_categoria (categoria),
+  INDEX idx_pagina (pagina_id),
+  INDEX idx_categoria_id (categoria_id),
   INDEX idx_ativo (ativo),
   INDEX idx_destaque (destaque),
   INDEX idx_container (container)
