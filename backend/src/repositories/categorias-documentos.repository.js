@@ -84,7 +84,9 @@ async function findAllFlat({ includeCounts = false, paginaId = null } = {}) {
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const sql = includeCounts
-    ? `SELECT c.*, (SELECT COUNT(*) FROM documentos d WHERE d.categoria_id = c.id AND d.ativo = 1) AS documentos_count
+    ? `SELECT c.*, (SELECT COUNT(DISTINCT d.id) FROM documentos d
+         INNER JOIN documento_entidades de ON de.documento_id = d.id
+         WHERE de.categoria_id = c.id AND d.ativo = 1) AS documentos_count
        FROM categorias_documentos c ${where}
        ORDER BY c.parent_id IS NULL DESC, c.parent_id, c.ordem, c.id`
     : `SELECT * FROM categorias_documentos c ${where}

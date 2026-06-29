@@ -18,8 +18,13 @@ router.delete('/visualizadores/:usuarioId', ...adminGuard, controller.removerVis
 
 router.get('/config', ...adminGuard, controller.obterConfig);
 router.put('/config', ...adminGuard, controller.atualizarConfig);
+router.get('/gatilhos/:dias/preview', ...adminGuard, controller.previewGatilho);
+router.post('/gatilhos/:dias/teste', ...adminGuard, controller.testarGatilho);
+router.post('/enviar-alertas', ...adminGuard, controller.enviarAlertas);
+router.post('/enviar-resumo', ...adminGuard, controller.enviarResumo);
 router.post('/sincronizar', ...adminGuard, controller.sincronizar);
 router.get('/sync-log', ...adminGuard, controller.syncLog);
-router.post('/enviar-resumo', ...adminGuard, controller.enviarResumo);
+router.get('/alertas-envio-log', ...adminGuard, controller.alertasEnvioLog);
+router.get('/alertas-contratos', ...adminGuard, controller.listarContratosEmAlerta);
 
 module.exports = router;

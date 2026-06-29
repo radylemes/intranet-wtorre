@@ -62,7 +62,7 @@
 /* KPIs */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 16px;
 }
@@ -89,6 +89,10 @@
 
 .kpi.is-amber::before {
   background: var(--status-amber);
+}
+
+.kpi.is-orange::before {
+  background: #e07a2e;
 }
 
 .kpi.is-red::before {
@@ -190,6 +194,10 @@ tbody tr.is-clickable:hover {
 
 .kpi.is-amber .value {
   color: var(--status-amber);
+}
+
+.kpi.is-orange .value {
+  color: #e07a2e;
 }
 
 .kpi.is-red .value {
@@ -525,6 +533,12 @@ tbody tr:not(:last-child) td {
   margin-top: 2px;
 }
 
+@media (max-width: 1100px) {
+  .kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 860px) {
   .kpis {
     grid-template-columns: repeat(2, 1fr);
@@ -577,25 +591,49 @@ tbody tr:not(:last-child) td {
   margin-bottom: 16px;
 }
 
-.venc-card,
-.rr-card {
-  display: flex;
-  flex-direction: column;
+.novos-blocos.pair-row--equal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+
+  > .venc-card {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 100%;
+    min-width: 0;
+  }
+
+  > .rr-card {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 100%;
+    min-width: 0;
+  }
 }
 
-@media (min-width: 861px) {
-  .pair-row--equal > .venc-card,
-  .pair-row--equal > .rr-card {
-    min-height: 100%;
-  }
+.rr-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 
-  .venc-card .venc-wrap,
-  .venc-card .empty-hint,
-  .rr-card .rr-total,
-  .rr-card .rr-q-list,
-  .rr-card .empty-hint {
-    flex: 1;
-  }
+.venc-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.venc-card .venc-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.venc-card .venc-legend {
+  align-self: end;
 }
 
 .empty-hint {
@@ -606,12 +644,17 @@ tbody tr:not(:last-child) td {
 
 .venc-wrap {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 12px;
+  min-height: 0;
 }
 
 .tl-cap {
   flex-shrink: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   text-align: center;
   min-width: 52px;
   padding: 4px 6px;
@@ -645,18 +688,23 @@ tbody tr:not(:last-child) td {
 .tl {
   flex: 1;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
+  align-self: stretch;
   gap: 2px;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   padding-bottom: 2px;
 }
 
 .tl-col {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  min-height: 0;
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
   gap: 4px;
   padding: 2px 0;
   border-radius: 6px;
@@ -676,11 +724,12 @@ tbody tr:not(:last-child) td {
   font-size: 11px;
   color: var(--ink);
   min-height: 14px;
+  flex-shrink: 0;
 }
 
 .tl-bar-wrap {
   width: 100%;
-  height: 80px;
+  min-height: 48px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -706,13 +755,13 @@ tbody tr:not(:last-child) td {
   letter-spacing: 0.04em;
   color: var(--ink-dim);
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .venc-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  margin-top: auto;
   padding-top: 14px;
   border-top: 1px solid var(--line-solid);
 }
@@ -742,6 +791,7 @@ tbody tr:not(:last-child) td {
 
 /* Receita a renovar */
 .rr-total {
+  flex-shrink: 0;
   margin-bottom: 16px;
   padding: 4px 6px;
   border-radius: 8px;
@@ -768,9 +818,12 @@ tbody tr:not(:last-child) td {
 }
 
 .rr-q-list {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  justify-content: flex-start;
 }
 
 .rr-q {
@@ -816,11 +869,12 @@ tbody tr:not(:last-child) td {
 }
 
 .rr-venc {
+  flex-shrink: 0;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-top: auto;
+  margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--line-solid);
   border-radius: 0 0 8px 8px;
@@ -850,7 +904,7 @@ tbody tr:not(:last-child) td {
 
 @media (max-width: 860px) {
   .novos-blocos.pair-row--equal {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .venc-wrap {
@@ -863,8 +917,8 @@ tbody tr:not(:last-child) td {
     margin-top: 8px;
   }
 
-  .tl-bar-wrap {
-    height: 64px;
+  .tl-col {
+    grid-template-rows: auto 64px auto;
   }
 }
 

@@ -1,8 +1,9 @@
 const { getPool } = require('../db/pool');
-const { sqlSituacaoExpr } = require('../utils/camarotes-situacao.util');
+const { sqlSituacaoExpr, diasRestantes } = require('../utils/camarotes-situacao.util');
 const { sqlCessionarioVagoExpr } = require('../utils/camarotes-cessionario.util');
 
 const TIPO_CAMAROTE = 'camarote';
+const DIAS_VENCIMENTO_URGENTE = 30;
 const OCUPADO = `NOT ${sqlCessionarioVagoExpr('')}`;
 
 const MESES_LABEL = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -98,6 +99,8 @@ function mapConfig(row) {
     envio_ativo: !!row.envio_ativo,
     sync_automatica: row.sync_automatica != null ? !!row.sync_automatica : true,
     sync_frequencia: normalizeSyncFrequencia(row.sync_frequencia),
+    sharepoint_url: row.sharepoint_url || null,
+    sharepoint_sheet: row.sharepoint_sheet || 'Camarotes',
     ultimo_envio: row.ultimo_envio,
     ultima_sync: row.ultima_sync,
   };
@@ -120,11 +123,26 @@ function mapSyncLog(row) {
 async function getConfig() {
   const pool = getPool();
   const [rows] = await pool.execute('SELECT * FROM camarotes_config WHERE id = 1 LIMIT 1');
-  return mapConfig(rows[0]);
+  const base = mapConfig(rows[0]);
+  if (!base) return null;
+
+  const gatilhos = await listGatilhos();
+  const settings = await getAlertasSettings();
+  return {
+    ...base,
+    gatilhos,
+    horario_envio: settings.horario_envio,
+    envio_apos_sync: settings.envio_apos_sync,
+  };
 }
 
 async function updateConfig(data) {
   const pool = getPool();
+  const hasSharepoint = data.sharepoint_url !== undefined || data.sharepoint_sheet !== undefined;
+  const spFields = hasSharepoint ? ', sharepoint_url = ?, sharepoint_sheet = ?' : '';
+  const spParams = hasSharepoint
+    ? [data.sharepoint_url?.trim() || null, data.sharepoint_sheet?.trim() || 'Camarotes']
+    : [];
   await pool.execute(
     `UPDATE camarotes_config SET
       emails_alerta = ?,
@@ -133,6 +151,7 @@ async function updateConfig(data) {
       envio_ativo = ?,
       sync_automatica = ?,
       sync_frequencia = ?
+      ${spFields}
      WHERE id = 1`,
     [
       JSON.stringify(data.emails_alerta || []),
@@ -141,6 +160,7 @@ async function updateConfig(data) {
       data.envio_ativo ? 1 : 0,
       data.sync_automatica !== false ? 1 : 0,
       normalizeSyncFrequencia(data.sync_frequencia),
+      ...spParams,
     ]
   );
   return getConfig();
@@ -246,7 +266,7 @@ async function listSyncLog(limit = 20) {
   return rows.map(mapSyncLog);
 }
 
-async function listUnidades({ tipo, setor, situacao } = {}, diasVenceBreve = 90) {
+async function listUnidades({ tipo, setor, situacao, dias_max } = {}, diasVenceBreve = 90) {
   const pool = getPool();
   const conditions = [];
   const params = [diasVenceBreve];
@@ -258,6 +278,12 @@ async function listUnidades({ tipo, setor, situacao } = {}, diasVenceBreve = 90)
   if (setor?.trim()) {
     conditions.push('setor = ?');
     params.push(setor.trim());
+  }
+  if (dias_max != null && Number.isFinite(Number(dias_max))) {
+    conditions.push(OCUPADO);
+    conditions.push('final_locacao >= CURDATE()');
+    conditions.push('final_locacao <= DATE_ADD(CURDATE(), INTERVAL ? DAY)');
+    params.push(Number(dias_max));
   }
   if (situacao) {
     conditions.push(`${sqlSituacaoExpr('')} = ?`);
@@ -304,6 +330,7 @@ function resumoAlertas(unidades, tipo) {
   const list = unidades.filter((u) => u.tipo_unidade === tipo);
   const counts = {
     vencidos: 0,
+    vence_30d: 0,
     vence_breve: 0,
     vagos: 0,
     ativos: 0,
@@ -315,6 +342,11 @@ function resumoAlertas(unidades, tipo) {
     else if (u.situacao === 'vago') counts.vagos += 1;
     else if (u.situacao === 'ativo') counts.ativos += 1;
     if (!u.final_locacao && u.cessionario) counts.sem_data += 1;
+
+    const dias = diasRestantes(u.final_locacao);
+    if (dias != null && dias >= 0 && dias <= DIAS_VENCIMENTO_URGENTE && u.situacao !== 'vago') {
+      counts.vence_30d += 1;
+    }
   }
   return counts;
 }
@@ -405,21 +437,21 @@ async function fetchVencimentosMensais() {
   return rows;
 }
 
-async function fetchVencimentosEscalares() {
+async function fetchVencimentosEscalares(diasVenceBreve = 90) {
   const pool = getPool();
   const [rows] = await pool.execute(
     `SELECT
-       COALESCE(SUM(final_locacao < CURDATE()), 0) AS vencidos,
+       COALESCE(SUM(${sqlSituacaoExpr('')} = 'vencido'), 0) AS vencidos,
        COALESCE(SUM(final_locacao >= DATE_ADD(CURDATE(), INTERVAL 12 MONTH)), 0) AS apos_12m,
        DATE_FORMAT(CURDATE(), '%Y-%m') AS ym_atual,
        DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS ref_hoje,
        DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 12 MONTH), '%Y-%m-%d') AS ref_limite_12m,
-       DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 90 DAY), '%Y-%m-%d') AS limite_breve
+       DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL ? DAY), '%Y-%m-%d') AS limite_breve
      FROM camarotes_unidades
      WHERE tipo_unidade = ?
        AND ${OCUPADO}
        AND final_locacao IS NOT NULL`,
-    [TIPO_CAMAROTE]
+    [diasVenceBreve, TIPO_CAMAROTE]
   );
   return rows[0] || {};
 }
@@ -515,7 +547,7 @@ async function buildDashboard() {
   const [unidades, rowsMensais, escalares, rowsTri, totais] = await Promise.all([
     fetchAllUnidades(dias),
     fetchVencimentosMensais(),
-    fetchVencimentosEscalares(),
+    fetchVencimentosEscalares(dias),
     fetchReceitaRenovarTrimestres(),
     fetchReceitaRenovarTotais(),
   ]);
@@ -534,6 +566,7 @@ async function buildDashboard() {
   return {
     ultima_sync: config?.ultima_sync || null,
     dias_vence_breve: dias,
+    dias_vencimento_urgente: DIAS_VENCIMENTO_URGENTE,
     camarotes: {
       disponiveis_por_setor: agruparPorSetor(camarotes, TIPO_CAMAROTE),
       alertas,
@@ -620,6 +653,341 @@ async function listUnidadesParaAlerta(diasVenceBreve) {
   return rows.map((r) => mapUnidade(r));
 }
 
+function mapGatilho(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    dias: row.dias,
+    template_codigo: row.template_codigo,
+    assunto: row.assunto,
+    ativo: !!row.ativo,
+  };
+}
+
+async function listGatilhos() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT * FROM camarotes_gatilhos ORDER BY dias DESC'
+  );
+  return rows.map(mapGatilho);
+}
+
+async function upsertGatilhos(gatilhos) {
+  const pool = getPool();
+  for (const g of gatilhos) {
+    await pool.execute(
+      `INSERT INTO camarotes_gatilhos (dias, template_codigo, assunto, ativo)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         template_codigo = VALUES(template_codigo),
+         assunto = VALUES(assunto),
+         ativo = VALUES(ativo)`,
+      [
+        g.dias,
+        g.template_codigo,
+        g.assunto,
+        g.ativo ? 1 : 0,
+      ]
+    );
+  }
+  return listGatilhos();
+}
+
+async function getAlertasSettings() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT * FROM camarotes_alertas_settings WHERE id = 1 LIMIT 1'
+  );
+  const row = rows[0];
+  return {
+    horario_envio: row?.horario_envio || '08:00',
+    envio_apos_sync: !!row?.envio_apos_sync,
+  };
+}
+
+async function updateAlertasSettings(data) {
+  const pool = getPool();
+  await pool.execute(
+    `INSERT INTO camarotes_alertas_settings (id, horario_envio, envio_apos_sync)
+     VALUES (1, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       horario_envio = VALUES(horario_envio),
+       envio_apos_sync = VALUES(envio_apos_sync)`,
+    [data.horario_envio || '08:00', data.envio_apos_sync ? 1 : 0]
+  );
+  return getAlertasSettings();
+}
+
+async function listUnidadesPorDiasRestantes(dias) {
+  const pool = getPool();
+  const diasNum = Number(dias);
+  const dateCondition =
+    diasNum === 0
+      ? 'u.final_locacao <= CURDATE()'
+      : 'DATEDIFF(u.final_locacao, CURDATE()) = ?';
+  const params = diasNum === 0 ? [] : [diasNum];
+
+  const [rows] = await pool.execute(
+    `SELECT u.*,
+       (CASE
+         WHEN TRIM(COALESCE(u.cessionario, '')) = '' THEN 'vago'
+         WHEN u.final_locacao IS NULL THEN 'ativo'
+         WHEN u.final_locacao < CURDATE() THEN 'vencido'
+         WHEN u.final_locacao <= DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN 'vence_breve'
+         ELSE 'ativo'
+       END) AS situacao
+     FROM camarotes_unidades u
+     WHERE u.tipo_unidade = 'camarote'
+       AND TRIM(COALESCE(u.cessionario, '')) <> ''
+       AND u.final_locacao IS NOT NULL
+       AND ${dateCondition}`,
+    params
+  );
+  return rows.map((r) => mapUnidade(r));
+}
+
+async function findUnidadeById(id) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT *, 'ativo' AS situacao FROM camarotes_unidades WHERE id = ? LIMIT 1`,
+    [id]
+  );
+  return mapUnidade(rows[0]);
+}
+
+async function jaEnviouAlerta(unidadeId, gatilhoDias, finalLocacao) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT id FROM camarotes_alertas_envio
+     WHERE unidade_id = ? AND gatilho_dias = ? AND final_locacao = ?
+     LIMIT 1`,
+    [unidadeId, gatilhoDias, finalLocacao]
+  );
+  return rows.length > 0;
+}
+
+async function registrarEnvioAlerta(unidadeId, gatilhoDias, finalLocacao) {
+  const pool = getPool();
+  await pool.execute(
+    `INSERT IGNORE INTO camarotes_alertas_envio (unidade_id, gatilho_dias, final_locacao)
+     VALUES (?, ?, ?)`,
+    [unidadeId, gatilhoDias, finalLocacao]
+  );
+}
+
+async function listContratosEmAlerta(filtros = {}) {
+  const pool = getPool();
+  const where = [];
+  const params = [];
+
+  if (filtros.gatilho_dias != null && filtros.gatilho_dias !== '') {
+    where.push('g.dias = ?');
+    params.push(Number(filtros.gatilho_dias));
+  }
+
+  if (filtros.notificado === true) {
+    where.push('e.id IS NOT NULL');
+  } else if (filtros.notificado === false) {
+    where.push('e.id IS NULL');
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+  const [rows] = await pool.execute(
+    `SELECT
+       g.dias AS gatilho_dias,
+       g.ativo AS gatilho_ativo,
+       u.id AS unidade_id,
+       u.numero,
+       u.cessionario,
+       u.setor,
+       u.andar,
+       u.final_locacao,
+       DATEDIFF(u.final_locacao, CURDATE()) AS dias_restantes,
+       e.id AS envio_id,
+       e.enviado_em AS notificado_em
+     FROM camarotes_gatilhos g
+     INNER JOIN camarotes_unidades u
+       ON u.tipo_unidade = 'camarote'
+       AND TRIM(COALESCE(u.cessionario, '')) <> ''
+       AND u.final_locacao IS NOT NULL
+       AND (
+         (g.dias = 0 AND u.final_locacao <= CURDATE())
+         OR (g.dias <> 0 AND DATEDIFF(u.final_locacao, CURDATE()) = g.dias)
+       )
+     LEFT JOIN camarotes_alertas_envio e
+       ON e.unidade_id = u.id
+       AND e.gatilho_dias = g.dias
+       AND e.final_locacao = u.final_locacao
+     ${whereSql}
+     ORDER BY g.dias DESC, u.numero ASC`,
+    params
+  );
+
+  return rows.map((r) => ({
+    unidade_id: r.unidade_id,
+    numero: r.numero,
+    cessionario: r.cessionario,
+    setor: r.setor,
+    andar: r.andar,
+    final_locacao: r.final_locacao,
+    dias_restantes: Number(r.dias_restantes),
+    gatilho_dias: r.gatilho_dias,
+    gatilho_ativo: !!r.gatilho_ativo,
+    notificado: r.envio_id != null,
+    notificado_em: r.notificado_em || null,
+  }));
+}
+
+async function registrarEnvioAlerta(unidadeId, gatilhoDias, finalLocacao) {
+  const pool = getPool();
+  await pool.execute(
+    `INSERT IGNORE INTO camarotes_alertas_envio (unidade_id, gatilho_dias, final_locacao)
+     VALUES (?, ?, ?)`,
+    [unidadeId, gatilhoDias, finalLocacao]
+  );
+}
+
+function aggregateStatusEntrega(destinatarios) {
+  if (!destinatarios?.length) return 'legado';
+  const statuses = destinatarios.map((d) => d.status);
+  if (statuses.every((s) => s === 'falha')) return 'falha';
+  if (statuses.some((s) => s === 'bounce')) return 'bounce';
+  if (statuses.every((s) => s === 'entregue')) return 'entregue';
+  if (statuses.every((s) => s === 'enviado')) return 'enviado';
+  if (statuses.some((s) => s === 'falha') || statuses.some((s) => s === 'bounce')) return 'parcial';
+  return 'parcial';
+}
+
+async function registrarDestinoEnvio({
+  unidadeId,
+  gatilhoDias,
+  finalLocacao,
+  tentativaEm,
+  destinatario,
+  messageId,
+  provider,
+  status,
+  erro,
+}) {
+  const pool = getPool();
+  await pool.execute(
+    `INSERT INTO camarotes_alertas_destinos
+       (unidade_id, gatilho_dias, final_locacao, tentativa_em, destinatario, message_id, provider, status, erro)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      unidadeId,
+      gatilhoDias,
+      finalLocacao,
+      tentativaEm,
+      String(destinatario || '').trim().toLowerCase(),
+      messageId || null,
+      provider,
+      status,
+      erro || null,
+    ]
+  );
+}
+
+async function atualizarStatusEntregaPorMessageId({ messageId, status, erro }) {
+  if (!messageId) return 0;
+  const pool = getPool();
+  const [result] = await pool.execute(
+    `UPDATE camarotes_alertas_destinos
+     SET status = ?, erro = COALESCE(?, erro), status_atualizado_em = NOW()
+     WHERE message_id = ?`,
+    [status, erro || null, messageId]
+  );
+  return result.affectedRows || 0;
+}
+
+function mapAcsDeliveryStatus(acsStatus) {
+  const normalized = String(acsStatus || '').trim().toLowerCase();
+  if (normalized === 'delivered') return 'entregue';
+  return 'bounce';
+}
+
+async function listAlertasEnvioLog(limit = 50) {
+  const pool = getPool();
+  const lim = Math.min(Math.max(Number(limit) || 50, 1), 200);
+
+  const [destinoRows] = await pool.execute(
+    `SELECT
+       MIN(d.id) AS id,
+       d.unidade_id,
+       d.gatilho_dias,
+       d.final_locacao,
+       d.tentativa_em AS enviado_em,
+       u.numero,
+       u.cessionario,
+       JSON_ARRAYAGG(
+         JSON_OBJECT(
+           'destinatario', d.destinatario,
+           'status', d.status,
+           'erro', d.erro,
+           'provider', d.provider,
+           'message_id', d.message_id
+         )
+       ) AS destinatarios_json
+     FROM camarotes_alertas_destinos d
+     INNER JOIN camarotes_unidades u ON u.id = d.unidade_id
+     GROUP BY d.unidade_id, d.gatilho_dias, d.final_locacao, d.tentativa_em, u.numero, u.cessionario
+     ORDER BY d.tentativa_em DESC
+     LIMIT ${lim}`
+  );
+
+  const [legacyRows] = await pool.execute(
+    `SELECT e.id, e.gatilho_dias, e.final_locacao, e.enviado_em, u.numero, u.cessionario
+     FROM camarotes_alertas_envio e
+     INNER JOIN camarotes_unidades u ON u.id = e.unidade_id
+     WHERE NOT EXISTS (
+       SELECT 1 FROM camarotes_alertas_destinos d
+       WHERE d.unidade_id = e.unidade_id
+         AND d.gatilho_dias = e.gatilho_dias
+         AND d.final_locacao = e.final_locacao
+     )
+     ORDER BY e.enviado_em DESC
+     LIMIT ${lim}`
+  );
+
+  const destinos = destinoRows.map((r) => {
+    let destinatarios = [];
+    try {
+      destinatarios =
+        typeof r.destinatarios_json === 'string'
+          ? JSON.parse(r.destinatarios_json)
+          : r.destinatarios_json || [];
+    } catch {
+      destinatarios = [];
+    }
+    return {
+      id: r.id,
+      gatilho_dias: r.gatilho_dias,
+      final_locacao: r.final_locacao,
+      enviado_em: r.enviado_em,
+      numero: r.numero,
+      cessionario: r.cessionario,
+      status_entrega: aggregateStatusEntrega(destinatarios),
+      destinatarios,
+    };
+  });
+
+  const legado = legacyRows.map((r) => ({
+    id: r.id,
+    gatilho_dias: r.gatilho_dias,
+    final_locacao: r.final_locacao,
+    enviado_em: r.enviado_em,
+    numero: r.numero,
+    cessionario: r.cessionario,
+    status_entrega: 'legado',
+    destinatarios: [],
+  }));
+
+  return [...destinos, ...legado]
+    .sort((a, b) => new Date(b.enviado_em) - new Date(a.enviado_em))
+    .slice(0, lim);
+}
+
 module.exports = {
   getConfig,
   updateConfig,
@@ -631,6 +999,19 @@ module.exports = {
   listUnidades,
   buildDashboard,
   listUnidadesParaAlerta,
+  listGatilhos,
+  upsertGatilhos,
+  getAlertasSettings,
+  updateAlertasSettings,
+  listUnidadesPorDiasRestantes,
+  findUnidadeById,
+  jaEnviouAlerta,
+  registrarEnvioAlerta,
+  registrarDestinoEnvio,
+  atualizarStatusEntregaPorMessageId,
+  mapAcsDeliveryStatus,
+  listAlertasEnvioLog,
+  listContratosEmAlerta,
   fetchAllUnidades,
   isVisualizador,
   listVisualizadores,

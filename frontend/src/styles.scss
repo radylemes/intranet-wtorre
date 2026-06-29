@@ -115,3 +115,20 @@ body.pagina-inicio::before {
     box-shadow: 0 0 0 0 rgba(28, 158, 98, 0);
   }
 }
+
+.app-text-tooltip {
+  position: fixed;
+  z-index: 10000;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #10151f;
+  color: #fff;
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-weight: 500;
+  box-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.55);
+  pointer-events: none;
+  white-space: normal;
+  word-break: break-word;
+}

@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ConfiguracoesService } from '../../../services/configuracoes.service';
 import { AlertasService } from '../../../services/alertas.service';
 import { AuthService } from '../../../services/auth.service';
+import { EmailProvider } from '../../../models/configuracoes.model';
 
 @Component({
   selector: 'app-configuracoes-admin',
@@ -20,14 +21,18 @@ export class ConfiguracoesAdminComponent implements OnInit {
 
   readonly mensagem = signal('');
   readonly erro = signal('');
-  readonly salvandoSmtp = signal(false);
-  readonly verificandoSmtp = signal(false);
-  readonly enviandoTesteSmtp = signal(false);
+  readonly salvandoEmail = signal(false);
+  readonly verificandoEmail = signal(false);
+  readonly enviandoTesteEmail = signal(false);
   readonly carregando = signal(true);
   readonly smtpHasPassword = signal(false);
+  readonly acsHasConnectionString = signal(false);
   readonly mostrarSenhaSmtp = signal(false);
+  readonly mostrarAcsConnection = signal(false);
+  readonly providerSelecionado = signal<EmailProvider>('smtp');
 
-  readonly smtpForm = this.fb.nonNullable.group({
+  readonly emailForm = this.fb.nonNullable.group({
+    provider: ['smtp' as EmailProvider],
     host: [''],
     port: [587, [Validators.required, Validators.min(1), Validators.max(65535)]],
     secure: [false],
@@ -35,6 +40,9 @@ export class ConfiguracoesAdminComponent implements OnInit {
     password: [''],
     from_email: [''],
     from_name: [''],
+    acs_connection_string: [''],
+    acs_sender: [''],
+    ocultar_para: [false],
     ativo: [false],
     destinatario_teste: [''],
   });
@@ -51,18 +59,24 @@ export class ConfiguracoesAdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.api.getSmtp().subscribe({
-      next: (smtp) => {
-        this.smtpHasPassword.set(smtp.has_password);
-        this.smtpForm.patchValue({
-          host: smtp.host,
-          port: smtp.port,
-          secure: smtp.secure,
-          user: smtp.user,
+    this.api.getEmail().subscribe({
+      next: (email) => {
+        this.smtpHasPassword.set(email.has_password);
+        this.acsHasConnectionString.set(email.has_acs_connection_string);
+        this.providerSelecionado.set(email.provider);
+        this.emailForm.patchValue({
+          provider: email.provider,
+          host: email.host,
+          port: email.port,
+          secure: email.secure,
+          user: email.user,
           password: '',
-          from_email: smtp.from_email,
-          from_name: smtp.from_name,
-          ativo: smtp.ativo,
+          from_email: email.from_email,
+          from_name: email.from_name,
+          acs_connection_string: '',
+          acs_sender: email.acs_sender,
+          ocultar_para: email.ocultar_para,
+          ativo: email.ativo,
           destinatario_teste: this.auth.usuario()?.email || '',
         });
         this.carregando.set(false);
@@ -74,15 +88,21 @@ export class ConfiguracoesAdminComponent implements OnInit {
     });
   }
 
-  salvarSmtp(): void {
-    if (this.smtpForm.invalid) return;
+  setProvider(provider: EmailProvider): void {
+    this.providerSelecionado.set(provider);
+    this.emailForm.controls.provider.setValue(provider);
+  }
 
-    const raw = this.smtpForm.getRawValue();
-    this.salvandoSmtp.set(true);
+  salvarEmail(): void {
+    if (this.emailForm.invalid) return;
+
+    const raw = this.emailForm.getRawValue();
+    this.salvandoEmail.set(true);
     this.erro.set('');
 
     this.api
-      .salvarSmtp({
+      .salvarEmail({
+        provider: raw.provider,
         host: raw.host.trim(),
         port: Number(raw.port),
         secure: raw.secure,
@@ -90,57 +110,67 @@ export class ConfiguracoesAdminComponent implements OnInit {
         password: raw.password.trim() || undefined,
         from_email: raw.from_email.trim(),
         from_name: raw.from_name.trim(),
+        acs_connection_string: raw.acs_connection_string.trim() || undefined,
+        acs_sender: raw.acs_sender.trim(),
+        ocultar_para: raw.ocultar_para,
         ativo: raw.ativo,
       })
       .subscribe({
-        next: (smtp) => {
-          this.smtpHasPassword.set(smtp.has_password);
-          this.smtpForm.patchValue({ password: '' });
+        next: (email) => {
+          this.smtpHasPassword.set(email.has_password);
+          this.acsHasConnectionString.set(email.has_acs_connection_string);
+          this.providerSelecionado.set(email.provider);
+          this.emailForm.patchValue({ password: '', acs_connection_string: '', provider: email.provider });
           this.mostrarSenhaSmtp.set(false);
-          this.mensagem.set('Configurações SMTP salvas.');
-          this.salvandoSmtp.set(false);
+          this.mostrarAcsConnection.set(false);
+          this.mensagem.set('Configurações de e-mail salvas.');
+          this.salvandoEmail.set(false);
         },
         error: (err: HttpErrorResponse) => {
-          this.erro.set(err.error?.mensagem || 'Erro ao salvar SMTP.');
-          this.salvandoSmtp.set(false);
+          this.erro.set(err.error?.mensagem || 'Erro ao salvar configurações de e-mail.');
+          this.salvandoEmail.set(false);
         },
       });
   }
 
-  verificarSmtp(): void {
-    this.verificandoSmtp.set(true);
+  verificarEmail(): void {
+    this.verificandoEmail.set(true);
     this.erro.set('');
 
-    this.api.verificarSmtp().subscribe({
+    this.api.verificarEmail().subscribe({
       next: (res) => {
         this.mensagem.set(res.mensagem || 'Conexão SMTP verificada com sucesso.');
-        this.verificandoSmtp.set(false);
+        this.verificandoEmail.set(false);
       },
       error: (err: HttpErrorResponse) => {
         this.erro.set(err.error?.mensagem || 'Falha ao verificar conexão SMTP.');
-        this.verificandoSmtp.set(false);
+        this.verificandoEmail.set(false);
       },
     });
   }
 
-  enviarTesteSmtp(): void {
-    const destinatario = this.smtpForm.controls.destinatario_teste.value.trim();
-    this.enviandoTesteSmtp.set(true);
+  enviarTesteEmail(): void {
+    const destinatario = this.emailForm.controls.destinatario_teste.value.trim();
+    this.enviandoTesteEmail.set(true);
     this.erro.set('');
 
-    this.api.enviarTesteSmtp(destinatario || undefined).subscribe({
+    this.api.enviarTesteEmail(destinatario || undefined).subscribe({
       next: (res) => {
         this.mensagem.set(res.mensagem || 'E-mail de teste enviado.');
-        this.enviandoTesteSmtp.set(false);
+        this.enviandoTesteEmail.set(false);
       },
       error: (err: HttpErrorResponse) => {
         this.erro.set(err.error?.mensagem || 'Falha ao enviar e-mail de teste.');
-        this.enviandoTesteSmtp.set(false);
+        this.enviandoTesteEmail.set(false);
       },
     });
   }
 
   toggleSenhaSmtp(): void {
     this.mostrarSenhaSmtp.update((v) => !v);
+  }
+
+  toggleAcsConnection(): void {
+    this.mostrarAcsConnection.update((v) => !v);
   }
 }

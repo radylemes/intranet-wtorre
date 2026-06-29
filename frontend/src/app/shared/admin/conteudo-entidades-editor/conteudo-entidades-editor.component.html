@@ -1,0 +1,87 @@
+@if (carregando()) {
+  <p class="hint">Carregando entidades...</p>
+} @else if (erro()) {
+  <p class="warn">{{ erro() }}</p>
+} @else if (!rows().length) {
+  <p class="hint">Nenhuma entidade cadastrada.</p>
+} @else if (variant() === 'vrow') {
+  <div class="entidades-editor entidades-editor--vrow">
+    @for (row of rows(); track row.pagina.id) {
+      @let cores = corEntidade(row.pagina.slug);
+      <div
+        class="vrow"
+        [class.on]="row.ativo"
+        [class.empty]="row.ativo && !row.categoriaId"
+        [style.--accent]="cores.accent"
+        [style.--accent-ring]="cores.ring"
+      >
+        <button type="button" class="vtoggle" (click)="toggleEntidade(row, !row.ativo)">
+          <span class="vbox" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M5 13l4 4L19 7"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="vdot" aria-hidden="true"></span>
+          <span class="vnm">{{ row.pagina.nome }}</span>
+        </button>
+        <span class="vmuted">Não exibida</span>
+        @if (row.ativo) {
+          <span class="vcat">
+            <select
+              [ngModel]="row.categoriaId"
+              (ngModelChange)="alterarCategoria(row, $event)"
+              (click)="$event.stopPropagation()"
+            >
+              <option [ngValue]="null">Selecione…</option>
+              @for (c of row.flat; track c.id) {
+                <option [ngValue]="c.id">{{ indentLabel(c.depth, c.label) }}</option>
+              }
+            </select>
+          </span>
+        }
+      </div>
+    }
+  </div>
+  @if (!temAlgumaAtiva()) {
+    <p class="warn">Marque ao menos uma entidade e escolha a categoria.</p>
+  }
+} @else {
+  <div class="entidades-editor">
+    @for (row of rows(); track row.pagina.id) {
+      <div class="ent-row" [class.active]="row.ativo">
+        <label class="ent-check">
+          <input
+            type="checkbox"
+            [checked]="row.ativo"
+            (change)="toggleEntidade(row, $any($event.target).checked)"
+          />
+          @if (row.pagina.logo_url) {
+            <img [src]="row.pagina.logo_url" [alt]="row.pagina.nome" class="ent-logo" />
+          }
+          <span class="ent-nome">{{ row.pagina.nome }}</span>
+        </label>
+        @if (row.ativo) {
+          <select
+            class="ent-cat"
+            [ngModel]="row.categoriaId"
+            (ngModelChange)="alterarCategoria(row, $event)"
+          >
+            <option [ngValue]="null">Selecione a categoria...</option>
+            @for (c of row.flat; track c.id) {
+              <option [ngValue]="c.id">{{ indentLabel(c.depth, c.label) }}</option>
+            }
+          </select>
+        }
+      </div>
+    }
+  </div>
+  @if (!temAlgumaAtiva()) {
+    <p class="warn">Marque ao menos uma entidade e escolha a categoria.</p>
+  }
+}

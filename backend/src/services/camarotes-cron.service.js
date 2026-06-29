@@ -15,6 +15,7 @@ const FREQUENCIA_MS = {
 };
 
 let syncIntervalHandle = null;
+let alertasCronTask = null;
 
 function isCronLeader() {
   const instance = process.env.NODE_APP_INSTANCE;
@@ -62,14 +63,23 @@ async function refreshSyncSchedule() {
   }
 }
 
-function agendarJobsCamarotes() {
-  if (!isCronLeader()) {
-    console.log('[camarotes.cron] Instância secundária PM2 — jobs não agendados.');
-    return;
+async function refreshAlertasSchedule() {
+  if (!isCronLeader()) return;
+
+  if (alertasCronTask) {
+    alertasCronTask.stop();
+    alertasCronTask = null;
   }
 
-  cron.schedule(
-    '15 6 * * *',
+  const config = await camarotesRepo.getConfig();
+  const horario = config?.horario_envio || '08:00';
+  const match = String(horario).match(/^(\d{1,2}):(\d{2})$/);
+  const minute = match ? Number(match[2]) : 0;
+  const hour = match ? Number(match[1]) : 8;
+  const expr = `${minute} ${hour} * * *`;
+
+  alertasCronTask = cron.schedule(
+    expr,
     () => {
       alertasService.tentarEnvioCron().catch((err) => {
         console.error('[camarotes.cron] Erro no envio de alertas:', err.message);
@@ -78,16 +88,32 @@ function agendarJobsCamarotes() {
     { timezone: TZ }
   );
 
+  console.log(`[camarotes.cron] Alertas diários ${horario} (${TZ})`);
+}
+
+function agendarJobsCamarotes() {
+  if (!isCronLeader()) {
+    console.log('[camarotes.cron] Instância secundária PM2 — jobs não agendados.');
+    return;
+  }
+
+  refreshAlertasSchedule().catch((err) => {
+    console.error('[camarotes.cron] Falha ao agendar alertas:', err.message);
+  });
+
   refreshSyncSchedule().catch((err) => {
     console.error('[camarotes.cron] Falha ao agendar sync automática:', err.message);
   });
+}
 
-  console.log(`[camarotes.cron] Alertas diários 06:15 (${TZ})`);
+async function reagendarAlertasCamarotes() {
+  await refreshAlertasSchedule();
 }
 
 module.exports = {
   agendarJobsCamarotes,
   reagendarSyncCamarotes: refreshSyncSchedule,
+  reagendarAlertasCamarotes,
   isCronLeader,
   frequenciaParaMs,
 };

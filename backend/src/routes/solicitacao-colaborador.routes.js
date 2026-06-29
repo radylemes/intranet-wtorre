@@ -45,6 +45,8 @@ router.post('/admin/grupos', ...adminGuard, controller.criarGrupo);
 router.put('/admin/grupos/:id', ...adminGuard, controller.atualizarGrupo);
 router.delete('/admin/grupos/:id', ...adminGuard, controller.removerGrupo);
 
+router.get('/admin/usuarios-ad/buscar', ...adminGuard, controller.buscarUsuariosAd);
+
 router.get('/admin/visualizadores', ...adminGuard, controller.listarVisualizadores);
 router.post('/admin/visualizadores', ...adminGuard, controller.adicionarVisualizador);
 router.delete('/admin/visualizadores/:usuarioId', ...adminGuard, controller.removerVisualizador);

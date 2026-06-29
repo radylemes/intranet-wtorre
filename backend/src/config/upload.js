@@ -8,6 +8,10 @@ const {
   isAllowedExtension,
   isAllowedMime,
 } = require('../utils/documentos.validation');
+const { ensureDocumentosThumbsDir } = require('../utils/documentos-thumbnail.util');
+
+const THUMB_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
+const THUMB_MIME = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 function ensureStorageDir() {
   if (!fs.existsSync(env.storageDir)) {
@@ -18,17 +22,42 @@ function ensureStorageDir() {
 ensureStorageDir();
 
 const storage = multer.diskStorage({
-  destination(_req, _file, cb) {
+  destination(_req, file, cb) {
+    if (file.fieldname === 'thumb') {
+      try {
+        ensureDocumentosThumbsDir();
+        cb(null, env.documentosThumbsDir);
+      } catch (err) {
+        cb(err);
+      }
+      return;
+    }
     ensureStorageDir();
     cb(null, env.storageDir);
   },
   filename(_req, file, cb) {
     const ext = getExtension(file.originalname);
+    if (file.fieldname === 'thumb') {
+      const thumbExt = THUMB_EXT.has(`.${ext}`) ? ext : 'jpg';
+      cb(null, `${crypto.randomUUID()}.${thumbExt}`);
+      return;
+    }
     cb(null, `${crypto.randomUUID()}.${ext}`);
   },
 });
 
 function fileFilter(_req, file, cb) {
+  if (file.fieldname === 'thumb') {
+    const ext = `.${getExtension(file.originalname)}`;
+    if (!THUMB_EXT.has(ext)) {
+      return cb(new Error('Thumbnail: use PNG, JPG ou WEBP.'));
+    }
+    if (file.mimetype && !THUMB_MIME.has(file.mimetype)) {
+      return cb(new Error('Thumbnail: tipo MIME inválido.'));
+    }
+    return cb(null, true);
+  }
+
   const ext = getExtension(file.originalname);
   if (!isAllowedExtension(ext)) {
     return cb(new Error('Tipo de arquivo não permitido.'));
@@ -43,6 +72,14 @@ const upload = multer({
   storage,
   fileFilter,
   limits: { fileSize: env.maxUploadMb * 1024 * 1024 },
+});
+
+const uploadFields = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: env.maxUploadMb * 1024 * 1024,
+  },
 });
 
 function handleMulterError(err, req, res, next) {
@@ -60,4 +97,8 @@ function handleMulterError(err, req, res, next) {
   next();
 }
 
-module.exports = { upload, handleMulterError };
+module.exports = {
+  upload,
+  uploadFields,
+  handleMulterError,
+};

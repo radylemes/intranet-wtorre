@@ -1,4 +1,5 @@
 import { Component, OnInit, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { DocumentosService } from '../../../services/documentos.service';
@@ -10,16 +11,21 @@ import {
   DocumentoSetor,
   ICONE_PADRAO,
   MAX_UPLOAD_MB,
+  VisibilidadeEntidade,
+  VisibilidadeEntidadeInput,
 } from '../../../models/documento.model';
 import { DocAdminNodeAction, DocAdminNodeComponent } from './doc-admin-node.component';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AdminDropzoneComponent } from '../../../shared/admin/admin-dropzone/admin-dropzone.component';
+import { ConteudoEntidadesEditorComponent } from '../../../shared/admin/conteudo-entidades-editor/conteudo-entidades-editor.component';
 import { AlertasService } from '../../../services/alertas.service';
 import { DocCatIconePickerComponent } from '../../../shared/documentos/doc-cat-icone-picker.component';
 import { DocEntidadeLogoPickerComponent } from '../../../shared/documentos/doc-entidade-logo-picker.component';
 import { DocCatIconeService } from '../../../shared/documentos/doc-cat-icone.service';
+import { AuthService } from '../../../services/auth.service';
+import { TreinamentosAdminComponent } from '../treinamentos-admin/treinamentos-admin.component';
 
-type AdminTab = 'paginas' | 'setores' | 'categorias';
+type AdminTab = 'paginas' | 'setores' | 'categorias' | 'treinamentos';
 
 interface PaiOption {
   id: number;
@@ -37,16 +43,21 @@ interface PaiOption {
     AdminDropzoneComponent,
     DocCatIconePickerComponent,
     DocEntidadeLogoPickerComponent,
+    ConteudoEntidadesEditorComponent,
+    TreinamentosAdminComponent,
   ],
   templateUrl: './documentos-admin.component.html',
   styleUrl: './documentos-admin.component.scss',
 })
 export class DocumentosAdminComponent implements OnInit {
   readonly MAX_UPLOAD_MB = MAX_UPLOAD_MB;
+  readonly uploadAccept = ALLOWED_EXTENSIONS.map((e) => `.${e}`).join(',');
   private readonly documentosService = inject(DocumentosService);
   private readonly fb = inject(FormBuilder);
   private readonly alertas = inject(AlertasService);
   private readonly iconeService = inject(DocCatIconeService);
+  private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly abaAtiva = signal<AdminTab>('categorias');
   readonly paginas = signal<DocumentoPagina[]>([]);
@@ -81,9 +92,12 @@ export class DocumentosAdminComponent implements OnInit {
   readonly docForm = this.fb.nonNullable.group({
     titulo: ['', Validators.required],
     descricao: [''],
-    categoria_id: ['' as string | number, Validators.required],
     setor_id: ['' as string | number, Validators.required],
+    destaque: [false],
   });
+
+  readonly visibilidadesDoc = signal<VisibilidadeEntidade[]>([]);
+  readonly visibilidadesDocInput = signal<VisibilidadeEntidadeInput[]>([]);
 
   readonly paginaForm = this.fb.nonNullable.group({
     nome: ['', Validators.required],
@@ -92,6 +106,7 @@ export class DocumentosAdminComponent implements OnInit {
     logo_url: [''],
     ordem: [0],
     ativo: [true],
+    exibir_menu_treinamento: [false],
   });
 
   readonly setorForm = this.fb.nonNullable.group({
@@ -103,6 +118,17 @@ export class DocumentosAdminComponent implements OnInit {
   });
 
   selectedFile: File | null = null;
+  selectedThumbFile: File | null = null;
+  removerThumb = false;
+  editandoDocThumbUrl: string | null = null;
+  editandoDocMeta: { extensao: string; nome: string; tamanho: number } | null = null;
+  private thumbObjectUrl: string | null = null;
+
+  get thumbPreviewUrl(): string | null {
+    if (this.removerThumb) return null;
+    if (this.thumbObjectUrl) return this.thumbObjectUrl;
+    return this.editandoDocThumbUrl;
+  }
 
   constructor() {
     effect(() => {
@@ -116,12 +142,51 @@ export class DocumentosAdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.carregarPaginas();
-    this.carregarSetores();
+    this.abaAtiva.set(this.abaInicial());
+    if (this.mostrarAbaDocumentos()) {
+      this.carregarPaginas();
+      this.carregarSetores();
+    }
+  }
+
+  mostrarAbaDocumentos(): boolean {
+    return this.auth.hasModulo('documentos');
+  }
+
+  mostrarAbaTreinamentos(): boolean {
+    return this.auth.hasModulo('treinamentos');
   }
 
   selecionarAba(aba: AdminTab): void {
+    if (!this.abaPermitida(aba)) return;
     this.abaAtiva.set(aba);
+  }
+
+  private abaInicial(): AdminTab {
+    const qp = this.route.snapshot.queryParamMap.get('aba');
+    if (qp === 'treinamentos' && this.mostrarAbaTreinamentos()) {
+      return 'treinamentos';
+    }
+    if (this.mostrarAbaDocumentos()) {
+      return 'categorias';
+    }
+    if (this.mostrarAbaTreinamentos()) {
+      return 'treinamentos';
+    }
+    return 'categorias';
+  }
+
+  private abaPermitida(aba: AdminTab): boolean {
+    switch (aba) {
+      case 'paginas':
+      case 'setores':
+      case 'categorias':
+        return this.mostrarAbaDocumentos();
+      case 'treinamentos':
+        return this.mostrarAbaTreinamentos();
+      default:
+        return false;
+    }
   }
 
   carregarPaginas(): void {
@@ -166,8 +231,9 @@ export class DocumentosAdminComponent implements OnInit {
 
   carregarDocumentos(cat: CategoriaDocumento): void {
     this.categoriaSelecionada.set(cat);
-    this.docForm.patchValue({ categoria_id: cat.id });
-    this.documentosService.listarDocumentos(cat.slug).subscribe({
+    const pag = this.paginaSelecionada();
+    if (!pag) return;
+    this.documentosService.listarDocumentos(cat.slug, null, pag.slug).subscribe({
       next: (docs) => this.documentos.set(docs),
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar documentos.'),
@@ -205,7 +271,15 @@ export class DocumentosAdminComponent implements OnInit {
 
   novaPagina(): void {
     this.editandoPaginaId.set(null);
-    this.paginaForm.reset({ nome: '', slug: '', descricao: '', logo_url: '', ordem: 0, ativo: true });
+    this.paginaForm.reset({
+      nome: '',
+      slug: '',
+      descricao: '',
+      logo_url: '',
+      ordem: 0,
+      ativo: true,
+      exibir_menu_treinamento: false,
+    });
     this.modalPaginaAberto.set(true);
   }
 
@@ -218,6 +292,7 @@ export class DocumentosAdminComponent implements OnInit {
       logo_url: item.logo_url || '',
       ordem: item.ordem ?? 0,
       ativo: item.ativo !== false,
+      exibir_menu_treinamento: item.exibir_menu_treinamento === true,
     });
     this.modalPaginaAberto.set(true);
   }
@@ -238,6 +313,7 @@ export class DocumentosAdminComponent implements OnInit {
       logo_url: raw.logo_url || null,
       ordem: Number(raw.ordem),
       ativo: raw.ativo,
+      exibir_menu_treinamento: raw.exibir_menu_treinamento,
     };
     const editId = this.editandoPaginaId();
     const req = editId
@@ -473,6 +549,9 @@ export class DocumentosAdminComponent implements OnInit {
     if (reset && !this.editandoDocId()) {
       this.cancelarDocumento();
     }
+    if (!this.editandoDocId() && !this.visibilidadesDoc().length) {
+      this.visibilidadesDoc.set(this.visibilidadesIniciais());
+    }
     this.modalDocAberto.set(true);
   }
 
@@ -486,24 +565,132 @@ export class DocumentosAdminComponent implements OnInit {
     this.docForm.patchValue({
       titulo: doc.titulo,
       descricao: doc.descricao || '',
-      categoria_id: doc.categoria_id,
       setor_id: doc.setor_id ?? '',
+      destaque: !!doc.destaque,
     });
+    this.visibilidadesDoc.set(doc.visibilidades ?? this.visibilidadesIniciais());
+    this.visibilidadesDocInput.set(
+      (doc.visibilidades ?? [])
+        .filter((v) => v.categoria_id != null)
+        .map((v) => ({
+          pagina_id: Number(v.pagina_id),
+          categoria_id: Number(v.categoria_id),
+        }))
+    );
     this.selectedFile = null;
+    this.revokeThumbObjectUrl();
+    this.selectedThumbFile = null;
+    this.removerThumb = false;
+    this.editandoDocThumbUrl = doc.thumbnail_url ?? null;
+    this.editandoDocMeta = {
+      extensao: doc.extensao.toUpperCase(),
+      nome: doc.nome_original,
+      tamanho: doc.tamanho_bytes,
+    };
     this.modalDocAberto.set(true);
+  }
+
+  onThumbSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.revokeThumbObjectUrl();
+    this.selectedThumbFile = file;
+    this.removerThumb = false;
+    if (file) {
+      this.thumbObjectUrl = URL.createObjectURL(file);
+    }
+  }
+
+  marcarRemoverThumb(): void {
+    this.removerThumb = true;
+    this.selectedThumbFile = null;
+    this.revokeThumbObjectUrl();
+  }
+
+  private revokeThumbObjectUrl(): void {
+    if (this.thumbObjectUrl) {
+      URL.revokeObjectURL(this.thumbObjectUrl);
+      this.thumbObjectUrl = null;
+    }
+  }
+
+  onVisibilidadesDocChange(v: VisibilidadeEntidadeInput[]): void {
+    this.visibilidadesDocInput.set(v);
   }
 
   cancelarDocumento(): void {
     this.editandoDocId.set(null);
-    const catId = this.categoriaSelecionada()?.id ?? '';
     const primeiroSetor = this.setores().find((s) => s.ativo)?.id ?? '';
-    this.docForm.reset({ titulo: '', descricao: '', categoria_id: catId, setor_id: primeiroSetor });
+    this.docForm.reset({ titulo: '', descricao: '', setor_id: primeiroSetor, destaque: false });
+    this.visibilidadesDoc.set([]);
+    this.visibilidadesDocInput.set([]);
     this.selectedFile = null;
+    this.revokeThumbObjectUrl();
+    this.selectedThumbFile = null;
+    this.removerThumb = false;
+    this.editandoDocThumbUrl = null;
+    this.editandoDocMeta = null;
     this.uploadProgress.set(0);
+  }
+
+  visibilidadesIniciais(): VisibilidadeEntidade[] {
+    const pag = this.paginaSelecionada();
+    const cat = this.categoriaSelecionada();
+    if (!pag || !cat) return [];
+    return [
+      {
+        pagina_id: pag.id,
+        pagina_nome: pag.nome,
+        pagina_slug: pag.slug,
+        categoria_id: cat.id,
+        categoria_nome: cat.nome,
+        categoria_slug: cat.slug,
+      },
+    ];
+  }
+
+  entidadeChips(doc: Documento): { nome: string; cor: string; bg: string }[] {
+    const vis = doc.visibilidades ?? [];
+    const items = vis.length
+      ? vis.map((v) => ({
+          nome: v.pagina_nome ?? v.pagina_slug ?? `Entidade ${v.pagina_id}`,
+          slug: v.pagina_slug ?? this.paginas().find((p) => p.id === v.pagina_id)?.slug ?? '',
+        }))
+      : (() => {
+          const pag = this.paginaSelecionada();
+          return pag ? [{ nome: pag.nome, slug: pag.slug }] : [];
+        })();
+
+    return items.map((item) => {
+      const { cor, bg } = this.corEntidadeChip(item.slug);
+      return { nome: item.nome, cor, bg };
+    });
+  }
+
+  private corEntidadeChip(slug: string): { cor: string; bg: string } {
+    const s = slug.toLowerCase();
+    if (s.includes('nubank')) return { cor: '#8D0DE3', bg: 'rgba(141,13,227,.1)' };
+    if (s.includes('base') || s.includes('cowork')) return { cor: '#0d9488', bg: 'rgba(13,148,136,.1)' };
+    if (s.includes('novo') || s.includes('anh')) return { cor: '#c2410c', bg: 'rgba(194,65,12,.1)' };
+    return { cor: '#1d54e6', bg: 'rgba(29,84,230,.1)' };
+  }
+
+  entidadesBadges(doc: Documento): string[] {
+    const vis = doc.visibilidades ?? [];
+    if (vis.length) {
+      return vis.map((v) => v.pagina_nome ?? v.pagina_slug ?? `Entidade ${v.pagina_id}`);
+    }
+    const pag = this.paginaSelecionada();
+    return pag ? [pag.nome] : [];
   }
 
   salvarDocumento(): void {
     if (this.docForm.invalid) return;
+    const vis = this.visibilidadesDocInput();
+    if (!vis.length) {
+      this.erro.set('Marque ao menos uma entidade com categoria.');
+      return;
+    }
     const editId = this.editandoDocId();
 
     if (editId) {
@@ -511,12 +698,44 @@ export class DocumentosAdminComponent implements OnInit {
       this.mensagem.set('');
       this.erro.set('');
       const raw = this.docForm.getRawValue();
+
+      if (this.selectedThumbFile || this.removerThumb) {
+        const formData = new FormData();
+        formData.append('titulo', raw.titulo);
+        formData.append('descricao', raw.descricao || '');
+        formData.append('setor_id', String(raw.setor_id));
+        formData.append('destaque', raw.destaque ? 'true' : 'false');
+        formData.append('visibilidades', JSON.stringify(vis));
+        if (this.selectedThumbFile) {
+          formData.append('thumb', this.selectedThumbFile);
+        }
+        if (this.removerThumb) {
+          formData.append('remover_thumb', 'true');
+        }
+        this.documentosService.atualizarDocumentoFormData(editId, formData).subscribe({
+          next: () => {
+            this.mensagem.set('Documento atualizado.');
+            this.salvando.set(false);
+            this.modalDocAberto.set(false);
+            this.cancelarDocumento();
+            const cat = this.categoriaSelecionada();
+            if (cat) this.carregarDocumentos(cat);
+          },
+          error: (err: HttpErrorResponse) => {
+            this.erro.set(err.error?.mensagem || 'Erro ao atualizar documento.');
+            this.salvando.set(false);
+          },
+        });
+        return;
+      }
+
       this.documentosService
         .atualizarDocumento(editId, {
           titulo: raw.titulo,
           descricao: raw.descricao || null,
-          categoria_id: Number(raw.categoria_id),
           setor_id: Number(raw.setor_id),
+          destaque: raw.destaque,
+          visibilidades: vis,
         })
         .subscribe({
           next: () => {
@@ -545,8 +764,12 @@ export class DocumentosAdminComponent implements OnInit {
     formData.append('arquivo', this.selectedFile);
     formData.append('titulo', raw.titulo);
     formData.append('descricao', raw.descricao || '');
-    formData.append('categoria_id', String(raw.categoria_id));
     formData.append('setor_id', String(raw.setor_id));
+    formData.append('destaque', raw.destaque ? 'true' : 'false');
+    formData.append('visibilidades', JSON.stringify(vis));
+    if (this.selectedThumbFile) {
+      formData.append('thumb', this.selectedThumbFile);
+    }
 
     this.uploadando.set(true);
     this.uploadProgress.set(0);
@@ -636,6 +859,54 @@ export class DocumentosAdminComponent implements OnInit {
     if (this.editandoDocId()) return 'Salvar alterações';
     if (this.uploadando()) return 'Enviando...';
     return 'Enviar documento';
+  }
+
+  extensaoModalDoc(): string | null {
+    if (this.editandoDocMeta) return this.editandoDocMeta.extensao;
+    if (this.selectedFile) {
+      const ext = this.selectedFile.name.split('.').pop()?.toUpperCase();
+      return ext || 'ARQ';
+    }
+    return null;
+  }
+
+  metaArquivoModalDoc(): string {
+    if (this.editandoDocMeta) {
+      return `${this.editandoDocMeta.nome} · ${this.formatarTamanho(this.editandoDocMeta.tamanho)}`;
+    }
+    if (this.selectedFile) {
+      return `${this.selectedFile.name} · ${this.formatarTamanho(this.selectedFile.size)}`;
+    }
+    return '';
+  }
+
+  previewTitulo(): string {
+    return this.docForm.controls.titulo.value?.trim() || 'Sem título';
+  }
+
+  previewDescricao(): string {
+    return this.docForm.controls.descricao.value?.trim() || '';
+  }
+
+  previewCoverWords(): string[] {
+    const words = this.previewTitulo().split(/\s+/).filter(Boolean);
+    return words.slice(0, 2);
+  }
+
+  previewSetor(): DocumentoSetor | null {
+    const raw = this.docForm.controls.setor_id.value;
+    const id = Number(raw);
+    if (!id) return null;
+    return this.setores().find((s) => s.id === id) ?? null;
+  }
+
+  hexAlpha(hex: string, alpha: number): string {
+    const h = hex.replace('#', '');
+    if (h.length !== 6) return `rgba(29, 84, 230, ${alpha})`;
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
   categoriasFlatSelect(): PaiOption[] {

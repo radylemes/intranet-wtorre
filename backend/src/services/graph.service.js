@@ -30,9 +30,14 @@ async function getAppToken(tenant) {
 
 async function getUserProfile(tenant, oid) {
   const token = await getAppToken(tenant);
-  const res = await fetch(`https://graph.microsoft.com/v1.0/users/${oid}?$select=displayName,department,companyName,officeLocation,jobTitle`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const select =
+    'displayName,department,companyName,officeLocation,jobTitle,onPremisesDepartment,onPremisesExtensionAttributes';
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${oid}?$select=${select}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -42,8 +47,13 @@ async function getUserProfile(tenant, oid) {
 }
 
 function extractDepartment(profile) {
+  const oea = profile.onPremisesExtensionAttributes || {};
   const candidates = [
     profile.department,
+    profile.onPremisesDepartment,
+    oea.extensionAttribute1,
+    oea.extensionAttribute2,
+    oea.extensionAttribute3,
     profile.companyName,
     profile.officeLocation,
     profile.jobTitle,

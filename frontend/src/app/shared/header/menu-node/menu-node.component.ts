@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MenuItem } from '../../../models/menu.model';
+import { DocCatIconeComponent } from '../../documentos/doc-cat-icone.component';
 import { isExterno, isInterno, isPlaceholder, temFilhos } from '../menu-link.util';
 import { MenuFlyoutService } from '../menu-flyout.service';
 
@@ -20,7 +21,7 @@ const HOVER_DELAY_MS = 150;
 @Component({
   selector: 'app-menu-node',
   standalone: true,
-  imports: [RouterLink, forwardRef(() => MenuNodeComponent)],
+  imports: [RouterLink, DocCatIconeComponent, forwardRef(() => MenuNodeComponent)],
   templateUrl: './menu-node.component.html',
   styleUrl: './menu-node.component.scss',
 })

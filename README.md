@@ -64,6 +64,19 @@ API: `http://127.0.0.1:3001`
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Bootstrap do admin local |
 | `STORAGE_DIR` | Diretório **fora da pasta pública** para arquivos de documentos |
 | `MAX_UPLOAD_MB` | Limite de upload em MB (padrão: `50`) |
+| `EMAIL_PROVIDER` | `smtp` ou `acs` — fallback do provedor de e-mail (config principal no BD) |
+| `EMAIL_OCULTAR_PARA` | `1`/`true` — ocultar destinatário no campo Para (BCC) |
+
+### E-mail (SMTP e Azure ACS)
+
+O envio de e-mail da intranet é centralizado em `backend/src/utils/emailSender.js`. Configure em **Admin → Configurações → E-mail**:
+
+- **SMTP** — host, porta, TLS, usuário, senha e remetente
+- **Azure ACS** — connection string e endereço remetente verificado
+
+Pré-requisitos e limites do Azure ACS: [docs/email-azure-acs.md](docs/email-azure-acs.md)
+
+API admin: `GET/PUT /api/v1/configuracoes/email`, `POST /api/v1/configuracoes/email/teste`, `POST /api/v1/configuracoes/email/verificar` (SMTP).
 
 Exemplo:
 
@@ -129,8 +142,9 @@ Credencial seed (se `ADMIN_PASSWORD` no `.env`): `admin@grupowtorre.com`
 
 ```bash
 cd frontend
-PATH=/www/server/nodejs/v24.16.0/bin:$PATH npm run build
-# Copiar dist/frontend/browser/ para a pasta pública do site
+./scripts/deploy-frontend.sh
+# O script faz build e publica em dist/frontend/browser (document root do nginx).
+# Caminho nginx: /www/wwwroot/IntranetWTorre/intranet-wtorre/frontend/dist/frontend/browser
 ```
 
 ### Backend (PM2 / Projeto Node)
@@ -164,6 +178,18 @@ location /api/ {
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 
+# index.html sempre fresco (evita main.js antigo apontando para chunks que não existem)
+location = /index.html {
+    add_header Cache-Control "no-store, no-cache, must-revalidate";
+    try_files /index.html =404;
+}
+
+# Assets com hash: servir arquivo real ou 404 — NUNCA devolver index.html para .js/.css
+location ~* \.(?:js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|ico|webp|map)$ {
+    try_files $uri =404;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+
 location / {
     try_files $uri $uri/ /index.html;
 }
@@ -183,6 +209,7 @@ location / {
 | Problema | Solução |
 |----------|---------|
 | 404 ao recarregar rota Angular | Falta `try_files ... /index.html` |
+| `chunk-*.js` MIME type text/html / Failed to fetch dynamically imported module | Deploy incompleto: rode `WEB_ROOT=... ./scripts/deploy-frontend.sh` copiando **todos** os arquivos de `dist/frontend/browser/`. Ajuste nginx para **não** devolver `index.html` em `.js` (ver bloco nginx acima). Hard refresh (Ctrl+Shift+R). |
 | CORS | Confira `CORS_ORIGINS` com a origem exata do browser |
 | "Tenant Azure não autorizado" | Cadastre o `tid` em `/admin/tenants` |
 | MSAL não configurado (âmbar) | Defina um tenant **Principal** ativo |

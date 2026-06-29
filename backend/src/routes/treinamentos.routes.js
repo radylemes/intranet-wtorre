@@ -13,6 +13,7 @@ router.get('/', requireJwt, controller.listar);
 router.get('/admin', requireJwt, requireModulo('treinamentos'), controller.listarAdmin);
 router.get('/por-pagina/:paginaSlug', requireJwt, controller.listarPorPagina);
 router.get('/:id/playback', requireJwt, controller.playback);
+router.get('/:id/thumb/stream', requireJwt, controller.thumbStream);
 router.get('/:id/thumb', requireJwt, controller.thumb);
 router.get('/:id', requireJwt, controller.obter);
 router.post(

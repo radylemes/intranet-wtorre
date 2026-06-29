@@ -6,14 +6,6 @@ const { env } = require('../config/env');
 
 let syncEmAndamento = false;
 
-function validarConfigSync() {
-  if (!env.camarotesFileShareUrl?.trim()) {
-    const err = new Error('CAMAROTES_FILE_SHARE_URL não configurado no ambiente.');
-    err.status = 503;
-    throw err;
-  }
-}
-
 async function sincronizarCamarotes() {
   if (syncEmAndamento) {
     const err = new Error('Sincronização já em andamento.');
@@ -24,10 +16,17 @@ async function sincronizarCamarotes() {
   syncEmAndamento = true;
   const inicio = Date.now();
   const tipoUnidade = 'camarote';
-  const sheetName = env.camarotesSheetCamarote;
 
   try {
-    validarConfigSync();
+    const config = await camarotesRepo.getConfig();
+    const shareUrl = config?.sharepoint_url?.trim() || env.camarotesFileShareUrl?.trim();
+    const sheetName = config?.sharepoint_sheet?.trim() || env.camarotesSheetCamarote || 'Camarotes';
+
+    if (!shareUrl) {
+      const err = new Error('URL do arquivo SharePoint não configurada. Configure na aba SharePoint.');
+      err.status = 503;
+      throw err;
+    }
 
     const tenant = await tenantsRepo.findPrincipal();
     if (!tenant?.client_secret_ciphertext) {
@@ -37,10 +36,7 @@ async function sincronizarCamarotes() {
     }
 
     const token = await graphService.getAppToken(tenant);
-    const buffer = await graphService.downloadSharedDriveItemContent(
-      token,
-      env.camarotesFileShareUrl
-    );
+    const buffer = await graphService.downloadSharedDriveItemContent(token, shareUrl);
     const { unidades, linhas_lidas } = parseWorksheet(buffer, sheetName, tipoUnidade);
     const linhas_gravadas = await camarotesRepo.replaceUnidadesByTipo(tipoUnidade, unidades);
     const duracao_ms = Date.now() - inicio;
@@ -56,7 +52,7 @@ async function sincronizarCamarotes() {
 
     await camarotesRepo.touchUltimaSync();
 
-    const config = await camarotesRepo.getConfig();
+    const configAtual = await camarotesRepo.getConfig();
     const resumo = {
       resultados: [
         {
@@ -70,10 +66,15 @@ async function sincronizarCamarotes() {
       ],
       erros: [],
       duracao_ms,
-      ultima_sync: config?.ultima_sync || null,
+      ultima_sync: configAtual?.ultima_sync || null,
     };
 
     console.log(`[camarotes.sync] Concluído em ${resumo.duracao_ms}ms (${linhas_gravadas} unidades)`);
+
+    const alertasService = require('./camarotes-alertas.service');
+    alertasService.enviarAposSync().catch((err) => {
+      console.error('[camarotes.sync] Erro no envio pós-sync:', err.message);
+    });
 
     return resumo;
   } catch (err) {

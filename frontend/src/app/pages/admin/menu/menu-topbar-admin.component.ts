@@ -5,6 +5,7 @@ import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
+  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -13,7 +14,16 @@ import { AuthService } from '../../../services/auth.service';
 import { AlertasService } from '../../../services/alertas.service';
 import { AdminDropzoneComponent } from '../../../shared/admin/admin-dropzone/admin-dropzone.component';
 import { TopbarConfig, TOPBAR_DEFAULTS } from '../../../models/topbar.model';
-import { urlExternaOpcionalValidator } from './menu-destino.util';
+
+function topbarLinkUrlValidator(): ValidatorFn {
+  return (ctrl: AbstractControl) => {
+    const url = String(ctrl.value ?? '').trim();
+    if (!url) return null;
+    return /^https?:\/\/.+/i.test(url)
+      ? null
+      : { urlExterna: 'URL deve começar com http:// ou https://.' };
+  };
+}
 
 @Component({
   selector: 'app-menu-topbar-admin',
@@ -108,7 +118,7 @@ export class MenuTopbarAdminComponent implements OnInit, OnDestroy {
       nome: [logo?.nome ?? '', Validators.required],
       alt: [logo?.alt ?? logo?.nome ?? ''],
       imagem_url: [logo?.imagem_url ?? '', Validators.required],
-      link_url: [logo?.link_url ?? '', urlExternaOpcionalValidator()],
+      link_url: [logo?.link_url ?? '', topbarLinkUrlValidator()],
       nova_aba: [logo?.nova_aba !== false],
     });
   }
@@ -128,6 +138,14 @@ export class MenuTopbarAdminComponent implements OnInit, OnDestroy {
     const ctrl = arr.at(index);
     arr.removeAt(index);
     arr.insert(target, ctrl);
+  }
+
+  trocarLogoImagem(dropzone: AdminDropzoneComponent): void {
+    dropzone.openFilePicker();
+  }
+
+  removerLogoImagem(index: number): void {
+    this.logosArray().at(index).patchValue({ imagem_url: '' });
   }
 
   onLogoFile(index: number, file: File): void {
@@ -209,7 +227,11 @@ export class MenuTopbarAdminComponent implements OnInit, OnDestroy {
   erroCampo(ctrl: AbstractControl | null): string {
     if (!ctrl?.errors) return '';
     if (ctrl.errors['required']) return 'Campo obrigatório.';
-    if (ctrl.errors['urlExterna']) return ctrl.errors['urlExterna'];
+    if (ctrl.errors['urlExterna']) {
+      return typeof ctrl.errors['urlExterna'] === 'string'
+        ? ctrl.errors['urlExterna']
+        : 'URL inválida.';
+    }
     return 'Valor inválido.';
   }
 

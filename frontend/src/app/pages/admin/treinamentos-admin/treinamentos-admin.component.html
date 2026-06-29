@@ -1,23 +1,25 @@
-<div class="admin-page">
-  <header class="page-head">
-    <h1>Treinamentos</h1>
-    <p>Cadastre vídeos de capacitação por entidade e categoria (árvore de Documentos).</p>
-  </header>
-
-  <section class="card">
-    <div class="card-head">
-      <h2>Biblioteca</h2>
-      <div class="card-head-actions">
-        <select class="filtro-pagina" (change)="onFiltroPaginaChange($any($event.target).value)">
-          <option value="">Todas as entidades</option>
-          @for (p of paginas(); track p.id) {
-            <option [value]="p.id" [selected]="filtroPaginaId() === p.id">{{ p.nome }}</option>
-          }
-        </select>
-        <button type="button" class="btn-primary btn-sm" (click)="novo()">Novo treinamento</button>
-      </div>
+<div class="admin-page treinamentos-admin">
+  <div class="pane-head">
+    <div>
+      <h2>Treinamentos</h2>
+      <p class="hint">Cadastre vídeos de capacitação e compartilhe entre entidades com categorias distintas.</p>
     </div>
-    <div class="card-body">
+    <div class="toolbar">
+      <select class="filtro-pagina" (change)="onFiltroPaginaChange($any($event.target).value)">
+        <option value="">Todas as entidades</option>
+        @for (p of paginas(); track p.id) {
+          <option [value]="p.id" [selected]="filtroPaginaId() === p.id">{{ p.nome }}</option>
+        }
+      </select>
+      <button type="button" class="btn btn-primary" (click)="novo()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        Novo treinamento
+      </button>
+    </div>
+  </div>
+  <div class="treinamentos-body">
       @if (!treinamentosFiltrados().length) {
         <p class="empty">Nenhum treinamento cadastrado.</p>
       } @else {
@@ -26,8 +28,9 @@
           <thead>
             <tr>
               <th>Título</th>
-              <th>Entidade</th>
+              <th>Entidades</th>
               <th>Categoria</th>
+              <th>Setor</th>
               <th>Container</th>
               <th>Duração</th>
               <th>Status</th>
@@ -43,15 +46,22 @@
                     <span class="badge-destaque">Destaque</span>
                   }
                 </td>
-                <td>{{ t.paginaNome ?? t.paginaSlug }}</td>
+                <td>
+                  <div class="ent-badges">
+                    @for (nome of entidadesBadges(t); track nome) {
+                      <span class="ent-badge">{{ nome }}</span>
+                    }
+                  </div>
+                </td>
                 <td>
                   <span class="cat-cell">
                     @if (t.categoriaIcone) {
                       <app-doc-cat-icone [nome]="t.categoriaIcone" [size]="14" />
                     }
-                    {{ categoriaLabel(t) }}
+                    {{ categoriaPorEntidade(t) }}
                   </span>
                 </td>
+                <td>{{ setorLabel(t) }}</td>
                 <td class="mono">{{ t.container }}</td>
                 <td>{{ duracaoLabel(t) }}</td>
                 <td>
@@ -69,113 +79,236 @@
         </table>
         </div>
       }
-    </div>
-  </section>
+  </div>
 </div>
 
 <app-admin-modal
   [open]="modalAberto()"
+  [size]="'xlarge'"
   [title]="tituloModal()"
-  [subtitle]="subtituloModal()"
-  icon="folder"
   [salvando]="salvando()"
   [saveLabel]="salvando() ? 'Enviando…' : 'Salvar'"
   (save)="salvar()"
   (cancel)="fecharModal()"
 >
-  <form [formGroup]="form" (ngSubmit)="salvar()">
-    <div class="field">
-      <label for="t-pagina">Entidade *</label>
-      <select id="t-pagina" formControlName="pagina_id" (change)="onPaginaChange($any($event.target).value)">
-        @for (p of paginas(); track p.id) {
-          <option [value]="p.id">{{ p.nome }}</option>
-        }
-      </select>
+  @if (editandoId() || videoFileName) {
+    <div adminModalSubtitle class="sb">
+      <span class="pill">VÍDEO</span>
+      {{ videoFileName || 'Vídeo cadastrado' }}
     </div>
+  }
 
-    <div class="field">
-      <label>Categoria (opcional)</label>
-      @if (categoriaSelecionadaNome()) {
-        <div class="cat-selecionada">
-          <span>{{ categoriaSelecionadaNome() }}</span>
-          <button type="button" class="linkbtn" (click)="limparCategoria()">Sem categoria</button>
+  <span adminModalFootStart class="count">
+    Visível em <b>{{ entEditor?.countAtivas() ?? 0 }}</b> de {{ entEditor?.totalEntidades() ?? paginas().length }} entidades
+  </span>
+
+  <form [formGroup]="form" class="doc-modal-form" (ngSubmit)="salvar()">
+    <div class="doc-modal-layout">
+      <div class="form-col">
+        <section class="block">
+          <p class="sec-label">Treinamento</p>
+
+          <div class="field">
+            <label for="t-titulo">Título</label>
+            <input id="t-titulo" formControlName="titulo" type="text" placeholder="Nome do treinamento" />
+          </div>
+
+          <div class="field">
+            <label for="t-desc">Descrição <span class="hint">(opcional)</span></label>
+            <textarea
+              id="t-desc"
+              formControlName="descricao"
+              placeholder="Breve descrição exibida na biblioteca"
+            ></textarea>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="t-setor">Setor</label>
+              <select id="t-setor" formControlName="setor_id">
+                <option value="">Nenhum</option>
+                @for (s of setores(); track s.id) {
+                  <option [value]="s.id">{{ s.nome }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label for="t-dur">Duração (MM:SS)</label>
+              <input id="t-dur" formControlName="duracao" type="text" placeholder="08:12" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="t-container">Container</label>
+            <select id="t-container" formControlName="container">
+              @for (c of containers(); track c.id) {
+                <option [value]="c.nome">
+                  {{ c.rotulo }} ({{ c.nome }}){{ c.padrao ? ' — Padrão' : '' }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="toggle-row" [class.toggle-row--solo]="!editandoId()">
+            <div class="field field-toggle">
+              <div class="toggle-field">
+                <div>
+                  <div class="tt">Destaque</div>
+                  <div class="ts">Exibir em destaque na página de documentos</div>
+                </div>
+                <label class="switch">
+                  <input id="t-destaque" type="checkbox" formControlName="destaque" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            @if (editandoId()) {
+              <div class="field field-toggle">
+                <div class="toggle-field">
+                  <div>
+                    <div class="tt">Ativo</div>
+                    <div class="ts">Treinamentos inativos não aparecem na biblioteca</div>
+                  </div>
+                  <label class="switch">
+                    <input id="t-ativo" type="checkbox" formControlName="ativo" />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="block">
+          <p class="sec-label">Visibilidade por entidade</p>
+          <p class="vis-help">Marque onde o treinamento aparece e escolha a categoria de cada entidade.</p>
+          <app-conteudo-entidades-editor
+            #entEditor
+            variant="vrow"
+            [paginas]="paginas()"
+            [value]="visibilidadesTreino()"
+            (valueChange)="onVisibilidadesTreinoChange($event)"
+          />
+        </section>
+      </div>
+
+      <aside class="preview-col">
+        <p class="sec-label">Pré-visualização</p>
+        <div class="doc-card-preview video-preview">
+          @if (thumbPreviewUrl) {
+            <div class="cover cover-img">
+              <img [src]="thumbPreviewUrl" alt="" />
+            </div>
+          } @else {
+            <div class="cover cover-video">
+              <span class="vt">VÍDEO</span>
+              <span class="ct">
+                @for (word of previewCoverWords(); track $index; let last = $last) {
+                  {{ word }}@if (!last) {<br />}
+                }
+              </span>
+              <span class="vd">{{ previewDuracao() }}</span>
+            </div>
+          }
+          <div class="cd">
+            <p class="ti">{{ previewTitulo() }}</p>
+            <p class="de">{{ previewDescricao() || 'Sem descrição' }}</p>
+            @if (previewSetor(); as setor) {
+              <span
+                class="setor-chip"
+                [style.background]="hexAlpha(setor.cor || '#1d54e6', 0.1)"
+                [style.color]="setor.cor || '#1d54e6'"
+              >
+                <span class="sd" [style.background]="setor.cor || '#1d54e6'"></span>
+                <span>{{ setor.nome }}</span>
+              </span>
+            }
+          </div>
         </div>
-      } @else {
-        <p class="help">Nenhuma categoria selecionada.</p>
-      }
-      <div class="cat-tree">
-        <app-doc-admin-node
-          [items]="categoriasTree()"
-          [selecionadaId]="categoriaSelecionadaId()"
-          (action)="onCategoriaNode($event)"
-        />
-      </div>
-    </div>
 
-    <div class="field">
-      <label for="t-titulo">Título *</label>
-      <input id="t-titulo" formControlName="titulo" type="text" />
-    </div>
-
-    <div class="field">
-      <label for="t-desc">Descrição</label>
-      <textarea id="t-desc" formControlName="descricao" rows="3"></textarea>
-    </div>
-
-    <div class="field">
-      <label for="t-area">Área</label>
-      <input id="t-area" formControlName="area" type="text" placeholder="Ex.: RH, Tecnologia" />
-    </div>
-
-    <div class="field">
-      <label for="t-dur">Duração (MM:SS)</label>
-      <input id="t-dur" formControlName="duracao" type="text" placeholder="08:12" />
-    </div>
-
-    <div class="field">
-      <label for="t-container">Container</label>
-      <select id="t-container" formControlName="container">
-        @for (c of containers(); track c.id) {
-          <option [value]="c.nome">
-            {{ c.rotulo }} ({{ c.nome }}){{ c.padrao ? ' — Padrão' : '' }}
-          </option>
-        }
-      </select>
-    </div>
-
-    <div class="toggle-field">
-      <div>
-        <div class="tt">Destaque</div>
-        <div class="ts">Exibir em destaque na página de treinamentos</div>
-      </div>
-      <label class="switch">
-        <input type="checkbox" formControlName="destaque" />
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    @if (editandoId()) {
-      <div class="toggle-field">
-        <div>
-          <div class="tt">Ativo</div>
-          <div class="ts">Treinamentos inativos não aparecem na biblioteca</div>
+        <div class="field thumb-field">
+          <label>Thumbnail <span class="hint">(opcional)</span></label>
+          <div class="thumb-actions-col">
+            <label class="btn-soft" for="t-thumb">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12L8 8m4-4l4 4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              {{ thumbPreviewUrl ? 'Trocar imagem' : 'Escolher imagem' }}
+            </label>
+            <input
+              id="t-thumb"
+              type="file"
+              hidden
+              accept="image/jpeg,image/png,image/webp"
+              (change)="onThumbSelected($event)"
+            />
+            @if (thumbPreviewUrl) {
+              <button type="button" class="link-danger" (click)="marcarRemoverThumb()">
+                Remover thumbnail
+              </button>
+            }
+          </div>
         </div>
-        <label class="switch">
-          <input type="checkbox" formControlName="ativo" />
-          <span class="slider"></span>
-        </label>
-      </div>
-    }
 
-    <div class="field">
-      <label for="t-video">Vídeo {{ editandoId() ? '(opcional — substituir)' : '' }}</label>
-      <input id="t-video" type="file" accept="video/mp4,video/webm,video/quicktime" (change)="onVideoSelected($event)" />
-      <div class="help">MP4, WebM ou QuickTime.</div>
-    </div>
+        <div class="field video-field">
+          <label>
+            Vídeo
+            @if (editandoId()) {
+              <span class="hint">(opcional — substituir)</span>
+            } @else {
+              <span class="hint">*</span>
+            }
+          </label>
+          <div class="thumb-actions-col">
+            <label class="btn-soft" for="t-video">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12L8 8m4-4l4 4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              {{ videoFileName ? 'Trocar vídeo' : 'Escolher vídeo' }}
+            </label>
+            <input
+              id="t-video"
+              type="file"
+              hidden
+              accept="video/mp4,video/webm,video/quicktime"
+              (change)="onVideoSelected($event)"
+            />
+          </div>
+          <div class="help">MP4, WebM ou QuickTime.</div>
+        </div>
 
-    <div class="field">
-      <label for="t-thumb">Thumbnail (opcional)</label>
-      <input id="t-thumb" type="file" accept="image/jpeg,image/png,image/webp" (change)="onThumbSelected($event)" />
+        <p class="pv-places-h">Onde aparece</p>
+        @if (entEditor && entEditor.countAtivas() > 0) {
+          @for (row of entEditor.rows(); track row.pagina.id) {
+            @if (row.ativo) {
+              @let cores = entEditor.corEntidade(row.pagina.slug);
+              @let cat = entEditor.nomeCategoria(row);
+              <div class="place">
+                <span class="pd" [style.background]="cores.accent"></span>
+                <span class="pe">{{ row.pagina.nome }}</span>
+                <span class="pc" [class.warn]="!cat">{{ cat || 'sem categoria' }}</span>
+              </div>
+            }
+          }
+        } @else {
+          <div class="pv-empty">
+            Marque ao menos uma entidade para o treinamento aparecer na biblioteca.
+          </div>
+        }
+      </aside>
     </div>
 
     @if (salvando() && uploadProgress() > 0) {

@@ -3,9 +3,28 @@ const usersRepo = require('../repositories/users.repository');
 const refreshRepo = require('../repositories/refreshTokens.repository');
 const auditRepo = require('../repositories/auditLog.repository');
 const tenantsRepo = require('../repositories/tenants.repository');
+const colaboradoresRepo = require('../repositories/colaboradores.repository');
 const jwtService = require('./jwt.service');
 const graphService = require('./graph.service');
 const permissoesService = require('./permissoes.service');
+
+const ERRO_SEM_DEPARTAMENTO =
+  'Acesso negado: é necessário ter departamento cadastrado no Azure AD para usar a intranet. ' +
+  'Peça ao TI/RH para preencher o campo Departamento no seu perfil do Microsoft 365.';
+
+async function resolverDepartamentoLogin({ oid, email, profile, usuarioExistente }) {
+  const doGraph = graphService.extractDepartment(profile);
+  if (doGraph) return doGraph;
+
+  if (usuarioExistente?.departamento?.trim()) {
+    return usuarioExistente.departamento.trim();
+  }
+
+  const doColaborador = await colaboradoresRepo.findDepartamentoFallback(oid, email);
+  if (doColaborador) return doColaborador;
+
+  return null;
+}
 
 async function toPublicUser(user) {
   const modulos = await permissoesService.resolveModulos(user);
@@ -92,32 +111,46 @@ async function loginMicrosoft(azureUser, meta) {
   }
 
   const tenant = await tenantsRepo.findByTid(azureUser.tid);
-  const profile = await graphService.getUserProfile(tenant, oid);
-  const departamento = graphService.extractDepartment(profile);
+  let profile = { displayName: nome };
+  try {
+    profile = await graphService.getUserProfile(tenant, oid);
+  } catch (err) {
+    console.warn('[auth] Graph indisponível no login Microsoft:', err.message);
+  }
   const nomeCompleto = profile.displayName || nome;
 
+  let user = await usersRepo.findByMicrosoftId(oid);
+  let byEmail = null;
+
+  if (!user && email) {
+    byEmail = await usersRepo.findByEmail(email);
+  }
+
+  const departamento = await resolverDepartamentoLogin({
+    oid,
+    email,
+    profile,
+    usuarioExistente: user || byEmail,
+  });
+
   if (!departamento) {
-    const err = new Error(
-      'Acesso negado: é necessário ter departamento cadastrado no Azure AD para usar a intranet.'
-    );
+    const err = new Error(ERRO_SEM_DEPARTAMENTO);
     err.status = 403;
     throw err;
   }
 
-  let user = await usersRepo.findByMicrosoftId(oid);
-  if (!user && email) {
-    const byEmail = await usersRepo.findByEmail(email);
-    if (byEmail) {
-      if (byEmail.microsoft_id && byEmail.microsoft_id !== oid) {
-        const err = new Error(
-          'Este e-mail já está vinculado a outra identidade Microsoft. Contate o administrador.'
-        );
-        err.status = 409;
-        throw err;
-      }
-      if (!byEmail.microsoft_id) {
-        user = await usersRepo.linkMicrosoft(byEmail.id, oid, nomeCompleto, departamento);
-      }
+  if (!user && byEmail) {
+    if (byEmail.microsoft_id && byEmail.microsoft_id !== oid) {
+      const err = new Error(
+        'Este e-mail já está vinculado a outra identidade Microsoft. Contate o administrador.'
+      );
+      err.status = 409;
+      throw err;
+    }
+    if (!byEmail.microsoft_id) {
+      user = await usersRepo.linkMicrosoft(byEmail.id, oid, nomeCompleto, departamento);
+    } else {
+      user = byEmail;
     }
   }
   if (!user) {

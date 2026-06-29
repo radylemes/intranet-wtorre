@@ -79,6 +79,14 @@ export interface SolicitacaoEnvio {
   enviado_em?: string;
 }
 
+export interface UsuarioAdBusca {
+  id: number;
+  nome: string;
+  email: string | null;
+  departamento: string | null;
+  empresa: string | null;
+}
+
 export interface SolicitacaoVisualizador {
   usuario_id: number;
   nome_completo: string;

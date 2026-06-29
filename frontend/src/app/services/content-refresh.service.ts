@@ -173,8 +173,25 @@ export class ContentRefreshService {
       return;
     }
 
-    const childPath = segments.slice(1).join('/');
-    const codigo = rotaParaModulo(childPath);
+    if (childSegment === 'menu') {
+      if (
+        !this.auth.hasModulo('menu') &&
+        !this.auth.hasModulo('rodape') &&
+        !this.auth.hasModulo('comunicados')
+      ) {
+        this.redirectSemModulo();
+      }
+      return;
+    }
+
+    if (childSegment === 'documentos') {
+      if (!this.auth.hasModulo('documentos') && !this.auth.hasModulo('treinamentos')) {
+        this.redirectSemModulo();
+      }
+      return;
+    }
+
+    const codigo = rotaParaModulo(childSegment);
     if (codigo && !this.auth.hasModulo(codigo)) {
       this.redirectSemModulo();
     }

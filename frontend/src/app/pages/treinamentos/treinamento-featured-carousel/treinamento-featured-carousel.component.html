@@ -1,0 +1,57 @@
+@if (videos().length === 1) {
+  <div
+    class="featured-row"
+    role="button"
+    tabindex="0"
+    (click)="onPlay(videos()[0])"
+    (keyup.enter)="onPlay(videos()[0])"
+  >
+    <app-treinamento-card [video]="videos()[0]" [modo]="'featured'" />
+  </div>
+} @else if (videos().length > 1) {
+  <div
+    class="trein-carousel"
+    role="region"
+    aria-roledescription="carrossel"
+    [attr.aria-label]="'Treinamentos em destaque: ' + total()"
+    tabindex="0"
+    (keydown)="onKeydown($event)"
+  >
+    <div class="viewport" aria-live="polite">
+      @for (video of videos(); track video.id; let i = $index) {
+        <div
+          class="slide"
+          [class.active]="indice() === i"
+          [attr.aria-hidden]="indice() !== i"
+        >
+          <div
+            class="featured-row"
+            role="button"
+            tabindex="0"
+            (click)="onPlay(video)"
+            (keyup.enter)="onPlay(video)"
+          >
+            <app-treinamento-card [video]="video" [modo]="'featured'" />
+          </div>
+        </div>
+      }
+
+      <div class="dots" role="tablist" aria-label="Treinamentos em destaque">
+        @for (video of videos(); track video.id; let i = $index) {
+          <button
+            type="button"
+            role="tab"
+            class="dot"
+            [class.active]="indice() === i"
+            [attr.aria-selected]="indice() === i"
+            [attr.aria-label]="'Destaque ' + (i + 1)"
+            (click)="irPara(i)"
+          ></button>
+        }
+      </div>
+    </div>
+
+    <button type="button" class="nav prev" aria-label="Destaque anterior" (click)="anterior()">‹</button>
+    <button type="button" class="nav next" aria-label="Próximo destaque" (click)="proximo()">›</button>
+  </div>
+}

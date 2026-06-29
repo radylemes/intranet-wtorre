@@ -40,32 +40,37 @@
           </svg>
         </button>
         <span class="nicon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            @if (temSubmenu(item)) {
+          @if (item.icone) {
+            <app-doc-cat-icone [nome]="item.icone" [size]="18" />
+          } @else if (temSubmenu(item)) {
+            <svg viewBox="0 0 24 24" fill="none">
               <path
                 d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
                 stroke="currentColor"
                 stroke-width="2"
                 stroke-linejoin="round"
               />
-            } @else {
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none">
               <path
                 d="M10 14a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1M14 10a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"
                 stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
               />
-            }
-          </svg>
+            </svg>
+          }
         </span>
         <span class="lbl">{{ item.label }}</span>
         @if (temSubmenu(item)) {
           <span class="count">{{ item.children!.length }}</span>
         }
         <span class="badges">
-          <span class="bdg" [class]="badgeClass(item.url)">{{ badgeLabel(item.url) }}</span>
           @if (item.ativo === false) {
-            <span class="bdg off">Inativo</span>
+            <span class="bdg off">INATIVO</span>
+          } @else {
+            <span class="bdg" [class]="badgeClass(item.url)">{{ badgeLabel(item.url) }}</span>
           }
         </span>
         <span class="acts">

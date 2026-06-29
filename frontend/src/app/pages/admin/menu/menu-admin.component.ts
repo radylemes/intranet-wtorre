@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription, forkJoin } from 'rxjs';
@@ -14,8 +15,15 @@ import { MenuTopbarAdminComponent } from './menu-topbar-admin.component';
 import { MenuCarrosselAdminComponent } from './menu-carrossel-admin.component';
 import { MenuSistemasAdminComponent } from './menu-sistemas-admin.component';
 import { MenuHeaderChamadoAdminComponent } from './menu-header-chamado-admin.component';
+import { RodapeAdminComponent } from '../rodape/rodape-admin.component';
+import { ComunicadosAdminComponent } from '../comunicados/comunicados-admin.component';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AlertasService } from '../../../services/alertas.service';
+import { AuthService } from '../../../services/auth.service';
+import { DocCatIconePickerComponent } from '../../../shared/documentos/doc-cat-icone-picker.component';
+import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
+import { DocCatIconeService } from '../../../shared/documentos/doc-cat-icone.service';
+import { ICONE_PADRAO } from '../../../models/documento.model';
 import { PaginaInterna, buildPaginasInternasLista } from '../../../data/paginas-internas';
 import {
   TipoDestino,
@@ -32,10 +40,31 @@ interface PaiOption {
   depth: number;
 }
 
+type MenuAdminAba =
+  | 'estrutura'
+  | 'topbar'
+  | 'header'
+  | 'carrossel'
+  | 'sistemas'
+  | 'rodape'
+  | 'comunicados';
+
 @Component({
   selector: 'app-menu-admin',
   standalone: true,
-  imports: [ReactiveFormsModule, MenuAdminNodeComponent, AdminModalComponent, MenuTopbarAdminComponent, MenuCarrosselAdminComponent, MenuSistemasAdminComponent, MenuHeaderChamadoAdminComponent],
+  imports: [
+    ReactiveFormsModule,
+    MenuAdminNodeComponent,
+    AdminModalComponent,
+    DocCatIconePickerComponent,
+    DocCatIconeComponent,
+    MenuTopbarAdminComponent,
+    MenuCarrosselAdminComponent,
+    MenuSistemasAdminComponent,
+    MenuHeaderChamadoAdminComponent,
+    RodapeAdminComponent,
+    ComunicadosAdminComponent,
+  ],
   templateUrl: './menu-admin.component.html',
   styleUrl: './menu-admin.component.scss',
 })
@@ -45,6 +74,9 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
   private readonly paginasService = inject(PaginasService);
   private readonly fb = inject(FormBuilder);
   private readonly alertas = inject(AlertasService);
+  private readonly iconeService = inject(DocCatIconeService);
+  private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly paginasInternas = signal<PaginaInterna[]>(buildPaginasInternasLista());
   readonly menuTree = signal<MenuItem[]>([]);
@@ -54,7 +86,10 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
   readonly editandoId = signal<number | null>(null);
   readonly recolhidos = signal<Set<number>>(new Set());
   readonly modalAberto = signal(false);
+  readonly modalIconeAberto = signal(false);
+  readonly iconTemp = signal('');
   readonly urlLegadoInterno = signal<string | null>(null);
+  readonly abaAtiva = signal<MenuAdminAba>('estrutura');
 
   readonly form = this.fb.nonNullable.group({
     label: ['', Validators.required],
@@ -84,11 +119,14 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.abaAtiva.set(this.abaInicial());
     this.tipoDestinoSub = this.form.controls.tipo_destino.valueChanges.subscribe((tipo) =>
       this.onTipoDestinoChange(tipo)
     );
-    this.carregarPaginasInternas();
-    this.carregar();
+    if (this.mostrarAbaEstrutura()) {
+      this.carregarPaginasInternas();
+      this.carregar();
+    }
   }
 
   private carregarPaginasInternas(): void {
@@ -112,6 +150,55 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar menu.'),
     });
+  }
+
+  selecionarAba(aba: MenuAdminAba): void {
+    if (!this.abaPermitida(aba)) return;
+    this.abaAtiva.set(aba);
+  }
+
+  mostrarAbaEstrutura(): boolean {
+    return this.auth.hasModulo('menu');
+  }
+
+  mostrarAbasMenuHome(): boolean {
+    return this.auth.hasModulo('menu');
+  }
+
+  mostrarAbaRodape(): boolean {
+    return this.auth.hasModulo('rodape');
+  }
+
+  mostrarAbaComunicados(): boolean {
+    return this.auth.hasModulo('comunicados');
+  }
+
+  private abaInicial(): MenuAdminAba {
+    const qp = this.route.snapshot.queryParamMap.get('aba');
+    if (qp && this.abaPermitida(qp as MenuAdminAba)) {
+      return qp as MenuAdminAba;
+    }
+    if (this.mostrarAbaEstrutura()) return 'estrutura';
+    if (this.mostrarAbaRodape()) return 'rodape';
+    if (this.mostrarAbaComunicados()) return 'comunicados';
+    return 'estrutura';
+  }
+
+  private abaPermitida(aba: MenuAdminAba): boolean {
+    switch (aba) {
+      case 'estrutura':
+      case 'topbar':
+      case 'header':
+      case 'carrossel':
+      case 'sistemas':
+        return this.mostrarAbasMenuHome();
+      case 'rodape':
+        return this.mostrarAbaRodape();
+      case 'comunicados':
+        return this.mostrarAbaComunicados();
+      default:
+        return false;
+    }
   }
 
   paisDisponiveis(): PaiOption[] {
@@ -219,9 +306,9 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
       pagina_interna: destino.paginaInterna,
       url_externa: destino.urlExterna,
       parent_id: parentId ?? '',
-      ordem: 0,
+      ordem: item.ordem ?? 0,
       abrir_nova_aba: destino.tipo === 'externa' ? true : item.abrir_nova_aba,
-      icone: item.icone ?? '',
+      icone: item.icone ? this.iconeService.normalizarParaLeitura(item.icone) : '',
       cabecalho: item.cabecalho ?? '',
       ativo: item.ativo !== false,
       visivel_perfil: item.visivel_perfil ?? '',
@@ -277,6 +364,46 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
       : 'Configure rótulo, destino e visibilidade do item de navegação.';
   }
 
+  abrirModalIcone(): void {
+    const atual = this.form.controls.icone.value.trim();
+    this.iconTemp.set(
+      atual ? this.iconeService.normalizarParaLeitura(atual) : ICONE_PADRAO
+    );
+    this.modalIconeAberto.set(true);
+  }
+
+  fecharModalIcone(): void {
+    this.modalIconeAberto.set(false);
+  }
+
+  confirmarIcone(): void {
+    this.form.patchValue({
+      icone: this.iconeService.normalizarParaSalvar(this.iconTemp()) ?? '',
+    });
+    this.fecharModalIcone();
+  }
+
+  selecionarIconTemp(value: string): void {
+    this.iconTemp.set(value);
+  }
+
+  iconeSelecionado(): string {
+    return this.form.controls.icone.value;
+  }
+
+  iconeHeader(): string | null {
+    const val = this.form.controls.icone.value.trim();
+    return val || null;
+  }
+
+  temIcone(): boolean {
+    return !!this.form.controls.icone.value.trim();
+  }
+
+  limparIcone(): void {
+    this.form.patchValue({ icone: '' });
+  }
+
   salvar(): void {
     this.form.controls.pagina_interna.updateValueAndValidity();
     this.form.controls.url_externa.updateValueAndValidity();
@@ -296,7 +423,7 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
       parent_id: raw.parent_id === '' ? null : Number(raw.parent_id),
       ordem: Number(raw.ordem) || 0,
       abrir_nova_aba: abrirNovaAba,
-      icone: raw.icone.trim() || null,
+      icone: this.iconeService.normalizarParaSalvar(raw.icone),
       cabecalho: raw.cabecalho.trim() || null,
       ativo: raw.ativo,
       visivel_perfil: raw.visivel_perfil.trim() || null,

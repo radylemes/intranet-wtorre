@@ -10,6 +10,7 @@ import {
   SolicitacaoDetalheAdmin,
   SolicitacaoGrupo,
   SolicitacaoVisualizador,
+  UsuarioAdBusca,
 } from '../models/solicitacao-colaborador.model';
 
 @Injectable({ providedIn: 'root' })
@@ -84,6 +85,12 @@ export class SolicitacaoColaboradorService {
 
   removerGrupo(id: number): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(this.api(`/admin/grupos/${id}`));
+  }
+
+  buscarUsuariosAd(q: string): Observable<UsuarioAdBusca[]> {
+    return this.http.get<UsuarioAdBusca[]>(this.api('/admin/usuarios-ad/buscar'), {
+      params: { q },
+    });
   }
 
   listarVisualizadores(): Observable<SolicitacaoVisualizador[]> {

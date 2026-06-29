@@ -30,14 +30,33 @@ export function validarNomeContainer(nome: string): string | null {
 }
 
 export function mapTreinamentoApi(row: Record<string, unknown>): import('../models/treinamento.model').Treinamento {
+  const setorRaw = row['setor'] as Record<string, unknown> | null | undefined;
+  const setor =
+    setorRaw && setorRaw['id'] != null
+      ? {
+          id: setorRaw['id'] as number,
+          nome: setorRaw['nome'] as string,
+          slug: setorRaw['slug'] as string,
+          cor: (setorRaw['cor'] as string) ?? null,
+        }
+      : row['setor_id'] != null
+        ? {
+            id: row['setor_id'] as number,
+            nome: (row['setor_nome'] as string) ?? '',
+            slug: (row['setor_slug'] as string) ?? '',
+            cor: (row['setor_cor'] as string) ?? null,
+          }
+        : null;
+
   return {
     id: row['id'] as number,
     titulo: row['titulo'] as string,
     descricao: (row['descricao'] as string) ?? null,
-    area: (row['area'] as string) ?? null,
+    setorId: (row['setor_id'] as number) ?? setor?.id ?? null,
+    setor,
     duracaoSeg: (row['duracao_seg'] as number) ?? null,
     destaque: !!(row['destaque'] as boolean),
-    temThumb: !!(row['tem_thumb'] as boolean),
+    temThumb: !!(row['tem_thumb'] ?? row['temThumb'] ?? row['thumb_blob']),
     paginaId: row['pagina_id'] as number,
     paginaSlug: row['pagina_slug'] as string,
     paginaNome: (row['pagina_nome'] as string) ?? null,

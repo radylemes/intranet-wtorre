@@ -1,58 +1,51 @@
 @for (item of items(); track item.id) {
   <div class="cat-branch">
-    <div class="cat-item" [class.selected]="selecionadaId() === item.id">
-      <button
-        type="button"
-        class="cat-item-main"
-        (click)="action.emit({ type: 'select', item })"
-      >
-        <span class="cat-icon-wrap">
+    <div class="cat" [class.on]="selecionadaId() === item.id">
+      <button type="button" class="cat-select" (click)="action.emit({ type: 'select', item })">
+        <span class="cic">
           <app-doc-cat-icone [nome]="iconFor(item)" [size]="16" />
         </span>
-        <span class="cat-name">{{ item.nome }}</span>
+        <span class="cn">{{ item.nome }}</span>
         @if (item.documentos_count != null) {
-          <span class="cat-badge">{{ item.documentos_count }}</span>
+          <span class="cc">{{ item.documentos_count }}</span>
         }
         @if (!item.ativo) {
           <span class="cat-inativo">inativo</span>
         }
       </button>
-      @if (selecionadaId() === item.id) {
-        <div class="cat-node-actions">
-          <button
-            type="button"
-            class="iconbtn"
-            title="Editar"
-            (click)="action.emit({ type: 'edit', item }); $event.stopPropagation()"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="iconbtn del"
-            title="Remover"
-            (click)="action.emit({ type: 'remove', item }); $event.stopPropagation()"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-      }
+      <span class="cacts">
+        <button
+          type="button"
+          class="ci"
+          title="Editar"
+          (click)="action.emit({ type: 'edit', item }); $event.stopPropagation()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M4 20h4l10-10-4-4L4 16z"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="ci del"
+          title="Remover"
+          (click)="action.emit({ type: 'remove', item }); $event.stopPropagation()"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M6 7h12M9 7V5h6v2M7 7l1 13h8l1-13"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </span>
     </div>
 
     @if (item.children.length) {

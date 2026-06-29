@@ -1,7 +1,6 @@
 const repo = require('../repositories/solicitacao-colaborador.repository');
 const blobService = require('./blob.service');
-const smtpConfigService = require('./smtp-config.service');
-const smtpMailService = require('./mail/smtp-mail.service');
+const { sendMailBatched } = require('../utils/emailSender');
 const { CHAVES_ANEXO } = require('../config/solicitacao-campos');
 const { buildGrupoHtml, buildTextoPlano, CAMPO_COL_MAP } = require('../utils/solicitacao-email-html.util');
 const { decodeBlobRef, validarGrupoSensivel } = require('../utils/solicitacao-validation.util');
@@ -35,7 +34,7 @@ async function montarAnexos(solicitacao, campos) {
     totalBytes += buffer.length;
     if (totalBytes > maxBytes) {
       const err = new Error(
-        `Anexos excedem o limite de ${env.solicitacaoColaboradorSmtpAnexoMaxMb} MB para envio SMTP.`
+        `Anexos excedem o limite de ${env.solicitacaoColaboradorSmtpAnexoMaxMb} MB para envio de e-mail.`
       );
       err.status = 400;
       throw err;
@@ -68,8 +67,7 @@ async function enviarGrupo(solicitacao, grupo) {
   const tipoLabel = TIPO_LABELS[solicitacao.tipo] || solicitacao.tipo;
   const subject = `Nova solicitação de colaborador — ${solicitacao.nome} (${tipoLabel})`;
 
-  const config = await smtpConfigService.getDecrypted();
-  const { enviados, erros } = await smtpMailService.sendMailBatched(config, {
+  const { enviados, erros } = await sendMailBatched({
     recipients: destinatarios,
     subject,
     html,

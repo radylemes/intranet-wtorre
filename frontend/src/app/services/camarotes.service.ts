@@ -5,11 +5,15 @@ import { environment } from '../../environments/environment';
 import {
   CamaroteUnidade,
   CamarotesAcesso,
+  CamarotesAlertasEnvioLog,
+  CamarotesAlertasContratosResposta,
   CamarotesConfig,
   CamarotesDashboard,
   CamarotesSyncLog,
   CamarotesVisualizador,
+  EnviarAlertasResposta,
   EnviarResumoResposta,
+  GatilhoPreviewResposta,
   SituacaoUnidade,
   SyncResumo,
   TipoUnidade,
@@ -47,11 +51,13 @@ export class CamarotesService {
     tipo?: TipoUnidade;
     setor?: string;
     situacao?: SituacaoUnidade;
+    dias_max?: number;
   }): Observable<CamaroteUnidade[]> {
     let params = new HttpParams();
     if (filtros?.tipo) params = params.set('tipo', filtros.tipo);
     if (filtros?.setor) params = params.set('setor', filtros.setor);
     if (filtros?.situacao) params = params.set('situacao', filtros.situacao);
+    if (filtros?.dias_max != null) params = params.set('dias_max', String(filtros.dias_max));
     return this.http.get<CamaroteUnidade[]>(this.api('/camarotes/unidades'), { params });
   }
 
@@ -73,8 +79,51 @@ export class CamarotesService {
     });
   }
 
+  alertasEnvioLog(limit = 50): Observable<CamarotesAlertasEnvioLog[]> {
+    return this.http.get<CamarotesAlertasEnvioLog[]>(this.api('/camarotes/alertas-envio-log'), {
+      params: { limit: String(limit) },
+    });
+  }
+
+  alertasContratos(filtros?: {
+    gatilho_dias?: number;
+    notificado?: boolean;
+  }): Observable<CamarotesAlertasContratosResposta> {
+    let params = new HttpParams();
+    if (filtros?.gatilho_dias != null) {
+      params = params.set('gatilho_dias', String(filtros.gatilho_dias));
+    }
+    if (filtros?.notificado === true) {
+      params = params.set('notificado', 'true');
+    } else if (filtros?.notificado === false) {
+      params = params.set('notificado', 'false');
+    }
+    return this.http.get<CamarotesAlertasContratosResposta>(this.api('/camarotes/alertas-contratos'), {
+      params,
+    });
+  }
+
+  previewGatilho(dias: number): Observable<GatilhoPreviewResposta> {
+    return this.http.get<GatilhoPreviewResposta>(this.api(`/camarotes/gatilhos/${dias}/preview`));
+  }
+
+  enviarTesteGatilho(dias: number, to?: string): Observable<{ ok: boolean; mensagem: string }> {
+    return this.http.post<{ ok: boolean; mensagem: string }>(
+      this.api(`/camarotes/gatilhos/${dias}/teste`),
+      { to }
+    );
+  }
+
+  enviarAlertas(preview = false, opts?: { gatilho_dias?: number; unidade_id?: number }): Observable<EnviarAlertasResposta> {
+    let params = new HttpParams();
+    if (preview) params = params.set('preview', '1');
+    if (opts?.gatilho_dias != null) params = params.set('gatilho_dias', String(opts.gatilho_dias));
+    if (opts?.unidade_id != null) params = params.set('unidade_id', String(opts.unidade_id));
+    return this.http.post<EnviarAlertasResposta>(this.api('/camarotes/enviar-alertas'), {}, { params });
+  }
+
+  /** @deprecated Use enviarAlertas() */
   enviarResumo(preview = false): Observable<EnviarResumoResposta> {
-    const params = preview ? new HttpParams().set('preview', '1') : undefined;
-    return this.http.post<EnviarResumoResposta>(this.api('/camarotes/enviar-resumo'), {}, { params });
+    return this.enviarAlertas(preview);
   }
 }

@@ -3,6 +3,8 @@ import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { guestGuard } from './guards/guest.guard';
 import { moduloGuardFromRoute } from './guards/modulo.guard';
+import { menuHubGuard } from './guards/menu-hub.guard';
+import { documentosHubGuard } from './guards/documentos-hub.guard';
 import { superAdminGuard } from './guards/super-admin.guard';
 import { camarotesViewerGuard } from './guards/camarotes-viewer.guard';
 import { solicitacaoViewerGuard } from './guards/solicitacao-viewer.guard';
@@ -111,21 +113,22 @@ export const routes: Routes = [
       },
       {
         path: 'menu',
-        canActivate: [moduloGuardFromRoute],
+        canActivate: [menuHubGuard],
         loadComponent: () =>
           import('./pages/admin/menu/menu-admin.component').then((m) => m.MenuAdminComponent),
         data: { adminTitle: 'Gestão do Menu' },
       },
       {
         path: 'rodape',
-        canActivate: [moduloGuardFromRoute],
         loadComponent: () =>
-          import('./pages/admin/rodape/rodape-admin.component').then((m) => m.RodapeAdminComponent),
-        data: { adminTitle: 'Rodapé' },
+          import('./pages/admin/admin-aba-redirect/admin-aba-redirect.component').then(
+            (m) => m.AdminAbaRedirectComponent
+          ),
+        data: { dest: 'menu', aba: 'rodape' },
       },
       {
         path: 'documentos',
-        canActivate: [moduloGuardFromRoute],
+        canActivate: [documentosHubGuard],
         loadComponent: () =>
           import('./pages/admin/documentos/documentos-admin.component').then(
             (m) => m.DocumentosAdminComponent
@@ -143,21 +146,19 @@ export const routes: Routes = [
       },
       {
         path: 'treinamentos',
-        canActivate: [moduloGuardFromRoute],
         loadComponent: () =>
-          import('./pages/admin/treinamentos-admin/treinamentos-admin.component').then(
-            (m) => m.TreinamentosAdminComponent
+          import('./pages/admin/admin-aba-redirect/admin-aba-redirect.component').then(
+            (m) => m.AdminAbaRedirectComponent
           ),
-        data: { adminTitle: 'Treinamentos' },
+        data: { dest: 'documentos', aba: 'treinamentos' },
       },
       {
         path: 'comunicados',
-        canActivate: [moduloGuardFromRoute],
         loadComponent: () =>
-          import('./pages/admin/comunicados/comunicados-admin.component').then(
-            (m) => m.ComunicadosAdminComponent
+          import('./pages/admin/admin-aba-redirect/admin-aba-redirect.component').then(
+            (m) => m.AdminAbaRedirectComponent
           ),
-        data: { adminTitle: 'Comunicados' },
+        data: { dest: 'menu', aba: 'comunicados' },
       },
       {
         path: 'containers',
@@ -218,12 +219,11 @@ export const routes: Routes = [
       },
       {
         path: 'perfis',
-        canActivate: [superAdminGuard],
         loadComponent: () =>
-          import('./pages/admin/perfis/perfis-admin.component').then(
-            (m) => m.PerfisAdminComponent
+          import('./pages/admin/admin-aba-redirect/admin-aba-redirect.component').then(
+            (m) => m.AdminAbaRedirectComponent
           ),
-        data: { adminTitle: 'Perfis de Acesso' },
+        data: { dest: 'acessos', aba: 'perfis' },
       },
       {
         path: 'acessos',

@@ -1,8 +1,13 @@
+import type { DocumentoSetorRef, VisibilidadeEntidade } from './documento.model';
+
+export type { VisibilidadeEntidade };
+
 export interface Treinamento {
   id: number;
   titulo: string;
   descricao?: string | null;
-  area?: string | null;
+  setorId?: number | null;
+  setor?: DocumentoSetorRef | null;
   duracaoSeg?: number | null;
   destaque: boolean;
   temThumb: boolean;
@@ -22,6 +27,7 @@ export interface TreinamentoAdmin extends Treinamento {
   ordem?: number | null;
   criado_em?: string;
   atualizado_em?: string;
+  visibilidades?: VisibilidadeEntidade[];
 }
 
 export interface TreinamentoDetalhe extends TreinamentoAdmin {

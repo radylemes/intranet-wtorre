@@ -27,6 +27,14 @@
   color: var(--ink, #10151f);
 }
 
+.admin-modal__panel--wide {
+  width: min(860px, 100%);
+}
+
+.admin-modal__panel--xlarge {
+  width: min(920px, 100%);
+}
+
 .admin-modal .m-head {
   display: flex;
   align-items: center;
@@ -68,8 +76,37 @@
 .admin-modal .m-head .sb {
   font-size: 12.5px;
   color: var(--ink-dim, #8a93a8);
-  margin-top: 2px;
+  margin-top: 3px;
   line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.admin-modal .m-head .sb .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--panel-2, #f6f8fc);
+  border: 1px solid var(--line, #e4e8f0);
+  border-radius: 7px;
+  padding: 1px 7px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
+  font-size: 11px;
+}
+
+.admin-modal .m-foot .count {
+  align-self: center;
+  margin-right: auto;
+  font-size: 12.5px;
+  color: var(--ink-dim, #8a93a8);
+  font-weight: 600;
+}
+
+.admin-modal .m-foot .count b {
+  color: var(--wtorre, #1d54e6);
 }
 
 .admin-modal .m-head .x {
@@ -228,11 +265,11 @@
 .admin-modal .m-body .field input[type='text'],
 .admin-modal .m-body .field input[type='number'],
 .admin-modal .m-body .field input[type='password'],
+.admin-modal .m-body .field input:not([type]),
 .admin-modal .m-body .field select,
 .admin-modal .m-body .field textarea {
   width: 100%;
-  min-height: 46px;
-  padding: 12px 14px;
+  padding: 0 14px;
   border: 1.5px solid var(--line, #e4e8f0);
   border-radius: 12px;
   font-family: inherit;
@@ -242,6 +279,16 @@
   outline: none;
   transition: 0.16s;
   box-sizing: border-box;
+}
+
+.admin-modal .m-body .field input[type='text'],
+.admin-modal .m-body .field input[type='number'],
+.admin-modal .m-body .field input[type='password'],
+.admin-modal .m-body .field input:not([type]),
+.admin-modal .m-body .field select {
+  height: 46px;
+  min-height: 0;
+  line-height: 1.4;
 }
 
 .admin-modal .m-body .field input::placeholder,
@@ -260,7 +307,9 @@
 .admin-modal .m-body .field textarea {
   resize: vertical;
   min-height: 70px;
-  padding-top: 12px;
+  height: auto;
+  padding: 12px 14px;
+  line-height: 1.45;
 }
 
 .admin-modal .m-body .row2 {
@@ -424,6 +473,50 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/* Upload por botão (doc-modal-form — documentos / treinamentos) */
+.admin-modal .m-body .doc-modal-form .thumb-actions-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.admin-modal .m-body .doc-modal-form .btn-soft {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line-solid, #e2e6ee);
+  background: #fff;
+  color: var(--ink-soft, #48536a);
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-modal .m-body .doc-modal-form .btn-soft:hover {
+  border-color: var(--ink-dim, #8a93a8);
+  color: var(--ink, #10151f);
+}
+
+.admin-modal .m-body .doc-modal-form .btn-soft svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.admin-modal .m-body .doc-modal-form input[type='file'][hidden] {
+  display: none !important;
 }
 
 @media (max-width: 760px) {

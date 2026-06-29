@@ -1,10 +1,14 @@
 const fs = require('fs/promises');
 const treinamentosRepo = require('../repositories/treinamentos.repository');
+const treinamentoEntidadesRepo = require('../repositories/treinamento-entidades.repository');
 const containersRepo = require('../repositories/storage-containers.repository');
 const paginaRepo = require('../repositories/documentos-paginas.repository');
 const catRepo = require('../repositories/categorias-documentos.repository');
 const blobService = require('../services/blob.service');
 const contentVersionService = require('../services/content-version.service');
+const docRepo = require('../repositories/documentos.repository');
+const { validateSetorId } = require('../utils/documentos-setor.validation');
+const { resolveVisibilidadesFromBody } = require('../utils/visibilidade-entidades.validation');
 const {
   parseDuracaoSeg,
   parseCategoriaId,
@@ -61,13 +65,22 @@ function parseListOptions(req) {
     paginaSlug: pagina,
     categoriaSlug: semCategoria ? null : categoria,
     semCategoria,
+    setorRef: req.query.setor,
   };
 }
 
 async function listar(req, res) {
   try {
     const opts = parseListOptions(req);
-    const lista = await treinamentosRepo.findAllPublico(opts);
+    let setorFilter = { type: 'all' };
+    if (opts.setorRef !== undefined && opts.setorRef !== '') {
+      const resolved = await docRepo.resolveSetorFilter(opts.setorRef);
+      if (resolved === null) {
+        return res.status(404).json({ mensagem: 'Setor não encontrado.' });
+      }
+      setorFilter = resolved;
+    }
+    const lista = await treinamentosRepo.findAllPublico({ ...opts, setorFilter });
     return res.json(lista);
   } catch (err) {
     return res.status(500).json({ mensagem: err.message || 'Erro ao listar treinamentos.' });
@@ -141,6 +154,25 @@ async function thumb(req, res) {
   }
 }
 
+async function thumbStream(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const row = await treinamentosRepo.findById(id);
+    if (!row || !row.ativo || !row.thumb_blob) {
+      return res.status(404).json({ mensagem: 'Thumbnail não encontrada.' });
+    }
+
+    const { buffer, contentType } = await blobService.baixarBuffer(row.container, row.thumb_blob);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    return res.send(buffer);
+  } catch (err) {
+    return res.status(err.status || 500).json({
+      mensagem: err.message || 'Erro ao carregar thumbnail.',
+    });
+  }
+}
+
 async function resolverContainer(nomeForm) {
   if (nomeForm?.trim()) {
     const c = await containersRepo.findByNome(nomeForm.trim().toLowerCase());
@@ -177,13 +209,35 @@ async function criar(req, res) {
       return res.status(400).json({ mensagem: 'titulo é obrigatório.' });
     }
 
-    const paginaId = parsePaginaId(req.body);
-    await validarPaginaAtiva(paginaId);
-    let categoriaId = null;
-    if (req.body.categoria_id !== undefined || req.body.categoriaId !== undefined) {
-      categoriaId = parseCategoriaId(req.body);
+    let visibilidades;
+    try {
+      const legacyPaginaId = parsePaginaId(req.body);
+      let legacyCategoriaId = null;
+      if (req.body.categoria_id !== undefined || req.body.categoriaId !== undefined) {
+        legacyCategoriaId = parseCategoriaId(req.body);
+      }
+      visibilidades = await resolveVisibilidadesFromBody(
+        req.body,
+        legacyPaginaId,
+        legacyCategoriaId,
+        { categoriaOpcional: true }
+      );
+    } catch (err) {
+      return res.status(err.status || 400).json({ mensagem: err.message });
     }
-    await validarCategoriaParaPagina(categoriaId, paginaId);
+
+    const paginaId = visibilidades[0].pagina_id;
+    const categoriaId = visibilidades[0].categoria_id;
+    await validarPaginaAtiva(paginaId);
+
+    let setorId = null;
+    if (req.body.setor_id !== undefined && req.body.setor_id !== '') {
+      try {
+        setorId = await validateSetorId(req.body.setor_id, { obrigatorio: false });
+      } catch (err) {
+        return res.status(err.status || 400).json({ mensagem: err.message });
+      }
+    }
 
     container = await resolverContainer(req.body.container);
     await blobService.garantirContainer(container);
@@ -214,7 +268,8 @@ async function criar(req, res) {
       descricao: req.body.descricao?.trim() || null,
       pagina_id: paginaId,
       categoria_id: categoriaId ?? null,
-      area: req.body.area?.trim() || null,
+      setor_id: setorId,
+      area: null,
       duracao_seg: parseDuracaoSeg(req.body.duracao_seg),
       container,
       blob_name: videoBlobName,
@@ -224,8 +279,11 @@ async function criar(req, res) {
       criado_por: criadoPor(req),
     });
 
+    await treinamentoEntidadesRepo.replaceForTreinamento(treinamento.id, visibilidades);
+    const full = await treinamentosRepo.findById(treinamento.id);
+
     await contentVersionService.bump('treinamentos');
-    return res.status(201).json(treinamento);
+    return res.status(201).json(full);
   } catch (err) {
     if (uploadedVideo) {
       await blobService.removerBlob(uploadedVideo.container, uploadedVideo.blobName).catch(() => {});
@@ -267,27 +325,50 @@ async function atualizar(req, res) {
     }
 
     let paginaId = existing.pagina_id;
-    if (req.body.pagina_id !== undefined || req.body.paginaId !== undefined) {
-      paginaId = parsePaginaId(req.body);
+    let categoriaId = existing.categoria_id;
+    let visibilidades;
+
+    if (
+      req.body.visibilidades !== undefined ||
+      req.body.pagina_id !== undefined ||
+      req.body.paginaId !== undefined ||
+      req.body.categoria_id !== undefined ||
+      req.body.categoriaId !== undefined
+    ) {
+      try {
+        const legacyPaginaId =
+          req.body.pagina_id !== undefined || req.body.paginaId !== undefined
+            ? parsePaginaId(req.body)
+            : existing.pagina_id;
+        let legacyCategoriaId = existing.categoria_id;
+        if (req.body.categoria_id !== undefined || req.body.categoriaId !== undefined) {
+          legacyCategoriaId = parseCategoriaId(req.body);
+        }
+        visibilidades = await resolveVisibilidadesFromBody(
+          req.body,
+          legacyPaginaId,
+          legacyCategoriaId,
+          { categoriaOpcional: true }
+        );
+      } catch (err) {
+        return res.status(err.status || 400).json({ mensagem: err.message });
+      }
+      paginaId = visibilidades[0].pagina_id;
+      categoriaId = visibilidades[0].categoria_id;
       await validarPaginaAtiva(paginaId);
       data.pagina_id = paginaId;
-    }
-
-    if (req.body.categoria_id !== undefined || req.body.categoriaId !== undefined) {
-      const categoriaId = parseCategoriaId(req.body);
-      await validarCategoriaParaPagina(categoriaId ?? null, paginaId);
       data.categoria_id = categoriaId ?? null;
-    } else if (data.pagina_id !== undefined && data.pagina_id !== existing.pagina_id) {
-      if (existing.categoria_id != null) {
-        const cat = await catRepo.findById(existing.categoria_id);
-        if (!cat || cat.pagina_id !== paginaId) {
-          data.categoria_id = null;
-        }
-      }
     }
 
-    if (req.body.area !== undefined) {
-      data.area = req.body.area?.trim() || null;
+    if (req.body.setor_id !== undefined) {
+      try {
+        data.setor_id =
+          req.body.setor_id === '' || req.body.setor_id == null
+            ? null
+            : await validateSetorId(req.body.setor_id, { obrigatorio: false });
+      } catch (err) {
+        return res.status(err.status || 400).json({ mensagem: err.message });
+      }
     }
     if (req.body.duracao_seg !== undefined) {
       data.duracao_seg = parseDuracaoSeg(req.body.duracao_seg);
@@ -336,9 +417,15 @@ async function atualizar(req, res) {
       );
       uploadedThumb = { container, blobName: thumbBlobName };
       data.thumb_blob = thumbBlobName;
+    } else if (req.body.remover_thumb === 'true' || req.body.remover_thumb === true) {
+      data.thumb_blob = null;
     }
 
     const updated = await treinamentosRepo.atualizar(id, data);
+
+    if (visibilidades) {
+      await treinamentoEntidadesRepo.replaceForTreinamento(id, visibilidades);
+    }
 
     if (uploadedVideo && oldVideo && oldVideo !== uploadedVideo.blobName) {
       await blobService.removerBlob(existing.container, oldVideo);
@@ -346,9 +433,13 @@ async function atualizar(req, res) {
     if (uploadedThumb && oldThumb && oldThumb !== uploadedThumb.blobName) {
       await blobService.removerBlob(existing.container, oldThumb);
     }
+    if ((req.body.remover_thumb === 'true' || req.body.remover_thumb === true) && oldThumb && !thumbFile) {
+      await blobService.removerBlob(existing.container, oldThumb);
+    }
 
     await contentVersionService.bump('treinamentos');
-    return res.json(updated);
+    const full = await treinamentosRepo.findById(id);
+    return res.json(full);
   } catch (err) {
     if (uploadedVideo) {
       await blobService.removerBlob(uploadedVideo.container, uploadedVideo.blobName);
@@ -394,6 +485,7 @@ module.exports = {
   obter,
   playback,
   thumb,
+  thumbStream,
   criar,
   atualizar,
   excluir,

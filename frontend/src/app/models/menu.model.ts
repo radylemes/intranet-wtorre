@@ -9,6 +9,7 @@ export interface MenuItem {
   cabecalho: string | null;
   ativo?: boolean;
   visivel_perfil?: string | null;
+  ordem?: number;
   children: MenuItem[];
 }
 

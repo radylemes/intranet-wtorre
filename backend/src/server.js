@@ -20,6 +20,7 @@ const configuracoesRoutes = require('./routes/configuracoes.routes');
 const rodapeRoutes = require('./routes/rodape.routes');
 const paginasRoutes = require('./routes/paginas.routes');
 const camarotesRoutes = require('./routes/camarotes.routes');
+const webhooksRoutes = require('./routes/webhooks.routes');
 const solicitacaoColaboradorRoutes = require('./routes/solicitacao-colaborador.routes');
 const brandingRoutes = require('./routes/branding.routes');
 const grupoLogosRoutes = require('./routes/grupo-logos.routes');
@@ -51,6 +52,9 @@ app.use(
     credentials: true,
   })
 );
+
+app.use('/api/v1/webhooks', webhooksRoutes);
+
 app.use(express.json());
 app.use(requestIdMiddleware);
 

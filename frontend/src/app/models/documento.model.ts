@@ -50,6 +50,7 @@ export interface DocumentoPagina {
   logo_url?: string | null;
   ordem?: number;
   ativo?: boolean;
+  exibir_menu_treinamento?: boolean;
 }
 
 export interface DocumentoSetor {
@@ -82,19 +83,38 @@ export interface DocumentoSetorRef {
   cor?: string | null;
 }
 
+export interface VisibilidadeEntidade {
+  pagina_id: number;
+  pagina_nome?: string | null;
+  pagina_slug?: string | null;
+  categoria_id: number | null;
+  categoria_nome?: string | null;
+  categoria_slug?: string | null;
+}
+
+export interface VisibilidadeEntidadeInput {
+  pagina_id: number;
+  categoria_id: number;
+}
+
 export interface Documento {
   id: number;
   categoria_id: number;
   titulo: string;
   descricao?: string | null;
+  thumbnail_url?: string | null;
+  tem_thumb?: boolean;
   nome_original: string;
   mime: string;
   extensao: string;
   tamanho_bytes: number;
   setor_id?: number | null;
   setor?: DocumentoSetorRef | null;
+  destaque?: boolean;
+  destaque_ordem?: number;
   criado_em: string;
   atualizado_em?: string;
+  visibilidades?: VisibilidadeEntidade[];
 }
 
 export interface CategoriaLegacyResolve {
@@ -121,6 +141,7 @@ export interface DocumentoPaginaPayload {
   logo_url?: string | null;
   ordem?: number;
   ativo?: boolean;
+  exibir_menu_treinamento?: boolean;
 }
 
 export interface DocumentoPaginaLogoUploadResponse {
@@ -143,6 +164,8 @@ export interface DocumentoUpdatePayload {
   descricao?: string | null;
   categoria_id?: number;
   setor_id?: number;
+  destaque?: boolean;
+  visibilidades?: VisibilidadeEntidadeInput[];
 }
 
 export interface CategoriaReorderItem {

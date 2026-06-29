@@ -1,17 +1,83 @@
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 import { AlertasService } from '../../../services/alertas.service';
+import { AuthService } from '../../../services/auth.service';
 import { CamarotesService } from '../../../services/camarotes.service';
 import { PerfisAcessoService } from '../../../services/perfis-acesso.service';
 import {
+  CamarotesAba,
+  CamarotesAlertaContrato,
+  CamarotesAlertasEnvioLog,
+  CamarotesAlertasEnvioDestinatario,
   CamarotesConfig,
+  CamarotesGatilho,
+  CamarotesStatusEntrega,
   CamarotesSyncLog,
+  CamarotesTemplateCodigo,
   CamarotesVisualizador,
 } from '../../../models/camarote.model';
 import { ColaboradorBusca } from '../../../models/perfil-acesso.model';
+
+const GATILHOS_DEFAULT: CamarotesGatilho[] = [
+  {
+    dias: 90,
+    template_codigo: '90dias',
+    assunto: 'Camarote Nº [XXX] — Vencimento em 90 dias',
+    ativo: true,
+  },
+  {
+    dias: 30,
+    template_codigo: '30dias',
+    assunto: 'Camarote Nº [XXX] — Vencimento em 30 dias',
+    ativo: true,
+  },
+  {
+    dias: 0,
+    template_codigo: 'hoje',
+    assunto: 'Camarote Nº [XXX] — Vence hoje',
+    ativo: true,
+  },
+];
+
+interface GatilhoUiMeta {
+  dias: 90 | 30 | 0;
+  titulo: string;
+  badge: string;
+  cardClass: string;
+  headClass: string;
+  badgeClass: string;
+}
+
+const GATILHO_UI: GatilhoUiMeta[] = [
+  {
+    dias: 90,
+    titulo: '90 dias',
+    badge: 'Baixa urgência',
+    cardClass: 'on-green',
+    headClass: 'th-green',
+    badgeClass: 'tbadge-green',
+  },
+  {
+    dias: 30,
+    titulo: '30 dias',
+    badge: 'Atenção',
+    cardClass: 'on-purple',
+    headClass: 'th-purple',
+    badgeClass: 'tbadge-purple',
+  },
+  {
+    dias: 0,
+    titulo: 'Hoje / vencidos',
+    badge: 'Urgente',
+    cardClass: 'on-dark',
+    headClass: 'th-dark',
+    badgeClass: 'tbadge-dark',
+  },
+];
 
 @Component({
   selector: 'app-camarotes-admin',
@@ -23,14 +89,36 @@ import { ColaboradorBusca } from '../../../models/perfil-acesso.model';
 export class CamarotesAdminComponent implements OnInit {
   private readonly camarotesService = inject(CamarotesService);
   private readonly perfisService = inject(PerfisAcessoService);
+  private readonly auth = inject(AuthService);
   private readonly alertas = inject(AlertasService);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly busca$ = new Subject<string>();
+  private readonly buscaEmail$ = new Subject<string>();
 
+  readonly gatilhoUi = GATILHO_UI;
+  readonly templateOpcoes: { value: CamarotesTemplateCodigo; label: string }[] = [
+    { value: '90dias', label: 'camarote-90dias.html' },
+    { value: '30dias', label: 'camarote-30dias.html' },
+    { value: 'hoje', label: 'camarote-hoje.html' },
+  ];
+
+  readonly abaAtiva = signal<CamarotesAba>('alertas');
   readonly config = signal<CamarotesConfig | null>(null);
   readonly syncLogs = signal<CamarotesSyncLog[]>([]);
+  readonly alertasLogs = signal<CamarotesAlertasEnvioLog[]>([]);
+  readonly filtroGatilhoDisparos = signal<'todos' | 90 | 30 | 0>('todos');
+  readonly carregandoDisparos = signal(false);
+  readonly contratosAlerta = signal<CamarotesAlertaContrato[]>([]);
+  readonly contratosPendentes = signal(0);
+  readonly filtroGatilhoContratos = signal<'todos' | 90 | 30 | 0>('todos');
+  readonly filtroNotificadoContratos = signal<'todos' | 'sim' | 'nao'>('todos');
+  readonly carregandoContratosAlerta = signal(false);
+  readonly disparandoContratoKey = signal<string | null>(null);
   readonly visualizadores = signal<CamarotesVisualizador[]>([]);
   readonly resultadosBusca = signal<ColaboradorBusca[]>([]);
+  readonly resultadosBuscaEmail = signal<ColaboradorBusca[]>([]);
   readonly buscaTexto = signal('');
+  readonly buscaEmailTexto = signal('');
   readonly carregando = signal(false);
   readonly sincronizando = signal(false);
   readonly salvandoConfig = signal(false);
@@ -40,15 +128,35 @@ export class CamarotesAdminComponent implements OnInit {
   readonly erro = signal('');
 
   readonly emailsTexto = signal('');
-  readonly diasVenceBreve = signal(90);
   readonly cadencia = signal<'diaria' | 'semanal'>('diaria');
+  readonly horarioEnvio = signal('08:00');
   readonly envioAtivo = signal(true);
   readonly syncAutomatica = signal(true);
   readonly syncFrequencia = signal<'1h' | '6h' | '12h' | '24h' | 'semanal'>('24h');
+  readonly envioAposSync = signal(false);
+  readonly gatilhos = signal<CamarotesGatilho[]>([...GATILHOS_DEFAULT]);
+  readonly sharepointUrl = signal('');
+  readonly sharepointSheet = signal('Camarotes');
+  readonly salvandoSharepoint = signal(false);
+
+  readonly previewAberto = signal(false);
+  readonly previewTitulo = signal('');
+  readonly previewHtml = signal<SafeHtml | null>(null);
+  readonly previewGatilhoDias = signal<90 | 30 | 0 | null>(null);
+  readonly previewDestinatario = signal('');
+  readonly carregandoPreview = signal(false);
+  readonly enviandoTestePreview = signal(false);
 
   readonly ultimaSyncLabel = computed(() => {
     const d = this.config()?.ultima_sync;
     return d ? new Date(d).toLocaleString('pt-BR') : 'Nunca sincronizado';
+  });
+
+  readonly alertasLogsFiltrados = computed(() => {
+    const filtro = this.filtroGatilhoDisparos();
+    const logs = this.alertasLogs();
+    if (filtro === 'todos') return logs;
+    return logs.filter((log) => log.gatilho_dias === filtro);
   });
 
   constructor() {
@@ -77,6 +185,94 @@ export class CamarotesAdminComponent implements OnInit {
         next: (list) => this.resultadosBusca.set(list),
         error: () => this.erro.set('Erro na busca de colaboradores.'),
       });
+
+    this.buscaEmail$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((q) =>
+          q.trim().length >= 2 ? this.perfisService.buscarColaboradores(q.trim()) : of([])
+        )
+      )
+      .subscribe({
+        next: (list) => this.resultadosBuscaEmail.set(list),
+        error: () => this.erro.set('Erro na busca de colaboradores.'),
+      });
+  }
+
+  selecionarAba(aba: CamarotesAba): void {
+    this.abaAtiva.set(aba);
+    if (aba === 'disparos') {
+      this.carregarDisparos();
+    }
+    if (aba === 'contratos') {
+      this.carregarContratosAlerta();
+    }
+  }
+
+  metaGatilho(dias: number): GatilhoUiMeta | undefined {
+    return this.gatilhoUi.find((g) => g.dias === dias);
+  }
+
+  metaStatusEntrega(status: CamarotesStatusEntrega): { label: string; badgeClass: string; title?: string } {
+    switch (status) {
+      case 'entregue':
+        return { label: 'Entregue', badgeClass: 'tbadge-ok' };
+      case 'enviado':
+        return {
+          label: 'Enviado',
+          badgeClass: 'tbadge-info',
+          title: 'Aceito pelo provedor; confirmação de entrega depende do ACS + webhook.',
+        };
+      case 'bounce':
+        return { label: 'Bounce', badgeClass: 'tbadge-warn' };
+      case 'falha':
+        return { label: 'Falha', badgeClass: 'tbadge-error' };
+      case 'parcial':
+        return { label: 'Parcial', badgeClass: 'tbadge-warn', title: 'Alguns destinatários falharam ou retornaram bounce.' };
+      case 'legado':
+      default:
+        return {
+          label: 'Sem rastreio',
+          badgeClass: 'tbadge-muted',
+          title: 'Disparo anterior à ativação do rastreamento por destinatário.',
+        };
+    }
+  }
+
+  resumoDestinatarios(log: CamarotesAlertasEnvioLog): string {
+    if (!log.destinatarios?.length) return '—';
+    return log.destinatarios.map((d) => d.destinatario).join(', ');
+  }
+
+  labelStatusDestinatario(status: CamarotesAlertasEnvioDestinatario['status']): string {
+    return this.metaStatusEntrega(status).label;
+  }
+
+  detalheStatusEntrega(log: CamarotesAlertasEnvioLog): string | undefined {
+    if (!log.destinatarios?.length) return this.metaStatusEntrega(log.status_entrega).title;
+    const linhas = log.destinatarios.map((d) => {
+      const status = this.metaStatusEntrega(d.status).label;
+      return d.erro ? `${d.destinatario}: ${status} — ${d.erro}` : `${d.destinatario}: ${status}`;
+    });
+    return linhas.join('\n');
+  }
+
+  gatilhoPorDias(dias: 90 | 30 | 0): CamarotesGatilho {
+    return (
+      this.gatilhos().find((g) => g.dias === dias) || {
+        dias,
+        template_codigo: dias === 90 ? '90dias' : dias === 30 ? '30dias' : 'hoje',
+        assunto: '',
+        ativo: false,
+      }
+    );
+  }
+
+  atualizarGatilho(dias: 90 | 30 | 0, patch: Partial<CamarotesGatilho>): void {
+    this.gatilhos.update((lista) =>
+      lista.map((g) => (g.dias === dias ? { ...g, ...patch, dias } : g))
+    );
   }
 
   carregarTudo(): void {
@@ -85,11 +281,22 @@ export class CamarotesAdminComponent implements OnInit {
       next: (c) => {
         this.config.set(c);
         this.emailsTexto.set((c.emails_alerta || []).join('\n'));
-        this.diasVenceBreve.set(c.dias_vence_breve);
         this.cadencia.set(c.cadencia);
+        this.horarioEnvio.set(c.horario_envio || '08:00');
         this.envioAtivo.set(c.envio_ativo);
         this.syncAutomatica.set(c.sync_automatica ?? true);
         this.syncFrequencia.set(c.sync_frequencia ?? '24h');
+        this.envioAposSync.set(c.envio_apos_sync ?? false);
+        this.sharepointUrl.set(c.sharepoint_url || '');
+        this.sharepointSheet.set(c.sharepoint_sheet || 'Camarotes');
+        if (c.gatilhos?.length) {
+          this.gatilhos.set(
+            GATILHOS_DEFAULT.map((def) => {
+              const found = c.gatilhos!.find((g) => g.dias === def.dias);
+              return found ? { ...def, ...found } : def;
+            })
+          );
+        }
       },
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar configuração.'),
@@ -99,6 +306,7 @@ export class CamarotesAdminComponent implements OnInit {
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar histórico de sincronizações.'),
     });
+    this.carregarDisparos();
     this.camarotesService.listarVisualizadores().subscribe({
       next: (lista) => this.visualizadores.set(lista),
       error: (err: HttpErrorResponse) =>
@@ -107,9 +315,101 @@ export class CamarotesAdminComponent implements OnInit {
     });
   }
 
+  carregarDisparos(): void {
+    this.carregandoDisparos.set(true);
+    this.camarotesService.alertasEnvioLog(100).subscribe({
+      next: (logs) => {
+        this.alertasLogs.set(logs);
+        this.carregandoDisparos.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar histórico de disparos.');
+        this.carregandoDisparos.set(false);
+      },
+    });
+  }
+
+  carregarContratosAlerta(): void {
+    const gatilho = this.filtroGatilhoContratos();
+    const notif = this.filtroNotificadoContratos();
+
+    this.carregandoContratosAlerta.set(true);
+    this.camarotesService
+      .alertasContratos({
+        gatilho_dias: gatilho === 'todos' ? undefined : gatilho,
+        notificado: notif === 'sim' ? true : notif === 'nao' ? false : undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          this.contratosAlerta.set(res.itens);
+          this.contratosPendentes.set(res.pendentes);
+          this.carregandoContratosAlerta.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.erro.set(err.error?.mensagem || 'Erro ao carregar contratos em alerta.');
+          this.carregandoContratosAlerta.set(false);
+        },
+      });
+  }
+
+  onFiltroContratosChange(): void {
+    this.carregarContratosAlerta();
+  }
+
+  contratoDisparoKey(c: CamarotesAlertaContrato): string {
+    return `${c.unidade_id}-${c.gatilho_dias}`;
+  }
+
+  dispararContrato(c: CamarotesAlertaContrato): void {
+    const key = this.contratoDisparoKey(c);
+    this.disparandoContratoKey.set(key);
+    this.camarotesService
+      .enviarAlertas(false, { gatilho_dias: c.gatilho_dias, unidade_id: c.unidade_id })
+      .subscribe({
+        next: (res) => {
+          this.disparandoContratoKey.set(null);
+          if (res.enviado) {
+            this.mensagem.set(`Alerta enviado para o camarote Nº ${c.numero}.`);
+            this.carregarContratosAlerta();
+            this.carregarDisparos();
+          } else {
+            this.erro.set(res.motivo || 'Nenhum envio realizado.');
+          }
+        },
+        error: (err: HttpErrorResponse) => {
+          this.disparandoContratoKey.set(null);
+          this.erro.set(err.error?.mensagem || 'Erro ao disparar alerta.');
+        },
+      });
+  }
+
   onBuscaInput(valor: string): void {
     this.buscaTexto.set(valor);
     this.busca$.next(valor);
+  }
+
+  onBuscaEmailInput(valor: string): void {
+    this.buscaEmailTexto.set(valor);
+    this.buscaEmail$.next(valor);
+  }
+
+  adicionarEmailDestino(colab: ColaboradorBusca): void {
+    if (!colab.email) {
+      this.erro.set('Colaborador sem e-mail cadastrado.');
+      return;
+    }
+    const emailsAtuais = this.emailsTexto()
+      .split(/[\n,;]+/)
+      .map((e) => e.trim())
+      .filter(Boolean);
+    const emailNovo = colab.email.trim().toLowerCase();
+    if (emailsAtuais.some((e) => e.toLowerCase() === emailNovo)) {
+      this.erro.set('Este e-mail já está na lista.');
+      return;
+    }
+    this.emailsTexto.set([...emailsAtuais, emailNovo].join('\n'));
+    this.buscaEmailTexto.set('');
+    this.resultadosBuscaEmail.set([]);
   }
 
   adicionarVisualizador(colab: ColaboradorBusca): void {
@@ -194,11 +494,14 @@ export class CamarotesAdminComponent implements OnInit {
     this.camarotesService
       .salvarConfig({
         emails_alerta: emails,
-        dias_vence_breve: this.diasVenceBreve(),
+        dias_vence_breve: this.config()?.dias_vence_breve ?? 90,
         cadencia: this.cadencia(),
+        horario_envio: this.horarioEnvio(),
         envio_ativo: this.envioAtivo(),
         sync_automatica: this.syncAutomatica(),
         sync_frequencia: this.syncFrequencia(),
+        envio_apos_sync: this.envioAposSync(),
+        gatilhos: this.gatilhos(),
       })
       .subscribe({
         next: (c) => {
@@ -213,49 +516,105 @@ export class CamarotesAdminComponent implements OnInit {
       });
   }
 
-  previewResumo(): void {
-    this.enviando.set(true);
-    this.camarotesService.enviarResumo(true).subscribe({
+  previewGatilho(dias: 90 | 30 | 0): void {
+    const meta = this.gatilhoUi.find((g) => g.dias === dias);
+    this.carregandoPreview.set(true);
+    this.previewGatilhoDias.set(dias);
+    this.previewDestinatario.set(this.auth.usuario()?.email || '');
+    this.previewTitulo.set(`Template — gatilho ${meta?.titulo || dias}`);
+    this.camarotesService.previewGatilho(dias).subscribe({
       next: (res) => {
-        this.enviando.set(false);
-        if (res.html) {
-          const w = window.open('', '_blank');
-          if (w) {
-            w.document.write(res.html);
-            w.document.close();
-          }
-        } else {
-          this.alertas.sucesso(res.motivo || 'Nada a exibir.');
-        }
+        this.previewHtml.set(this.sanitizer.bypassSecurityTrustHtml(res.html));
+        this.previewAberto.set(true);
+        this.carregandoPreview.set(false);
       },
       error: (err: HttpErrorResponse) => {
         this.erro.set(err.error?.mensagem || 'Erro ao gerar pré-visualização.');
-        this.enviando.set(false);
+        this.carregandoPreview.set(false);
       },
     });
   }
 
-  async enviarResumo(): Promise<void> {
+  enviarTestePreview(): void {
+    const dias = this.previewGatilhoDias();
+    if (dias == null) return;
+
+    const destinatario = this.previewDestinatario().trim();
+    this.enviandoTestePreview.set(true);
+    this.erro.set('');
+
+    this.camarotesService.enviarTesteGatilho(dias, destinatario || undefined).subscribe({
+      next: (res) => {
+        this.mensagem.set(res.mensagem || 'E-mail de teste enviado.');
+        this.enviandoTestePreview.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Falha ao enviar e-mail de teste.');
+        this.enviandoTestePreview.set(false);
+      },
+    });
+  }
+
+  salvarSharepoint(): void {
+    this.salvandoSharepoint.set(true);
+    this.camarotesService
+      .salvarConfig({
+        sharepoint_url: this.sharepointUrl().trim() || null,
+        sharepoint_sheet: this.sharepointSheet().trim() || 'Camarotes',
+      })
+      .subscribe({
+        next: (c) => {
+          this.config.set(c);
+          this.sharepointUrl.set(c.sharepoint_url || '');
+          this.sharepointSheet.set(c.sharepoint_sheet || 'Camarotes');
+          this.mensagem.set('Configuração do SharePoint salva.');
+          this.salvandoSharepoint.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.erro.set(err.error?.mensagem || 'Erro ao salvar.');
+          this.salvandoSharepoint.set(false);
+        },
+      });
+  }
+
+  copiarErro(texto: string | undefined): void {
+    if (!texto) return;
+    navigator.clipboard.writeText(texto).then(
+      () => this.mensagem.set('Erro copiado para a área de transferência.'),
+      () => this.erro.set('Não foi possível copiar. Tente manualmente.'),
+    );
+  }
+
+  fecharPreview(): void {
+    this.previewAberto.set(false);
+    this.previewHtml.set(null);
+    this.previewGatilhoDias.set(null);
+  }
+
+  async enviarAlertas(): Promise<void> {
     const ok = await this.alertas.confirmar({
-      titulo: 'Enviar resumo',
-      texto: 'Enviar digest de alertas para os e-mails configurados?',
+      titulo: 'Enviar alertas',
+      texto: 'Disparar e-mails pendentes para os gatilhos ativos?',
       confirmar: 'Enviar',
     });
     if (!ok) return;
 
     this.enviando.set(true);
-    this.camarotesService.enviarResumo(false).subscribe({
+    this.camarotesService.enviarAlertas(false).subscribe({
       next: (res) => {
         this.enviando.set(false);
         if (res.enviado) {
-          this.mensagem.set(`Resumo enviado para ${res.enviados} destinatário(s).`);
+          this.mensagem.set(`${res.enviados} alerta(s) enviado(s).`);
         } else {
           this.alertas.sucesso(res.motivo || 'Nenhum envio realizado.');
         }
         this.carregarTudo();
+        if (this.abaAtiva() === 'contratos') {
+          this.carregarContratosAlerta();
+        }
       },
       error: (err: HttpErrorResponse) => {
-        this.erro.set(err.error?.mensagem || 'Erro ao enviar resumo.');
+        this.erro.set(err.error?.mensagem || 'Erro ao enviar alertas.');
         this.enviando.set(false);
       },
     });

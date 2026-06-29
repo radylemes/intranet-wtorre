@@ -5,6 +5,7 @@ import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
+  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -16,7 +17,16 @@ import {
   HomeCarrosselConfig,
   HOME_CARROSSEL_DEFAULTS,
 } from '../../../models/home-carrossel.model';
-import { urlExternaOpcionalValidator } from './menu-destino.util';
+
+function carrosselLinkUrlValidator(): ValidatorFn {
+  return (ctrl: AbstractControl) => {
+    const url = String(ctrl.value ?? '').trim();
+    if (!url) return null;
+    return /^https?:\/\/.+/i.test(url)
+      ? null
+      : { urlExterna: 'Link deve começar com http:// ou https://.' };
+  };
+}
 
 @Component({
   selector: 'app-menu-carrossel-admin',
@@ -117,7 +127,7 @@ export class MenuCarrosselAdminComponent implements OnInit, OnDestroy {
       url: [slide?.url ?? '', Validators.required],
       alt: [slide?.alt ?? ''],
       legenda: [slide?.legenda ?? ''],
-      link: [slide?.link ?? '', urlExternaOpcionalValidator()],
+      link: [slide?.link ?? '', carrosselLinkUrlValidator()],
     });
   }
 
@@ -136,6 +146,14 @@ export class MenuCarrosselAdminComponent implements OnInit, OnDestroy {
     const ctrl = arr.at(index);
     arr.removeAt(index);
     arr.insert(target, ctrl);
+  }
+
+  trocarSlideImagem(dropzone: AdminDropzoneComponent): void {
+    dropzone.openFilePicker();
+  }
+
+  removerSlideImagem(index: number): void {
+    this.slidesArray().at(index).patchValue({ url: '' });
   }
 
   onSlideFile(index: number, file: File): void {
@@ -218,7 +236,11 @@ export class MenuCarrosselAdminComponent implements OnInit, OnDestroy {
     if (ctrl.errors['required']) return 'Campo obrigatório.';
     if (ctrl.errors['min']) return `Valor mínimo: ${ctrl.errors['min'].min}.`;
     if (ctrl.errors['max']) return `Valor máximo: ${ctrl.errors['max'].max}.`;
-    if (ctrl.errors['urlExterna']) return ctrl.errors['urlExterna'];
+    if (ctrl.errors['urlExterna']) {
+      return typeof ctrl.errors['urlExterna'] === 'string'
+        ? ctrl.errors['urlExterna']
+        : 'Link inválido.';
+    }
     return 'Valor inválido.';
   }
 

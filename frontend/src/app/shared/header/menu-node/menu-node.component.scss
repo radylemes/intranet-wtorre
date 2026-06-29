@@ -7,10 +7,18 @@
 }
 
 .menu-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 15px;
   height: 15px;
   flex-shrink: 0;
   opacity: 0.75;
+}
+
+.menu-ico--entry {
+  width: 16px;
+  height: 16px;
 }
 
 .bar-trigger,

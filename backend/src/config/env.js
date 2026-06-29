@@ -57,6 +57,10 @@ const env = {
     path.join(__dirname, '..', '..', 'storage', 'documentos-paginas-logos'),
   documentosPaginasLogoUploadMaxMb:
     Number(process.env.DOCUMENTOS_PAGINAS_LOGO_UPLOAD_MAX_MB) || 2,
+  documentosThumbsDir:
+    process.env.DOCUMENTOS_THUMBS_DIR ||
+    path.join(__dirname, '..', '..', 'storage', 'documentos-thumbs'),
+  documentosThumbUploadMaxMb: Number(process.env.DOCUMENTOS_THUMB_UPLOAD_MAX_MB) || 2,
   homeCarrosselDir:
     process.env.HOME_CARROSSEL_DIR ||
     path.join(__dirname, '..', '..', 'storage', 'home-carrossel'),
@@ -82,6 +86,9 @@ const env = {
   solicitacaoColaboradorArquivoMaxMb: Number(process.env.SOLICITACAO_ARQUIVO_MAX_MB) || 10,
   solicitacaoColaboradorSmtpAnexoMaxMb:
     Number(process.env.SOLICITACAO_SMTP_ANEXO_MAX_MB) || 25,
+  emailProvider: process.env.EMAIL_PROVIDER === 'acs' ? 'acs' : 'smtp',
+  emailOcultarPara: process.env.EMAIL_OCULTAR_PARA === '1' || process.env.EMAIL_OCULTAR_PARA === 'true',
+  eventGridWebhookSecret: process.env.EVENT_GRID_WEBHOOK_SECRET || '',
 };
 
 function validateEnv() {

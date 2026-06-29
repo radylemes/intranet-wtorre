@@ -5,6 +5,7 @@ import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
+  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -14,14 +15,13 @@ import { DocumentosService } from '../../../services/documentos.service';
 import { PaginasService } from '../../../services/paginas.service';
 import { AuthService } from '../../../services/auth.service';
 import { AlertasService } from '../../../services/alertas.service';
-import {
-  HomeSistemaIcon,
-  HomeSistemasConfig,
-  HOME_SISTEMAS_DEFAULTS,
-  HOME_SISTEMA_ICONES,
-} from '../../../models/home-sistemas.model';
-import { PaginaInterna, buildPaginasInternasLista } from '../../../data/paginas-internas';
-import { SistemaIconComponent } from '../../inicio/sistemas/sistema-icon.component';
+import { HomeSistemasConfig, HOME_SISTEMAS_DEFAULTS } from '../../../models/home-sistemas.model';
+import { PaginaInterna, buildPaginasInternasLista, isPaginaInternaConhecida } from '../../../data/paginas-internas';
+import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
+import { DocCatIconePickerComponent } from '../../../shared/documentos/doc-cat-icone-picker.component';
+import { DocCatIconeService } from '../../../shared/documentos/doc-cat-icone.service';
+import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
+import { ICONE_PADRAO } from '../../../models/documento.model';
 import {
   TipoDestino,
   buildUrlFromDestino,
@@ -30,10 +30,43 @@ import {
   urlExternaOpcionalValidator,
 } from './menu-destino.util';
 
+const URL_EXTERNA_REGEX = /^https?:\/\/.+/i;
+
+function todosPaginaInternaValidator(): ValidatorFn {
+  return (ctrl: AbstractControl) => {
+    const parent = ctrl.parent;
+    if (!parent) return null;
+    if (parent.get('tipo_destino_todos')?.value !== 'interna') return null;
+
+    const path = String(ctrl.value ?? '').trim();
+    if (!path) return null;
+    if (!isPaginaInternaConhecida(path)) return { paginaDesconhecida: true };
+    return null;
+  };
+}
+
+function todosUrlExternaValidator(): ValidatorFn {
+  return (ctrl: AbstractControl) => {
+    const parent = ctrl.parent;
+    if (!parent) return null;
+    if (parent.get('tipo_destino_todos')?.value !== 'externa') return null;
+
+    const url = String(ctrl.value ?? '').trim();
+    if (!url) return null;
+    if (!URL_EXTERNA_REGEX.test(url)) return { urlInvalida: true };
+    return null;
+  };
+}
+
 @Component({
   selector: 'app-menu-sistemas-admin',
   standalone: true,
-  imports: [ReactiveFormsModule, SistemaIconComponent],
+  imports: [
+    ReactiveFormsModule,
+    DocCatIconeComponent,
+    DocCatIconePickerComponent,
+    AdminModalComponent,
+  ],
   templateUrl: './menu-sistemas-admin.component.html',
   styleUrl: './menu-sistemas-admin.component.scss',
 })
@@ -44,13 +77,16 @@ export class MenuSistemasAdminComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly alertas = inject(AlertasService);
+  private readonly iconeService = inject(DocCatIconeService);
 
-  readonly icones = HOME_SISTEMA_ICONES;
   readonly paginasInternas = signal<PaginaInterna[]>(buildPaginasInternasLista());
   readonly mensagem = signal('');
   readonly erro = signal('');
   readonly salvando = signal(false);
   readonly carregando = signal(true);
+  readonly modalIconeAberto = signal(false);
+  readonly itemIconeIndex = signal<number | null>(null);
+  readonly iconTemp = signal(ICONE_PADRAO);
 
   private tipoDestinoTodosSub?: Subscription;
   private itemSubs: Subscription[] = [];
@@ -59,8 +95,8 @@ export class MenuSistemasAdminComponent implements OnInit, OnDestroy {
     tag: ['', Validators.required],
     titulo: ['', Validators.required],
     tipo_destino_todos: ['agrupador' as TipoDestino],
-    pagina_interna_todos: ['', paginaInternaOpcionalValidator()],
-    url_externa_todos: ['', urlExternaOpcionalValidator()],
+    pagina_interna_todos: ['', todosPaginaInternaValidator()],
+    url_externa_todos: ['', todosUrlExternaValidator()],
     linkTodosNovaAba: [false],
     itens: this.fb.array<FormGroup>([]),
   });
@@ -137,12 +173,33 @@ export class MenuSistemasAdminComponent implements OnInit, OnDestroy {
     }
   }
 
-  mostrarNovaAbaItem(group: FormGroup): boolean {
-    return group.get('tipo_destino')?.value === 'interna';
+  abrirModalIcone(index: number): void {
+    const icon = this.itensArray().at(index).get('icon')?.value ?? ICONE_PADRAO;
+    this.itemIconeIndex.set(index);
+    this.iconTemp.set(this.iconeService.normalizarParaLeitura(icon));
+    this.modalIconeAberto.set(true);
   }
 
-  mostrarNovaAbaTodos(): boolean {
-    return this.form.controls.tipo_destino_todos.value === 'interna';
+  fecharModalIcone(): void {
+    this.modalIconeAberto.set(false);
+    this.itemIconeIndex.set(null);
+  }
+
+  confirmarIcone(): void {
+    const index = this.itemIconeIndex();
+    if (index === null) return;
+    this.itensArray().at(index).patchValue({
+      icon: this.iconeService.normalizarParaSalvar(this.iconTemp()) ?? ICONE_PADRAO,
+    });
+    this.fecharModalIcone();
+  }
+
+  selecionarIconTemp(value: string): void {
+    this.iconTemp.set(value);
+  }
+
+  mostrarNovaAbaItem(group: FormGroup): boolean {
+    return group.get('tipo_destino')?.value === 'interna';
   }
 
   salvar(): void {
@@ -170,7 +227,7 @@ export class MenuSistemasAdminComponent implements OnInit, OnDestroy {
         id: item['id'].trim() || this.gerarId(),
         nome: item['nome'].trim(),
         subtitulo: item['subtitulo'].trim(),
-        icon: item['icon'] as HomeSistemaIcon,
+        icon: this.iconeService.normalizarParaSalvar(item['icon']) ?? ICONE_PADRAO,
         url: buildUrlFromDestino(
           item['tipo_destino'],
           item['pagina_interna'],
@@ -271,7 +328,7 @@ export class MenuSistemasAdminComponent implements OnInit, OnDestroy {
       id: [item?.id ?? this.gerarId(), Validators.required],
       nome: [item?.nome ?? '', Validators.required],
       subtitulo: [item?.subtitulo ?? '', Validators.required],
-      icon: [item?.icon ?? 'user'],
+      icon: [this.iconeService.normalizarParaLeitura(item?.icon ?? 'lucide:user')],
       tipo_destino: [dest.tipo],
       pagina_interna: [dest.paginaInterna, paginaInternaOpcionalValidator()],
       url_externa: [dest.urlExterna, urlExternaOpcionalValidator()],

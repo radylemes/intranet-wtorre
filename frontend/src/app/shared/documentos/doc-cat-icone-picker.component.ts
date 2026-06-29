@@ -32,7 +32,11 @@ export class DocCatIconePickerComponent implements OnInit {
   private readonly iconeService = inject(DocCatIconeService);
 
   readonly value = input<string | null>(ICONE_PADRAO);
+  readonly optional = input(false);
+  readonly collapsible = input(false);
   readonly valueChange = output<string>();
+
+  readonly expandido = signal(false);
 
   readonly segmento = signal<IconeSegmento>('lucide');
   readonly busca = signal('');
@@ -117,10 +121,29 @@ export class DocCatIconePickerComponent implements OnInit {
 
   selecionar(namespaced: string): void {
     this.valueChange.emit(namespaced);
+    if (this.collapsible()) {
+      this.expandido.set(false);
+    }
+  }
+
+  temValor(): boolean {
+    const raw = this.value();
+    return !!raw?.trim();
+  }
+
+  abrirPicker(): void {
+    this.expandido.set(true);
+  }
+
+  fecharPicker(): void {
+    this.expandido.set(false);
+    this.busca.set('');
   }
 
   selecionado(namespaced: string): boolean {
-    const atual = this.iconeService.normalizarParaLeitura(this.value());
+    const raw = this.value();
+    if (this.optional() && !raw?.trim()) return false;
+    const atual = this.iconeService.normalizarParaLeitura(raw);
     return atual === namespaced;
   }
 

@@ -1,7 +1,8 @@
 const siteConfigRepo = require('../repositories/site-config.repository');
 const auditRepo = require('../repositories/auditLog.repository');
-const smtpConfigService = require('../services/smtp-config.service');
+const emailConfigService = require('../services/email-config.service');
 const smtpMailService = require('../services/mail/smtp-mail.service');
+const emailSender = require('../utils/emailSender');
 const contentVersionService = require('../services/content-version.service');
 const { isPaginaInterna } = require('../config/paginas-internas');
 
@@ -52,6 +53,18 @@ function validarUrl(url, tipo_destino) {
   throw err;
 }
 
+function buildTestEmailHtml(providerLabel) {
+  return `
+    <div style="font-family: Arial, sans-serif; color: #10151f; line-height: 1.5;">
+      <h2 style="color: #1d54e6;">Teste de e-mail — Intranet WTorre</h2>
+      <p>Este é um e-mail de teste enviado pelo painel de configurações da intranet.</p>
+      <p>Provedor ativo: <strong>${providerLabel}</strong></p>
+      <p>Se você recebeu esta mensagem, o envio de e-mail está configurado corretamente.</p>
+      <p style="color: #8a93a8; font-size: 12px;">Enviado em ${new Date().toLocaleString('pt-BR')}</p>
+    </div>
+  `.trim();
+}
+
 async function getHeaderChamadoPublic(_req, res) {
   try {
     const config = await siteConfigRepo.getHeaderChamado();
@@ -100,41 +113,66 @@ async function putHeaderChamado(req, res) {
   }
 }
 
-async function getSmtpConfig(_req, res) {
+async function getEmailConfig(_req, res) {
   try {
-    const smtp = await smtpConfigService.getPublicConfig();
-    return res.json(smtp);
+    const email = await emailConfigService.getPublicConfig();
+    return res.json(email);
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });
   }
 }
 
-async function putSmtpConfig(req, res) {
+async function putEmailConfig(req, res) {
   try {
-    const smtp = await smtpConfigService.save(req.body);
+    const email = await emailConfigService.save(req.body);
+    emailSender.refreshSmtpMailSender();
     await auditRepo.log({
       ...auditMeta(req),
-      action: 'SMTP_CONFIG_SALVA',
+      action: 'EMAIL_CONFIG_SALVA',
       email: req.user?.email,
     });
-    return res.json(smtp);
+    return res.json(email);
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });
   }
 }
 
-async function verificarSmtp(_req, res) {
+async function verificarEmail(_req, res) {
   try {
-    await smtpMailService.verifyStoredConnection();
+    const cfg = await emailConfigService.getEmailProviderConfig({ requireActive: false });
+    if (cfg.provider !== 'smtp') {
+      return res.status(400).json({
+        mensagem: 'Verificação de conexão disponível apenas para o provedor SMTP.',
+      });
+    }
+
+    const smtpConfig = {
+      host: cfg.smtp_host,
+      port: cfg.smtp_port,
+      secure: cfg.smtp_secure,
+      user: cfg.smtp_user,
+      password: cfg.smtp_pass,
+      from_email: cfg.smtp_from,
+      from_name: cfg.smtp_from_name,
+    };
+
+    await smtpMailService.verifyConnection(smtpConfig);
     return res.json({ ok: true, mensagem: 'Conexão SMTP verificada com sucesso.' });
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });
   }
 }
 
-async function testarSmtp(req, res) {
+async function testarEmail(req, res) {
   try {
-    const destinatario = (req.body?.destinatario || req.user?.email || '').trim().toLowerCase();
+    const sender = await emailSender.getMailSender();
+    if (!sender) {
+      return res.status(400).json({ mensagem: emailSender.NOT_CONFIGURED_MSG });
+    }
+
+    const destinatario = (req.body?.to || req.body?.destinatario || req.user?.email || '')
+      .trim()
+      .toLowerCase();
     if (!destinatario) {
       return res.status(400).json({ mensagem: 'Informe um destinatário para o e-mail de teste.' });
     }
@@ -142,27 +180,21 @@ async function testarSmtp(req, res) {
       return res.status(400).json({ mensagem: 'E-mail do destinatário inválido.' });
     }
 
-    const config = await smtpConfigService.getDecrypted();
-    const subject = '[Intranet] E-mail de teste SMTP';
-    const html = `
-      <div style="font-family: Arial, sans-serif; color: #10151f; line-height: 1.5;">
-        <h2 style="color: #1d54e6;">Teste SMTP — Intranet WTorre</h2>
-        <p>Este é um e-mail de teste enviado pelo painel de configurações da intranet.</p>
-        <p>Se você recebeu esta mensagem, o servidor SMTP está configurado corretamente.</p>
-        <p style="color: #8a93a8; font-size: 12px;">Enviado em ${new Date().toLocaleString('pt-BR')}</p>
-      </div>
-    `.trim();
+    const providerLabel = sender.provider === 'acs' ? 'Azure ACS' : 'SMTP';
+    const subject = `[Intranet] E-mail de teste (${providerLabel})`;
+    const html = buildTestEmailHtml(providerLabel);
+    const text = `Teste de e-mail — Intranet WTorre (${providerLabel}). Se você recebeu esta mensagem, o envio está configurado corretamente.`;
 
-    await smtpMailService.sendMail(config, {
+    await emailSender.sendEmail({
       to: destinatario,
       subject,
       html,
-      text: 'Teste SMTP — Intranet WTorre. Se você recebeu esta mensagem, o servidor SMTP está configurado corretamente.',
+      text,
     });
 
     await auditRepo.log({
       ...auditMeta(req),
-      action: 'SMTP_TESTE_ENVIADO',
+      action: 'EMAIL_TESTE_ENVIADO',
       email: destinatario,
     });
 
@@ -172,10 +204,30 @@ async function testarSmtp(req, res) {
   }
 }
 
+async function getSmtpConfig(_req, res) {
+  return getEmailConfig(_req, res);
+}
+
+async function putSmtpConfig(req, res) {
+  return putEmailConfig(req, res);
+}
+
+async function verificarSmtp(_req, res) {
+  return verificarEmail(_req, res);
+}
+
+async function testarSmtp(req, res) {
+  return testarEmail(req, res);
+}
+
 module.exports = {
   getHeaderChamadoPublic,
   getConfiguracoes,
   putHeaderChamado,
+  getEmailConfig,
+  putEmailConfig,
+  verificarEmail,
+  testarEmail,
   getSmtpConfig,
   putSmtpConfig,
   verificarSmtp,

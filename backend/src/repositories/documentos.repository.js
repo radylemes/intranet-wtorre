@@ -1,4 +1,5 @@
 const { getPool } = require('../db/pool');
+const { enrichDocumentoThumb } = require('../utils/documentos-thumbnail.util');
 
 function mapDocumento(row) {
   if (!row) return null;
@@ -7,6 +8,7 @@ function mapDocumento(row) {
     categoria_id: row.categoria_id,
     titulo: row.titulo,
     descricao: row.descricao,
+    thumbnail_path: row.thumbnail_path ?? null,
     nome_original: row.nome_original,
     arquivo_path: row.arquivo_path,
     mime: row.mime,
@@ -15,6 +17,8 @@ function mapDocumento(row) {
     criado_por: row.criado_por,
     setor_id: row.setor_id,
     ativo: !!row.ativo,
+    destaque: !!row.destaque,
+    destaque_ordem: row.destaque_ordem != null ? Number(row.destaque_ordem) : 0,
     criado_em: row.criado_em,
     atualizado_em: row.atualizado_em,
   };
@@ -26,7 +30,7 @@ function mapDocumento(row) {
       cor: row.setor_cor,
     };
   }
-  return doc;
+  return enrichDocumentoThumb(doc);
 }
 
 async function resolveCategoriaId(categoriaRef, paginaId = null) {
@@ -68,8 +72,40 @@ async function resolveSetorFilter(setorRef) {
 
 async function findByCategoria(categoriaId, { ativoOnly = true, setorFilter = { type: 'all' } } = {}) {
   const pool = getPool();
-  const conditions = ['d.categoria_id = ?'];
+  const conditions = ['de.categoria_id = ?'];
   const params = [categoriaId];
+
+  if (ativoOnly) {
+    conditions.push('d.ativo = 1');
+  }
+
+  if (setorFilter.type === 'none') {
+    conditions.push('d.setor_id IS NULL');
+  } else if (setorFilter.type === 'id') {
+    conditions.push('d.setor_id = ?');
+    params.push(setorFilter.value);
+  }
+
+  const sql = `
+    SELECT DISTINCT d.*, s.nome AS setor_nome, s.slug AS setor_slug, s.cor AS setor_cor
+    FROM documentos d
+    INNER JOIN documento_entidades de ON de.documento_id = d.id
+    LEFT JOIN documentos_setores s ON d.setor_id = s.id
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY d.destaque DESC, d.destaque_ordem ASC, d.criado_em DESC`;
+
+  const [rows] = await pool.execute(sql, params);
+  return rows.map(mapDocumento);
+}
+
+async function findByPaginaCategoria(
+  paginaId,
+  categoriaId,
+  { ativoOnly = true, setorFilter = { type: 'all' } } = {}
+) {
+  const pool = getPool();
+  const conditions = ['de.pagina_id = ?', 'de.categoria_id = ?'];
+  const params = [paginaId, categoriaId];
 
   if (ativoOnly) {
     conditions.push('d.ativo = 1');
@@ -85,9 +121,10 @@ async function findByCategoria(categoriaId, { ativoOnly = true, setorFilter = { 
   const sql = `
     SELECT d.*, s.nome AS setor_nome, s.slug AS setor_slug, s.cor AS setor_cor
     FROM documentos d
+    INNER JOIN documento_entidades de ON de.documento_id = d.id
     LEFT JOIN documentos_setores s ON d.setor_id = s.id
     WHERE ${conditions.join(' AND ')}
-    ORDER BY d.criado_em DESC`;
+    ORDER BY d.destaque DESC, d.destaque_ordem ASC, d.criado_em DESC`;
 
   const [rows] = await pool.execute(sql, params);
   return rows.map(mapDocumento);
@@ -108,12 +145,13 @@ async function findById(id) {
 async function create(data) {
   const pool = getPool();
   const [result] = await pool.execute(
-    `INSERT INTO documentos (categoria_id, titulo, descricao, nome_original, arquivo_path, mime, extensao, tamanho_bytes, criado_por, setor_id, ativo)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO documentos (categoria_id, titulo, descricao, thumbnail_path, nome_original, arquivo_path, mime, extensao, tamanho_bytes, criado_por, setor_id, ativo, destaque, destaque_ordem)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.categoria_id,
       data.titulo,
       data.descricao ?? null,
+      data.thumbnail_path ?? null,
       data.nome_original,
       data.arquivo_path,
       data.mime,
@@ -122,6 +160,8 @@ async function create(data) {
       data.criado_por ?? null,
       data.setor_id ?? null,
       data.ativo !== false ? 1 : 0,
+      data.destaque ? 1 : 0,
+      data.destaque_ordem ?? 0,
     ]
   );
   return findById(result.insertId);
@@ -131,12 +171,12 @@ async function update(id, data) {
   const pool = getPool();
   const fields = [];
   const values = [];
-  const allowed = ['categoria_id', 'titulo', 'descricao', 'setor_id', 'ativo'];
+  const allowed = ['categoria_id', 'titulo', 'descricao', 'thumbnail_path', 'setor_id', 'ativo', 'destaque', 'destaque_ordem'];
 
   for (const key of allowed) {
     if (data[key] !== undefined) {
       fields.push(`${key} = ?`);
-      if (key === 'ativo') {
+      if (key === 'ativo' || key === 'destaque') {
         values.push(data[key] ? 1 : 0);
       } else if (key === 'setor_id' && (data[key] === '' || data[key] == null)) {
         values.push(null);
@@ -163,6 +203,7 @@ module.exports = {
   resolveCategoriaId,
   resolveSetorFilter,
   findByCategoria,
+  findByPaginaCategoria,
   findById,
   create,
   update,

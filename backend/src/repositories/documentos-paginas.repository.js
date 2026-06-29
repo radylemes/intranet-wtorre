@@ -10,6 +10,7 @@ function mapPagina(row) {
     logo_url: row.logo_url,
     ordem: row.ordem,
     ativo: !!row.ativo,
+    exibir_menu_treinamento: !!row.exibir_menu_treinamento,
     criado_em: row.criado_em,
   };
 }
@@ -38,8 +39,8 @@ async function findBySlug(slug) {
 async function create(data) {
   const pool = getPool();
   const [result] = await pool.execute(
-    `INSERT INTO documentos_paginas (nome, slug, descricao, logo_url, ordem, ativo)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO documentos_paginas (nome, slug, descricao, logo_url, ordem, ativo, exibir_menu_treinamento)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       data.nome,
       data.slug,
@@ -47,6 +48,7 @@ async function create(data) {
       data.logo_url ?? null,
       data.ordem ?? 0,
       data.ativo !== false ? 1 : 0,
+      data.exibir_menu_treinamento ? 1 : 0,
     ]
   );
   return findById(result.insertId);
@@ -56,12 +58,16 @@ async function update(id, data) {
   const pool = getPool();
   const fields = [];
   const values = [];
-  const allowed = ['nome', 'slug', 'descricao', 'logo_url', 'ordem', 'ativo'];
+  const allowed = ['nome', 'slug', 'descricao', 'logo_url', 'ordem', 'ativo', 'exibir_menu_treinamento'];
 
   for (const key of allowed) {
     if (data[key] !== undefined) {
       fields.push(`${key} = ?`);
-      values.push(key === 'ativo' ? (data[key] ? 1 : 0) : data[key]);
+      if (key === 'ativo' || key === 'exibir_menu_treinamento') {
+        values.push(data[key] ? 1 : 0);
+      } else {
+        values.push(data[key]);
+      }
     }
   }
 

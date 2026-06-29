@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { LoginBrandPanelComponent } from './login-brand-panel.component';
 import { AuthService } from '../../services/auth.service';
 import { MsalConfigService } from '../../services/msal-config.service';
@@ -33,6 +34,16 @@ export class LoginComponent implements OnInit {
   sessaoExpirada = signal(false);
 
   ngOnInit(): void {
+    // Limpa estado de interação MSAL do localStorage e sessionStorage (MSAL v5 usa localStorage)
+    if (typeof window !== 'undefined') {
+      ['localStorage', 'sessionStorage'].forEach((s) => {
+        const store = window[s as 'localStorage' | 'sessionStorage'];
+        Object.keys(store)
+          .filter((k) => k.includes('interaction.status'))
+          .forEach((k) => store.removeItem(k));
+      });
+    }
+
     this.route.queryParams.subscribe((params) => {
       this.sessaoExpirada.set(params['reason'] === 'idle');
     });
@@ -42,15 +53,13 @@ export class LoginComponent implements OnInit {
       this.avisoMsal.set(msalErr);
     }
 
-    this.auth.handleRedirect().subscribe({
-      next: (res) => {
-        if (res) {
-          this.auth.irParaInicio();
-        }
-      },
-      error: (err: HttpErrorResponse) => {
-        this.mensagemErro.set(err.error?.mensagem || 'Falha no login Microsoft.');
-      },
+    const erroPendente = this.auth.consumirErroLoginMicrosoft();
+    if (erroPendente) {
+      this.mensagemErro.set(erroPendente);
+    }
+
+    void firstValueFrom(this.auth.ensureSession()).then((ok) => {
+      if (ok) this.auth.completarLogin();
     });
   }
 
@@ -68,8 +77,8 @@ export class LoginComponent implements OnInit {
 
     this.auth.loginLocal(email.trim(), senha, manterConectado).subscribe({
       next: () => {
-        this.auth.irParaInicio();
         this.autenticando.set(false);
+        this.auth.completarLogin();
       },
       error: (err: unknown) => {
         const http = err as HttpErrorResponse;
@@ -85,11 +94,22 @@ export class LoginComponent implements OnInit {
 
   async entrarMicrosoft(): Promise<void> {
     if (this.autenticando() || this.auth.msalBusy()) return;
+    if (!this.msalConfig.hasClientId()) {
+      this.mensagemErro.set(
+        this.msalConfig.getLoadError() || 'Microsoft SSO não configurado. Contate o administrador.'
+      );
+      return;
+    }
+
     this.mensagemErro.set('');
+    this.autenticando.set(true);
     try {
       await this.auth.loginMicrosoft();
     } catch (err) {
-      this.mensagemErro.set(err instanceof Error ? err.message : 'Erro ao iniciar login Microsoft.');
+      this.autenticando.set(false);
+      this.mensagemErro.set(
+        err instanceof Error ? err.message : 'Erro ao iniciar login Microsoft.'
+      );
     }
   }
 

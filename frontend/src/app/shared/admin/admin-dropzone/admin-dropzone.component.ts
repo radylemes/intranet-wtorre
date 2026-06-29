@@ -8,6 +8,7 @@ import { Component, ElementRef, input, output, viewChild } from '@angular/core';
 })
 export class AdminDropzoneComponent {
   readonly disabled = input(false);
+  readonly compact = input(false);
   readonly multiple = input(false);
   readonly accept = input('image/jpeg,image/png,image/webp,image/gif');
   readonly hint = input('Arraste arquivos aqui ou');
@@ -58,6 +59,10 @@ export class AdminDropzoneComponent {
     this.dragOver.emit(false);
     if (this.disabled()) return;
     this.emitFiles(event.dataTransfer?.files);
+  }
+
+  openFilePicker(): void {
+    this.onClick();
   }
 
   onClick(): void {

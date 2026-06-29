@@ -2,6 +2,16 @@ export type TipoUnidade = 'camarote' | 'lounge';
 export type SituacaoUnidade = 'vago' | 'vencido' | 'vence_breve' | 'ativo';
 export type CadenciaAlerta = 'diaria' | 'semanal';
 export type SyncFrequencia = '1h' | '6h' | '12h' | '24h' | 'semanal';
+export type CamarotesTemplateCodigo = '90dias' | '30dias' | 'hoje';
+export type CamarotesAba = 'alertas' | 'contratos' | 'usuarios' | 'sync' | 'disparos' | 'historico' | 'sharepoint';
+
+export interface CamarotesGatilho {
+  id?: number;
+  dias: 90 | 30 | 0;
+  template_codigo: CamarotesTemplateCodigo;
+  assunto: string;
+  ativo: boolean;
+}
 
 export interface CamaroteUnidade {
   id: number;
@@ -30,6 +40,7 @@ export interface SetorDisponiveis {
 
 export interface ResumoAlertas {
   vencidos: number;
+  vence_30d: number;
   vence_breve: number;
   vagos: number;
   ativos: number;
@@ -91,6 +102,7 @@ export interface ReceitaRenovarDashboard {
 export interface CamarotesDashboard {
   ultima_sync: string | null;
   dias_vence_breve: number;
+  dias_vencimento_urgente: number;
   camarotes: BlocoTipoUnidade;
   vencimentos: VencimentosDashboard;
   receitaRenovar: ReceitaRenovarDashboard;
@@ -106,6 +118,11 @@ export interface CamarotesConfig {
   sync_frequencia: SyncFrequencia;
   ultimo_envio: string | null;
   ultima_sync: string | null;
+  gatilhos?: CamarotesGatilho[];
+  horario_envio?: string;
+  envio_apos_sync?: boolean;
+  sharepoint_url?: string | null;
+  sharepoint_sheet?: string | null;
 }
 
 export interface CamarotesSyncLog {
@@ -146,13 +163,75 @@ export interface CamarotesAcesso {
   pode_visualizar: boolean;
 }
 
-export interface EnviarResumoResposta {
+export interface CamarotesAlertasEnvioDestinatario {
+  destinatario: string;
+  status: 'enviado' | 'entregue' | 'bounce' | 'falha';
+  erro?: string | null;
+  provider?: 'smtp' | 'acs';
+  message_id?: string | null;
+}
+
+export type CamarotesStatusEntrega =
+  | 'enviado'
+  | 'entregue'
+  | 'bounce'
+  | 'falha'
+  | 'parcial'
+  | 'legado';
+
+export interface CamarotesAlertasEnvioLog {
+  id: number;
+  gatilho_dias: number;
+  final_locacao: string;
+  enviado_em: string;
+  numero: string;
+  cessionario: string;
+  status_entrega: CamarotesStatusEntrega;
+  destinatarios: CamarotesAlertasEnvioDestinatario[];
+}
+
+export interface CamarotesAlertaContrato {
+  unidade_id: number;
+  numero: string;
+  cessionario: string;
+  setor: string | null;
+  andar: string | null;
+  final_locacao: string;
+  dias_restantes: number;
+  gatilho_dias: 90 | 30 | 0;
+  gatilho_ativo: boolean;
+  notificado: boolean;
+  notificado_em: string | null;
+}
+
+export interface CamarotesAlertasContratosResposta {
+  total: number;
+  pendentes: number;
+  itens: CamarotesAlertaContrato[];
+}
+
+export interface GatilhoPreviewResposta {
+  html: string;
+  subject: string;
+  gatilho_dias: number;
+}
+
+export interface EnviarAlertasResposta {
   enviado?: boolean;
   preview?: boolean;
   html?: string;
-  total_itens?: number;
-  destinatarios?: string[];
   enviados?: number;
-  erros?: Array<{ email: string; mensagem: string }>;
+  erros?: Array<{ email: string; mensagem: string; numero?: string }>;
+  gatilhos?: Array<{
+    gatilho_dias: number;
+    processados?: number;
+    enviados?: number;
+    ignorados?: number;
+    erros?: Array<{ email: string; mensagem: string }>;
+    itens?: Array<{ unidade_id: number; numero: string; assunto: string; html: string }>;
+  }>;
+  destinatarios?: string[];
   motivo?: string;
 }
+
+export interface EnviarResumoResposta extends EnviarAlertasResposta {}

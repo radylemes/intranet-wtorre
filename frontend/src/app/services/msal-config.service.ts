@@ -17,23 +17,48 @@ export class MsalConfigService {
   private redirectResult: AuthenticationResult | null = null;
   private loadError: string | null = null;
   private clientId = '';
+  private _initPromise: Promise<void> | null = null;
 
   private redirectUriAtual(): string {
     if (typeof window === 'undefined') return '';
     return window.location.origin;
   }
 
-  async initialize(): Promise<void> {
+  private resolveRedirectUri(config: MsalConfigResposta): string {
+    const origin = this.redirectUriAtual();
+    const allowed = config.redirectUris || [];
+    if (!origin) return config.redirectUri || '';
+
+    const normalizar = (uri: string) => uri.replace(/\/$/, '');
+    const originNorm = normalizar(origin);
+
+    const match = allowed.find((uri) => normalizar(uri) === originNorm);
+    if (match) return normalizar(match);
+
+    const matchLogin = allowed.find((uri) => normalizar(uri) === `${originNorm}/login`);
+    if (matchLogin) return normalizar(matchLogin);
+
+    return originNorm || config.redirectUri || '';
+  }
+
+  initialize(): Promise<void> {
+    if (this._initPromise) return this._initPromise;
+    this._initPromise = this._doInitialize();
+    return this._initPromise;
+  }
+
+  private async _doInitialize(): Promise<void> {
     try {
       const config = await firstValueFrom(
         this.http.get<MsalConfigResposta>(`${environment.apiBaseUrl}/tenants/msal-config`)
       );
       this.clientId = config.clientId || '';
+      const redirectUri = this.resolveRedirectUri(config);
       const msalConfig: Configuration = {
         auth: {
           clientId: this.clientId || '00000000-0000-0000-0000-000000000000',
           authority: config.authority || environment.msalAuthority,
-          redirectUri: this.redirectUriAtual() || config.redirectUri,
+          redirectUri,
         },
         cache: {
           cacheLocation: 'localStorage',

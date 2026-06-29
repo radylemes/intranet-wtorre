@@ -1,27 +1,34 @@
 <div class="pagina">
   <app-public-chrome>
-    <section class="doc-section">
-      <div class="wrap">
-        <nav class="breadcrumb" aria-label="Navegação">
+    <section class="doc-section pagebg">
+      <div class="wrap page">
+        <nav class="crumb" aria-label="Navegação">
           <a routerLink="/inicio">Início</a>
           <span class="sep">›</span>
-          <span class="current">Documentos</span>
+          <span class="cur">Documentos</span>
         </nav>
 
         @if (paginas().length) {
-          <nav class="pagina-switcher" aria-label="Entidades">
+          <nav class="switcher" aria-label="Entidades">
             @for (pag of paginas(); track pag.id) {
               <button
                 type="button"
-                class="switcher-item"
+                class="ent-tab"
                 [class.active]="pagina()?.slug === pag.slug"
+                [class.w]="gradienteTabEntidade(pag.slug)"
+                [style.--ent-cor]="corTabEntidade(pag.slug)"
+                [style.background]="null"
                 (click)="selecionarPagina(pag.slug)"
               >
                 @if (pag.logo_url) {
-                  <img [src]="pag.logo_url" [alt]="pag.nome" class="switcher-logo" />
+                  <img [src]="pag.logo_url" [alt]="pag.nome" class="ent-logo" />
+                } @else if (gradienteTabEntidade(pag.slug) && pagina()?.slug === pag.slug) {
+                  <span class="wlogo">{{ pag.nome }}</span>
                 } @else {
-                  <span class="switcher-initial">{{ pag.nome.charAt(0) }}</span>
-                  <span class="switcher-label">{{ pag.nome }}</span>
+                  <span class="eb" [style.background]="corTabEntidade(pag.slug)">
+                    {{ pag.nome.charAt(0) }}
+                  </span>
+                  <span>{{ pag.nome }}</span>
                 }
               </button>
             }
@@ -29,13 +36,13 @@
         }
 
         @if (pagina(); as pag) {
-          <div class="entity-head">
+          <div class="hero">
             @if (pag.logo_url) {
-              <img [src]="pag.logo_url" [alt]="pag.nome" class="entity-logo" />
+              <img [src]="pag.logo_url" [alt]="pag.nome" class="hero-logo" />
             } @else {
-              <h1 class="entity-name">{{ pag.nome }}</h1>
+              <div class="hlogo">{{ pag.nome }}</div>
             }
-            <p class="entity-desc">{{ descricaoEntidade(pag) }}</p>
+            <p>{{ descricaoEntidade(pag) }}</p>
           </div>
         }
 
@@ -46,29 +53,31 @@
         @if (carregando()) {
           <p class="loading">Carregando documentos...</p>
         } @else if (arvore().length) {
-          <div class="doc-layout">
-            <nav class="doc-sidebar" aria-label="Categorias">
-              <div class="sidebar-label">Categorias</div>
+          <div class="layout">
+            <aside class="side" aria-label="Categorias">
+              <p class="stitle">Categorias</p>
 
               @for (cat of arvore(); track cat.id) {
-                <div class="nav-group" [class.active]="isCategoriaAtiva(cat)">
-                  <div class="nav-root-row">
+                <div class="cat-group">
+                  <div class="cat-row">
                     <button
                       type="button"
-                      class="nav-item nav-root"
+                      class="cat"
                       [class.active]="isCategoriaAtiva(cat)"
                       (click)="selecionarCategoriaRaiz(cat)"
                     >
-                      <app-doc-cat-icone class="nav-icon" [nome]="cat.icone" [size]="18" />
-                      <span class="nav-label">{{ cat.nome }}</span>
+                      <span class="ci">
+                        <app-doc-cat-icone [nome]="cat.icone" [size]="19" />
+                      </span>
+                      <span class="cn">{{ cat.nome }}</span>
                       @if (totalCount(cat) > 0) {
-                        <span class="nav-count">{{ totalCount(cat) }}</span>
+                        <span class="cc">{{ totalCount(cat) }}</span>
                       }
                     </button>
                     @if (temFilhos(cat)) {
                       <button
                         type="button"
-                        class="nav-chevron"
+                        class="cat-chevron"
                         [class.expanded]="isExpandida(cat)"
                         [attr.aria-label]="isExpandida(cat) ? 'Recolher' : 'Expandir'"
                         (click)="toggleExpandirCategoria(cat.slug, $event)"
@@ -81,130 +90,149 @@
                   </div>
 
                   @if (isExpandida(cat) && temFilhos(cat)) {
-                    @for (child of cat.children; track child.id) {
-                      <button
-                        type="button"
-                        class="nav-item nav-child"
-                        [class.active]="isSubcategoriaSidebarAtiva(cat, child)"
-                        (click)="selecionarSubcategoriaSidebar(cat, child)"
-                      >
-                        <span class="nav-label">{{ child.nome }}</span>
-                        @if (child.documentos_count != null && child.documentos_count > 0) {
-                          <span class="nav-count">{{ child.documentos_count }}</span>
-                        }
-                      </button>
-                    }
+                    <div class="subcat">
+                      @for (child of cat.children; track child.id) {
+                        <button
+                          type="button"
+                          class="cat"
+                          [class.active]="isSubcategoriaSidebarAtiva(cat, child)"
+                          (click)="selecionarSubcategoriaSidebar(cat, child)"
+                        >
+                          <span class="ci">
+                            <app-doc-cat-icone [nome]="child.icone" [size]="19" />
+                          </span>
+                          <span class="cn">{{ child.nome }}</span>
+                          @if (child.documentos_count != null && child.documentos_count > 0) {
+                            <span class="cc">{{ child.documentos_count }}</span>
+                          }
+                        </button>
+                      }
+                    </div>
                   }
                 </div>
               }
-            </nav>
+            </aside>
 
-            <div class="doc-main">
-              <div class="content-panel">
-                <div class="search">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
-                    <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Buscar treinamento por título, tema ou área..."
-                    [ngModel]="busca()"
-                    (ngModelChange)="busca.set($event)"
-                  />
+            <section class="content">
+              <div class="search">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+                  <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Buscar por título, descrição ou setor…"
+                  [ngModel]="busca()"
+                  (ngModelChange)="busca.set($event)"
+                />
+              </div>
+
+              @if (temSubcategorias()) {
+                <div class="chips" role="group" aria-label="Filtrar por subcategoria">
+                  <button
+                    type="button"
+                    class="fchip"
+                    [class.active]="subAtiva() === 'geral'"
+                    (click)="selecionarSub('geral')"
+                  >
+                    Todas as categorias
+                  </button>
+                  @for (child of categoriaRaiz()?.children ?? []; track child.id; let i = $index) {
+                    <button
+                      type="button"
+                      class="fchip"
+                      [class.active]="subAtiva() === child.slug"
+                      [style.--chip-cor]="corSubcategoria(i)"
+                      (click)="selecionarSub(child.slug)"
+                    >
+                      <span class="fd" [style.background]="corSubcategoria(i)"></span>
+                      {{ child.nome }}
+                    </button>
+                  }
                 </div>
+              } @else {
+                <div class="chips" role="group" aria-label="Filtrar por setor">
+                  <button
+                    type="button"
+                    class="fchip"
+                    [class.active]="!setorAtivo()"
+                    (click)="selecionarSetor(null)"
+                  >
+                    Todos
+                  </button>
+                  @for (setor of setores(); track setor.id) {
+                    <button
+                      type="button"
+                      class="fchip"
+                      [class.active]="setorAtivo() === setor.slug"
+                      [style.--chip-cor]="setor.cor || '#1d54e6'"
+                      (click)="selecionarSetor(setor.slug)"
+                    >
+                      <span class="fd" [style.background]="setor.cor || '#1d54e6'"></span>
+                      {{ setor.nome }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="fchip"
+                    [class.active]="setorAtivo() === 'sem-setor'"
+                    (click)="selecionarSetor('sem-setor')"
+                  >
+                    <span class="fd fd-none"></span>
+                    Sem setor
+                  </button>
+                </div>
+              }
 
-                @if (temSubcategorias()) {
-                  <div class="chips" role="group" aria-label="Filtrar por subcategoria">
-                    <button
-                      type="button"
-                      class="chip"
-                      [class.active]="subAtiva() === 'geral'"
-                      (click)="selecionarSub('geral')"
-                    >
-                      Todas as categorias
-                    </button>
-                    @for (child of categoriaRaiz()?.children ?? []; track child.id; let i = $index) {
-                      <button
-                        type="button"
-                        class="chip"
-                        [class.active]="subAtiva() === child.slug"
-                        [style.--chip-cor]="corSubcategoria(i)"
-                        (click)="selecionarSub(child.slug)"
-                      >
-                        <span class="chip-dot"></span>
-                        {{ child.nome }}
-                      </button>
-                    }
-                  </div>
-                } @else {
-                  <div class="chips" role="group" aria-label="Filtrar por setor">
-                    <button
-                      type="button"
-                      class="chip"
-                      [class.active]="!setorAtivo()"
-                      (click)="selecionarSetor(null)"
-                    >
-                      Todos
-                    </button>
-                    @for (setor of setores(); track setor.id) {
-                      <button
-                        type="button"
-                        class="chip"
-                        [class.active]="setorAtivo() === setor.slug"
-                        [style.--chip-cor]="setor.cor || '#1d54e6'"
-                        (click)="selecionarSetor(setor.slug)"
-                      >
-                        <span class="chip-dot"></span>
-                        {{ setor.nome }}
-                      </button>
-                    }
-                    <button
-                      type="button"
-                      class="chip"
-                      [class.active]="setorAtivo() === 'sem-setor'"
-                      (click)="selecionarSetor('sem-setor')"
-                    >
-                      Sem setor
-                    </button>
-                  </div>
+              @if (carregandoConteudo()) {
+                <p class="loading">Carregando conteúdo…</p>
+              } @else if (temResultados()) {
+                @if (temDestaque()) {
+                  <app-documento-featured-carousel
+                    [documentos]="documentosDestaque()"
+                    [iconeCategoria]="iconeCategoriaAtual()"
+                    [kicker]="pagina()?.nome ?? 'GRUPO WTORRE'"
+                    (visualizar)="visualizar($event)"
+                    (baixar)="baixar($event)"
+                  />
                 }
 
-                @if (carregandoConteudo()) {
-                  <p class="loading">Carregando conteúdo…</p>
-                } @else if (temResultados()) {
-                  <div class="content-body">
-                    @if (temTreinamentos()) {
-                      <div class="featured-list">
-                        @for (v of treinamentosFiltrados(); track v.id) {
-                          <div
-                            class="featured-row"
-                            role="button"
-                            tabindex="0"
-                            (click)="abrirTreinamento(v)"
-                            (keyup.enter)="abrirTreinamento(v)"
-                          >
-                            <app-treinamento-card [video]="v" [modo]="'featured'" />
-                          </div>
-                        }
-                      </div>
-                    }
+                @if (temDestaqueTreinamentos()) {
+                  <app-treinamento-featured-carousel
+                    [videos]="treinamentosDestaque()"
+                    (play)="abrirTreinamento($event)"
+                  />
+                }
 
-                    @if (temDocumentos()) {
-                      <app-documento-list
-                        [documentos]="documentosFiltrados()"
-                        (visualizar)="visualizar($event)"
-                        (baixar)="baixar($event)"
+                @if (mostrarSecaoGrade()) {
+                  <p class="sectitle">Biblioteca</p>
+                  <div class="grid">
+                    @for (doc of documentosGrade(); track doc.id) {
+                      <app-documento-grid-card
+                        [documento]="doc"
+                        [iconeCategoria]="iconeCategoriaAtual()"
+                        [kicker]="pagina()?.nome ?? 'GRUPO WTORRE'"
+                        (visualizar)="visualizar(doc)"
+                        (baixar)="baixar(doc)"
                       />
                     }
-                  </div>
-                } @else {
-                  <div class="empty">
-                    <p>Nenhum documento ou treinamento nesta categoria.</p>
+                    @for (v of treinamentosGrade(); track v.id) {
+                      <div class="card video-card">
+                        <app-treinamento-card
+                          [video]="v"
+                          [modo]="'grid'"
+                          (play)="abrirTreinamento(v)"
+                        />
+                      </div>
+                    }
                   </div>
                 }
-              </div>
-            </div>
+              } @else {
+                <div class="empty">
+                  <p>Nenhum documento ou treinamento nesta categoria.</p>
+                </div>
+              }
+            </section>
           </div>
         } @else {
           <div class="empty">
@@ -243,13 +271,7 @@
           </svg>
         </button>
         @if (sasUrl()) {
-          <video
-            class="video-el"
-            [src]="sasUrl()!"
-            controls
-            autoplay
-            playsinline
-          ></video>
+          <video class="video-el" [src]="sasUrl()!" controls autoplay playsinline></video>
         } @else if (playerCarregando()) {
           <div class="loading-play">Carregando vídeo…</div>
         }
@@ -274,8 +296,8 @@
         }
         <div class="info">
           <span>Duração: <b>{{ duracao(v) }}</b></span>
-          @if (v.area) {
-            <span>Área: <b>{{ v.area }}</b></span>
+          @if (v.setor?.nome; as setorNome) {
+            <span>Setor: <b>{{ setorNome }}</b></span>
           }
           @if (v.paginaNome) {
             <span>Entidade: <b>{{ v.paginaNome }}</b></span>

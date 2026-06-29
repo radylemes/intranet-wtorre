@@ -364,7 +364,8 @@
   padding: 4px 0;
 }
 
-.viewer-add {
+.viewer-add,
+.dest-busca {
   position: relative;
   margin-bottom: 12px;
   display: flex;
@@ -378,6 +379,15 @@
     padding: 10px 12px;
     font-size: 13px;
   }
+}
+
+.dest-busca {
+  margin-bottom: 10px;
+}
+
+.busca-meta {
+  color: var(--ink-dim);
+  font-size: 12px;
 }
 
 .busca-resultados {

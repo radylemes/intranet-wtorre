@@ -10,12 +10,13 @@ O módulo **Treinamentos** é uma biblioteca de vídeos corporativos por **entid
 
 | Aspecto | Implementação |
 |---------|---------------|
-| Entidade | FK `pagina_id` → `documentos_paginas` (reuso, fonte única) |
-| Categoria | FK `categoria_id` → `categorias_documentos` (opcional; mesma árvore de Documentos) |
+| Entidade | FK `pagina_id` → `documentos_paginas` (entidade principal / legado) |
+| Categoria | FK `categoria_id` → `categorias_documentos` (categoria principal / legado) |
+| **Compartilhamento** | Tabela N:N `treinamento_entidades` — visível em várias entidades com categoria distinta por entidade |
 | Consumo público | Unificado em `/documentos/:paginaSlug` — seções **Treinamentos** e **Documentos** |
 | Armazenamento | Azure Blob (privado, SAS de leitura) — inalterado |
 | Categorias fixas | **Descontinuadas** (`onboarding`, `compliance`, etc.) |
-| Menu | Links `/documentos/{slug}?cat=treinamentos` (label `Treinamentos — {nome}`) |
+| Menu | Link opcional `/documentos/{slug}?cat=treinamentos` (label `Treinamentos — {nome}`) quando `exibir_menu_treinamento` está ativo na entidade |
 
 ---
 
@@ -34,9 +35,9 @@ O módulo **Treinamentos** é uma biblioteca de vídeos corporativos por **entid
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| `GET` | `/` | JWT | Lista pública: `?pagina=slug&categoria=slug` ou `?sem_categoria=1` |
+| `GET` | `/` | JWT | Lista pública via `treinamento_entidades`: `?pagina=slug&categoria=slug` |
 | `GET` | `/por-pagina/:paginaSlug` | JWT | Alias da listagem pública |
-| `GET` | `/admin` | JWT + módulo | Lista admin; `?pagina_id=` opcional |
+| `GET` | `/admin` | JWT + módulo | Lista admin; `?pagina_id=` filtra por visibilidade na entidade |
 | `GET` | `/:id/playback` | JWT | SAS do vídeo |
 | `GET` | `/:id/thumb` | JWT | SAS da thumbnail |
 | `GET` | `/:id` | JWT | Detalhe |
@@ -81,28 +82,56 @@ Componente: [`documento-categoria.component`](../frontend/src/app/pages/document
 
 ---
 
+### Tabela `treinamento_entidades` (compartilhamento)
+
+| Coluna | Descrição |
+|--------|-----------|
+| `treinamento_id` | FK → `treinamentos` ON DELETE CASCADE |
+| `pagina_id` | FK → `documentos_paginas` ON DELETE CASCADE |
+| `categoria_id` | FK → `categorias_documentos` ON DELETE SET NULL |
+| PK | `(treinamento_id, pagina_id)` |
+
+Documentos usam tabela equivalente `documento_entidades` com o mesmo modelo.
+
+Migration [`027_documento_treinamento_entidades.sql`](../backend/src/db/migrations/027_documento_treinamento_entidades.sql) e backfill [`20260624-documento-treinamento-entidades.sql`](../backend/scripts/20260624-documento-treinamento-entidades.sql).
+
+---
+
 ## Admin
 
-- Select de **entidade** (`documentos_paginas`)
-- **Árvore de categorias** via `DocAdminNodeComponent` (select)
-- Botão **Sem categoria** para limpar `categoria_id`
-- Tabela: Entidade, Categoria (nome + ícone), Container, Duração, Status
-- Filtro por entidade na toolbar
+- Editor **Visibilidade por entidade** (`ConteudoEntidadesEditorComponent`): checkbox por entidade + select de categoria na árvore de Documentos
+- Pelo menos uma entidade com categoria obrigatória
+- Tabela: badges de **Entidades** compartilhadas, Categoria (contextual ao filtro), Container, Duração, Status
+- Filtro por entidade na toolbar lista treinamentos **visíveis** naquela entidade (JOIN `treinamento_entidades`)
 
-FormData: `pagina_id`, `categoria_id` (vazio = null), demais campos inalterados.
+FormData / JSON: `visibilidades` como array JSON:
+
+```json
+[
+  { "pagina_id": 1, "categoria_id": 23 },
+  { "pagina_id": 2, "categoria_id": 41 }
+]
+```
+
+Campos legados `pagina_id` / `categoria_id` no registro principal espelham a **primeira** visibilidade.
 
 ---
 
 ## Menu sync
 
-[`doc-pagina-menu.sync.js`](../backend/src/services/doc-pagina-menu.sync.js) cria, por entidade, dois irmãos sob o pai **Documentos**:
+[`doc-pagina-menu.sync.js`](../backend/src/services/doc-pagina-menu.sync.js) mantém, por entidade, um item sob o pai **Documentos**:
 
-- `/documentos/{slug}` — nome da entidade
-- `/documentos/{slug}?cat=treinamentos` — label `Treinamentos — {nome}`
+- `/documentos/{slug}` — nome da entidade (sempre sincronizado)
 
-URLs legadas `/treinamentos/{slug}` redirecionam no frontend. O `reconcileAll` (startup do backend) atualiza itens antigos do menu.
+O atalho de treinamentos no menu é **opcional** por entidade (`documentos_paginas.exibir_menu_treinamento`, padrão `0`):
 
-Ordem intercalada: `ordem * 2` e `ordem * 2 + 1`.
+- `/documentos/{slug}?cat=treinamentos` — label `Treinamentos — {nome}` (somente quando a flag está ativa)
+
+Gerencie essa opção em **Gestão de Documentos → Entidades** (toggle *Exibir atalho de Treinamentos no menu*). Excluir manualmente no Admin → Menu não persiste: o sync recria ou remove conforme a flag na entidade.
+
+URLs legadas `/treinamentos/{slug}` redirecionam no frontend. O `reconcileAll` (startup do backend) reconcilia itens do menu com `documentos_paginas` e remove atalhos de treinamento cuja flag está desligada.
+
+A ordem no menu segue `documentos_paginas.ordem`; reordenar no Menu atualiza essa coluna (apenas itens de documento, não treinamento).
 
 ---
 
@@ -113,10 +142,13 @@ cd backend && npm run db:migrate
 # Se ainda não rodou:
 mysql ... < scripts/20260623-documentos-pagina-setor.sql
 mysql ... < scripts/20260623-treinamentos-pagina-categoria.sql
+mysql ... < scripts/20260624-documento-treinamento-entidades.sql
 
 cd frontend && npm run build
 # restart PM2
 ```
+
+**Documentos públicos:** `GET /documentos` exige `?pagina=slug&categoria=slug` (breaking change; frontend atualizado).
 
 Após deploy: reclassificar treinamentos existentes no admin (definir `categoria_id` onde aplicável).
 
@@ -129,6 +161,9 @@ backend/
   src/db/migrations/007_treinamentos.sql
   scripts/20260623-treinamentos-pagina-categoria.sql
   src/repositories/treinamentos.repository.js
+  src/repositories/treinamento-entidades.repository.js
+  src/repositories/documento-entidades.repository.js
+  src/utils/visibilidade-entidades.validation.js
   src/controllers/treinamentos.controller.js
   src/routes/treinamentos.routes.js
   src/services/doc-pagina-menu.sync.js
@@ -137,6 +172,7 @@ frontend/
   src/app/pages/documentos/documento-categoria.component.ts
   src/app/pages/treinamentos/treinamentos.component.ts  # redirect legado
   src/app/pages/admin/treinamentos-admin/
+  src/app/shared/admin/conteudo-entidades-editor/
   src/app/services/treinamentos.service.ts
   src/app/data/paginas-internas.ts
 ```

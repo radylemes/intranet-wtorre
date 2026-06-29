@@ -12,7 +12,7 @@
     @if (auth.isAdmin() || auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('documentos') || auth.hasModulo('treinamentos') || auth.hasModulo('comunicados') || auth.hasModulo('containers') || auth.hasModulo('paginas')) {
       <div class="nav-group-label">Gestão de conteúdo</div>
       <nav class="sidebar-nav">
-        @if (auth.hasModulo('menu')) {
+        @if (auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('comunicados')) {
           <a routerLink="/admin/menu" routerLinkActive="active" (click)="closeSidebar()">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
@@ -25,16 +25,7 @@
             Gestão do Menu
           </a>
         }
-        @if (auth.hasModulo('rodape')) {
-          <a routerLink="/admin/rodape" routerLinkActive="active" (click)="closeSidebar()">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3" y="16" width="18" height="4" rx="1" stroke="currentColor" stroke-width="2" />
-              <path d="M7 12h10M7 8h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
-            Rodapé
-          </a>
-        }
-        @if (auth.hasModulo('documentos')) {
+        @if (auth.hasModulo('documentos') || auth.hasModulo('treinamentos')) {
           <a routerLink="/admin/documentos" routerLinkActive="active" (click)="closeSidebar()">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
@@ -45,40 +36,6 @@
               />
             </svg>
             Documentos
-          </a>
-        }
-        @if (auth.hasModulo('treinamentos')) {
-          <a routerLink="/admin/treinamentos" routerLinkActive="active" (click)="closeSidebar()">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M3 9l9-5 9 5-9 5-9-5z"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linejoin="round"
-              />
-              <path d="M7 11.5V16c2.5 1.6 7.5 1.6 10 0v-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
-            Treinamentos
-          </a>
-        }
-        @if (auth.hasModulo('comunicados')) {
-          <a routerLink="/admin/comunicados" routerLinkActive="active" (click)="closeSidebar()">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M4 6h16M4 12h10M4 18h7"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-              <path
-                d="M18 10l2 2-4 4-2-2"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            Comunicados
           </a>
         }
         @if (auth.hasModulo('containers')) {
@@ -119,13 +76,6 @@
           </a>
         }
         @if (auth.isAdmin()) {
-          <a routerLink="/admin/perfis" routerLinkActive="active" (click)="closeSidebar()">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 12a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="2" />
-              <path d="M4 20a8 8 0 0116 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
-            Perfis de Acesso
-          </a>
           <a routerLink="/admin/acessos" routerLinkActive="active" (click)="closeSidebar()">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" />

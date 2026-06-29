@@ -1,0 +1,51 @@
+@if (thumbUrl || aguardandoThumb) {
+  <div class="gencover gencover-img" [class.feature]="variant === 'feature'" [class.card]="variant === 'card'">
+    @if (thumbUrl) {
+      <img [src]="thumbUrl" alt="" />
+    }
+    <span class="gc-typebadge">{{ extLabel() }}</span>
+    @if (iconeCategoria) {
+      <span class="gc-caticon">
+        <app-doc-cat-icone [nome]="iconeCategoria" [size]="15" />
+      </span>
+    }
+  </div>
+} @else {
+  <div class="gencover" [class.feature]="variant === 'feature'" [class.card]="variant === 'card'">
+    <span class="gc-typebadge">{{ extLabel() }}</span>
+    @if (iconeCategoria) {
+      <span class="gc-caticon">
+        <app-doc-cat-icone [nome]="iconeCategoria" [size]="15" />
+      </span>
+    }
+    <div class="gc-in">
+      <div class="gc-kicker">{{ kicker }}</div>
+      <h3 class="gc-title">
+        @if (tituloCapa().prefixo) {
+          {{ tituloCapa().prefixo }}<span class="ac">{{ tituloCapa().destaque }}</span>
+        } @else {
+          <span class="ac">{{ tituloCapa().destaque }}</span>
+        }
+      </h3>
+      <div class="gc-rule"></div>
+      @if (tags) {
+        <div class="gc-tags">{{ tags }}</div>
+      }
+    </div>
+    @if (variant === 'feature') {
+      <div class="mockpage" aria-hidden="true">
+        <div class="mp-band">{{ titulo | uppercase }}</div>
+        <div class="mp-lines">
+          <i style="width: 90%"></i>
+          <i style="width: 96%"></i>
+          <i style="width: 80%"></i>
+          <i style="width: 92%"></i>
+          <i style="width: 70%"></i>
+          <i style="width: 86%"></i>
+          <i style="width: 60%"></i>
+        </div>
+        <div class="mp-foot"><span>REV 00</span><span>—</span></div>
+      </div>
+    }
+  </div>
+}

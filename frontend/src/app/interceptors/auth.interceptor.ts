@@ -30,6 +30,10 @@ function shouldAttachToken(url: string): boolean {
   return isApiRequest(url) && !isPublic(url) && !usesGraphToken(url);
 }
 
+function tokenRenovado(refreshed: { accessToken?: string; token?: string } | null): string | null {
+  return refreshed?.accessToken || refreshed?.token || null;
+}
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   let request = req;
@@ -49,17 +53,22 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
       return auth.refresh().pipe(
         switchMap((refreshed) => {
-          if (!refreshed?.accessToken) {
-            auth.logout(true, false);
-            return throwError(() => err);
+          const newToken = tokenRenovado(refreshed);
+          if (newToken) {
+            const retry = req.clone({
+              setHeaders: { Authorization: `Bearer ${newToken}` },
+            });
+            return next(retry);
           }
-          const retry = req.clone({
-            setHeaders: { Authorization: `Bearer ${refreshed.accessToken}` },
-          });
-          return next(retry);
+          if (auth.temAccessValido() || auth.temSessao()) {
+            auth.limparSessao();
+          }
+          void auth.irParaLogin();
+          return throwError(() => err);
         }),
         catchError(() => {
-          auth.logout(true, false);
+          if (auth.temSessao()) auth.limparSessao();
+          void auth.irParaLogin();
           return throwError(() => err);
         })
       );

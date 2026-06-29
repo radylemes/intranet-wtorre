@@ -1,0 +1,48 @@
+<div class="card">
+  <div class="cover">
+    <app-documento-gencover
+      variant="card"
+      [titulo]="documento.titulo"
+      [extensao]="documento.extensao"
+      [iconeCategoria]="iconeCategoria"
+      [kicker]="kicker"
+      [tags]="documento.setor?.nome ?? ''"
+      [thumbUrl]="capaUrl()"
+      [aguardandoThumb]="thumbCarregando()"
+    />
+  </div>
+  <div class="body">
+    <div class="cbadges">
+      @if (setorLabel()) {
+        <span class="chip dot" [class]="setorChipClass()">{{ setorLabel() }}</span>
+      }
+      <span class="chip" [class]="extChipClass()">{{ extLabel() }}</span>
+    </div>
+    <h3 [appTextTooltip]="documento.titulo">{{ documento.titulo }}</h3>
+    @if (documento.descricao) {
+      <p class="cdesc" [appTextTooltip]="documento.descricao">{{ documento.descricao }}</p>
+    }
+    <div class="cmeta">
+      @for (parte of metaPartes(); track parte; let last = $last) {
+        <span>{{ parte }}</span>
+        @if (!last) {
+          <span class="sep"></span>
+        }
+      }
+    </div>
+    <div class="cfoot">
+      <button type="button" class="btn btn-primary btn-sm" (click)="onVisualizar($event)">Visualizar</button>
+      <button type="button" class="icon-btn" title="Baixar" (click)="onBaixar($event)">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>

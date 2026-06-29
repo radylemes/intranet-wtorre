@@ -4,7 +4,7 @@ const paginasController = require('../controllers/documentos-paginas.controller'
 const setoresController = require('../controllers/documentos-setores.controller');
 const requireJwt = require('../middleware/requireJwt.middleware');
 const requireModulo = require('../middleware/requireModulo.middleware');
-const { upload, handleMulterError } = require('../config/upload');
+const { uploadFields, handleMulterError } = require('../config/upload');
 const {
   uploadPaginaLogo,
   handleMulterError: handlePaginaLogoMulterError,
@@ -36,17 +36,28 @@ router.put('/setores/admin/:id', requireJwt, requireModulo('documentos'), setore
 router.delete('/setores/admin/:id', requireJwt, requireModulo('documentos'), setoresController.remove);
 
 router.get('/', requireJwt, controller.list);
+router.get('/thumbs/:filename', requireJwt, controller.serveThumb);
 router.get('/:id/view', requireJwt, controller.view);
 router.get('/:id/download', requireJwt, controller.download);
 router.post(
   '/',
   requireJwt,
   requireModulo('documentos'),
-  upload.single('arquivo'),
+  uploadFields.fields([
+    { name: 'arquivo', maxCount: 1 },
+    { name: 'thumb', maxCount: 1 },
+  ]),
   handleMulterError,
   controller.upload
 );
-router.put('/:id', requireJwt, requireModulo('documentos'), controller.update);
+router.put(
+  '/:id',
+  requireJwt,
+  requireModulo('documentos'),
+  uploadFields.fields([{ name: 'thumb', maxCount: 1 }]),
+  handleMulterError,
+  controller.update
+);
 router.delete('/:id', requireJwt, requireModulo('documentos'), controller.remove);
 
 module.exports = router;

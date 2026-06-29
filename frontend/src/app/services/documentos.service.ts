@@ -93,9 +93,13 @@ export class DocumentosService {
 
   listarDocumentos(
     categoriaIdOrSlug: string | number,
-    setor?: string | null
+    setor?: string | null,
+    paginaSlug?: string | null
   ): Observable<Documento[]> {
     const params: Record<string, string> = { categoria: String(categoriaIdOrSlug) };
+    if (paginaSlug) {
+      params['pagina'] = paginaSlug;
+    }
     if (setor) {
       params['setor'] = setor;
     }
@@ -143,6 +147,15 @@ export class DocumentosService {
 
   atualizarDocumento(id: number, payload: DocumentoUpdatePayload): Observable<Documento> {
     return this.http.put<Documento>(this.api(`/documentos/${id}`), payload);
+  }
+
+  atualizarDocumentoFormData(id: number, formData: FormData): Observable<Documento> {
+    return this.http.put<Documento>(this.api(`/documentos/${id}`), formData);
+  }
+
+  carregarThumbnail(url: string): Observable<Blob> {
+    const path = url.startsWith('/api/') ? url : this.api(url);
+    return this.http.get(path, { responseType: 'blob' });
   }
 
   removerDocumento(id: number): Observable<{ ok: boolean }> {

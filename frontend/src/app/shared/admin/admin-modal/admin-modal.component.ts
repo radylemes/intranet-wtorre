@@ -2,6 +2,7 @@ import { Component, input, output, ViewEncapsulation } from '@angular/core';
 import { DocCatIconeComponent } from '../../documentos/doc-cat-icone.component';
 
 export type AdminModalIcon = 'folder' | 'tenant';
+export type AdminModalSize = 'default' | 'wide' | 'xlarge';
 
 @Component({
   selector: 'app-admin-modal',
@@ -19,11 +20,23 @@ export class AdminModalComponent {
   readonly headerIcon = input<string | null>(null);
   readonly salvando = input(false);
   readonly saveLabel = input('Salvar');
+  readonly size = input<AdminModalSize>('default');
 
   readonly save = output<void>();
   readonly cancel = output<void>();
 
-  onBackdropClick(): void {
+  private backdropGuardUntil = 0;
+
+  onBodyPointerDown(event: PointerEvent): void {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.type === 'file') {
+      this.backdropGuardUntil = Date.now() + 800;
+    }
+  }
+
+  onBackdropClick(event: MouseEvent): void {
+    if (event.target !== event.currentTarget) return;
+    if (Date.now() < this.backdropGuardUntil) return;
     this.cancel.emit();
   }
 

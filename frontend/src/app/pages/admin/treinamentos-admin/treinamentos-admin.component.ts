@@ -8,12 +8,15 @@ import { ContainersService } from '../../../services/containers.service';
 import { DocumentosService } from '../../../services/documentos.service';
 import { TreinamentoAdmin } from '../../../models/treinamento.model';
 import { StorageContainer } from '../../../models/storage-container.model';
-import { CategoriaDocumento, DocumentoPagina } from '../../../models/documento.model';
-import { formatarDuracao, parseDuracaoInput } from '../../../utils/treinamento-categoria.util';
 import {
-  DocAdminNodeAction,
-  DocAdminNodeComponent,
-} from '../documentos/doc-admin-node.component';
+  CategoriaDocumento,
+  DocumentoPagina,
+  DocumentoSetor,
+  VisibilidadeEntidade,
+  VisibilidadeEntidadeInput,
+} from '../../../models/documento.model';
+import { formatarDuracao, parseDuracaoInput } from '../../../utils/treinamento-categoria.util';
+import { ConteudoEntidadesEditorComponent } from '../../../shared/admin/conteudo-entidades-editor/conteudo-entidades-editor.component';
 import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
 
 @Component({
@@ -22,7 +25,7 @@ import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.c
   imports: [
     ReactiveFormsModule,
     AdminModalComponent,
-    DocAdminNodeComponent,
+    ConteudoEntidadesEditorComponent,
     DocCatIconeComponent,
   ],
   templateUrl: './treinamentos-admin.component.html',
@@ -36,9 +39,7 @@ export class TreinamentosAdminComponent implements OnInit {
   private readonly alertas = inject(AlertasService);
 
   readonly paginas = signal<DocumentoPagina[]>([]);
-  readonly categoriasTree = signal<CategoriaDocumento[]>([]);
-  readonly categoriaSelecionadaId = signal<number | null>(null);
-  readonly categoriaSelecionadaNome = signal<string | null>(null);
+  readonly setores = signal<DocumentoSetor[]>([]);
   readonly filtroPaginaId = signal<number | null>(null);
 
   readonly treinamentos = signal<TreinamentoAdmin[]>([]);
@@ -49,27 +50,34 @@ export class TreinamentosAdminComponent implements OnInit {
   readonly uploadProgress = signal(0);
   readonly editandoId = signal<number | null>(null);
   readonly modalAberto = signal(false);
+  readonly visibilidadesTreino = signal<VisibilidadeEntidade[]>([]);
+  readonly visibilidadesTreinoInput = signal<VisibilidadeEntidadeInput[]>([]);
 
   private videoFile: File | null = null;
   private thumbFile: File | null = null;
+  private thumbObjectUrl: string | null = null;
+  private editandoThumbObjectUrl: string | null = null;
+  removerThumb = false;
+  editandoTemThumb = false;
+  videoFileName: string | null = null;
+
+  get thumbPreviewUrl(): string | null {
+    if (this.removerThumb) return null;
+    if (this.thumbObjectUrl) return this.thumbObjectUrl;
+    return this.editandoThumbObjectUrl;
+  }
 
   readonly form = this.fb.nonNullable.group({
     titulo: ['', Validators.required],
     descricao: [''],
-    pagina_id: [0, Validators.required],
-    area: [''],
+    setor_id: ['' as string | number],
     duracao: [''],
     destaque: [false],
     container: [''],
     ativo: [true],
   });
 
-  readonly treinamentosFiltrados = computed(() => {
-    const filtro = this.filtroPaginaId();
-    const lista = this.treinamentos();
-    if (filtro == null) return lista;
-    return lista.filter((t) => t.paginaId === filtro);
-  });
+  readonly treinamentosFiltrados = computed(() => this.treinamentos());
 
   constructor() {
     effect(() => {
@@ -84,28 +92,22 @@ export class TreinamentosAdminComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregarPaginas();
+    this.carregarSetores();
     this.carregar();
     this.carregarContainers();
   }
 
   carregarPaginas(): void {
     this.documentosService.listarPaginasAdmin().subscribe({
-      next: (list) => {
-        this.paginas.set(list.filter((p) => p.ativo));
-        const wtorre = list.find((p) => p.slug === 'wtorre');
-        if (wtorre?.id && !this.form.controls.pagina_id.value) {
-          this.form.patchValue({ pagina_id: wtorre.id });
-          this.carregarCategorias(wtorre.id);
-        }
-      },
+      next: (list) => this.paginas.set(list.filter((p) => p.ativo)),
       error: () => {},
     });
   }
 
-  carregarCategorias(paginaId: number): void {
-    this.documentosService.listarCategoriasAdmin(paginaId).subscribe({
-      next: (tree) => this.categoriasTree.set(tree),
-      error: () => this.categoriasTree.set([]),
+  carregarSetores(): void {
+    this.documentosService.listarSetores().subscribe({
+      next: (list) => this.setores.set(list.filter((s) => s.ativo !== false)),
+      error: () => {},
     });
   }
 
@@ -138,33 +140,17 @@ export class TreinamentosAdminComponent implements OnInit {
     });
   }
 
-  onPaginaChange(raw: string): void {
-    const paginaId = Number(raw);
-    if (!Number.isFinite(paginaId) || paginaId <= 0) return;
-    this.form.patchValue({ pagina_id: paginaId });
-    this.categoriaSelecionadaId.set(null);
-    this.categoriaSelecionadaNome.set(null);
-    this.carregarCategorias(paginaId);
-  }
-
-  onCategoriaNode(action: DocAdminNodeAction): void {
-    if (action.type !== 'select') return;
-    this.categoriaSelecionadaId.set(action.item.id);
-    this.categoriaSelecionadaNome.set(action.item.nome);
-  }
-
-  limparCategoria(): void {
-    this.categoriaSelecionadaId.set(null);
-    this.categoriaSelecionadaNome.set(null);
+  onVisibilidadesTreinoChange(v: VisibilidadeEntidadeInput[]): void {
+    this.visibilidadesTreinoInput.set(v);
   }
 
   novo(): void {
     this.cancelar();
     const padrao = this.containers().find((c) => c.padrao);
-    const paginaId = this.form.controls.pagina_id.value || this.paginas()[0]?.id;
-    if (paginaId) {
-      this.form.patchValue({ pagina_id: paginaId });
-      this.carregarCategorias(paginaId);
+    const filtro = this.filtroPaginaId();
+    const pagina = filtro != null ? this.paginas().find((p) => p.id === filtro) : this.paginas()[0];
+    if (pagina) {
+      this.visibilidadesTreino.set([{ pagina_id: pagina.id, pagina_nome: pagina.nome, pagina_slug: pagina.slug, categoria_id: null }]);
     }
     this.form.patchValue({ container: padrao?.nome ?? '' });
     this.modalAberto.set(true);
@@ -175,18 +161,42 @@ export class TreinamentosAdminComponent implements OnInit {
     this.form.patchValue({
       titulo: t.titulo,
       descricao: t.descricao ?? '',
-      pagina_id: t.paginaId,
-      area: t.area ?? '',
+      setor_id: t.setorId ?? '',
       duracao: formatarDuracao(t.duracaoSeg),
       destaque: t.destaque,
       container: t.container,
       ativo: t.ativo,
     });
-    this.categoriaSelecionadaId.set(t.categoriaId ?? null);
-    this.categoriaSelecionadaNome.set(t.categoriaNome ?? null);
-    this.carregarCategorias(t.paginaId);
+    this.visibilidadesTreino.set(t.visibilidades ?? []);
+    this.visibilidadesTreinoInput.set(
+      (t.visibilidades ?? [])
+        .filter((v) => v.categoria_id != null)
+        .map((v) => ({
+          pagina_id: Number(v.pagina_id),
+          categoria_id: Number(v.categoria_id),
+        }))
+    );
     this.videoFile = null;
+    this.videoFileName = null;
     this.thumbFile = null;
+    this.removerThumb = false;
+    this.revokeThumbObjectUrl();
+    this.revokeEditandoThumbUrl();
+    this.editandoTemThumb = t.temThumb;
+    if (t.temThumb) {
+      this.treinamentosService.carregarThumb(t.id).subscribe({
+        next: (blob) => {
+          if (!blob) {
+            this.editandoTemThumb = false;
+            return;
+          }
+          this.editandoThumbObjectUrl = URL.createObjectURL(blob);
+        },
+        error: () => {
+          this.editandoTemThumb = false;
+        },
+      });
+    }
     this.modalAberto.set(true);
   }
 
@@ -198,18 +208,20 @@ export class TreinamentosAdminComponent implements OnInit {
   cancelar(): void {
     this.editandoId.set(null);
     this.videoFile = null;
+    this.videoFileName = null;
     this.thumbFile = null;
+    this.removerThumb = false;
+    this.editandoTemThumb = false;
+    this.revokeThumbObjectUrl();
+    this.revokeEditandoThumbUrl();
     this.uploadProgress.set(0);
-    this.categoriaSelecionadaId.set(null);
-    this.categoriaSelecionadaNome.set(null);
-    const paginaId = this.paginas().find((p) => p.slug === 'wtorre')?.id ?? this.paginas()[0]?.id ?? 0;
+    this.visibilidadesTreino.set([]);
+    this.visibilidadesTreinoInput.set([]);
     this.form.reset({
-      pagina_id: paginaId,
       destaque: false,
       ativo: true,
       container: this.containers().find((c) => c.padrao)?.nome ?? '',
     });
-    if (paginaId) this.carregarCategorias(paginaId);
   }
 
   tituloModal(): string {
@@ -225,11 +237,38 @@ export class TreinamentosAdminComponent implements OnInit {
   onVideoSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.videoFile = input.files?.[0] ?? null;
+    this.videoFileName = this.videoFile?.name ?? null;
   }
 
   onThumbSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.thumbFile = input.files?.[0] ?? null;
+    const file = input.files?.[0] ?? null;
+    this.revokeThumbObjectUrl();
+    this.thumbFile = file;
+    this.removerThumb = false;
+    if (file) {
+      this.thumbObjectUrl = URL.createObjectURL(file);
+    }
+  }
+
+  marcarRemoverThumb(): void {
+    this.removerThumb = true;
+    this.thumbFile = null;
+    this.revokeThumbObjectUrl();
+  }
+
+  private revokeThumbObjectUrl(): void {
+    if (this.thumbObjectUrl) {
+      URL.revokeObjectURL(this.thumbObjectUrl);
+      this.thumbObjectUrl = null;
+    }
+  }
+
+  private revokeEditandoThumbUrl(): void {
+    if (this.editandoThumbObjectUrl) {
+      URL.revokeObjectURL(this.editandoThumbObjectUrl);
+      this.editandoThumbObjectUrl = null;
+    }
   }
 
   salvar(): void {
@@ -239,19 +278,20 @@ export class TreinamentosAdminComponent implements OnInit {
       this.erro.set('Selecione um arquivo de vídeo.');
       return;
     }
+    const vis = this.visibilidadesTreinoInput();
+    if (!vis.length) {
+      this.erro.set('Marque ao menos uma entidade com categoria.');
+      return;
+    }
 
     const raw = this.form.getRawValue();
     const formData = new FormData();
     formData.append('titulo', raw.titulo.trim());
     formData.append('descricao', raw.descricao.trim());
-    formData.append('pagina_id', String(raw.pagina_id));
-    const catId = this.categoriaSelecionadaId();
-    if (catId != null) {
-      formData.append('categoria_id', String(catId));
-    } else {
-      formData.append('categoria_id', '');
+    formData.append('visibilidades', JSON.stringify(vis));
+    if (raw.setor_id !== '' && raw.setor_id != null) {
+      formData.append('setor_id', String(raw.setor_id));
     }
-    formData.append('area', raw.area.trim());
     const dur = parseDuracaoInput(raw.duracao);
     if (dur != null) formData.append('duracao_seg', String(dur));
     formData.append('destaque', raw.destaque ? 'true' : 'false');
@@ -259,6 +299,7 @@ export class TreinamentosAdminComponent implements OnInit {
     if (editId) formData.append('ativo', raw.ativo ? 'true' : 'false');
     if (this.videoFile) formData.append('video', this.videoFile);
     if (this.thumbFile) formData.append('thumb', this.thumbFile);
+    if (this.removerThumb) formData.append('remover_thumb', 'true');
 
     this.salvando.set(true);
     this.uploadProgress.set(0);
@@ -309,7 +350,60 @@ export class TreinamentosAdminComponent implements OnInit {
     return formatarDuracao(t.duracaoSeg);
   }
 
-  categoriaLabel(t: TreinamentoAdmin): string {
+  entidadesBadges(t: TreinamentoAdmin): string[] {
+    const vis = t.visibilidades ?? [];
+    if (vis.length) {
+      return vis.map((v) => v.pagina_nome ?? v.pagina_slug ?? `Entidade ${v.pagina_id}`);
+    }
+    return t.paginaNome ? [t.paginaNome] : [t.paginaSlug];
+  }
+
+  setorLabel(t: TreinamentoAdmin): string {
+    return t.setor?.nome ?? '—';
+  }
+
+  categoriaPorEntidade(t: TreinamentoAdmin): string {
+    const filtro = this.filtroPaginaId();
+    const vis = t.visibilidades ?? [];
+    if (filtro != null) {
+      const match = vis.find((v) => v.pagina_id === filtro);
+      if (match?.categoria_nome) return match.categoria_nome;
+    }
+    if (vis.length === 1 && vis[0].categoria_nome) return vis[0].categoria_nome;
+    if (vis.length > 1) return `${vis.length} categorias`;
     return t.categoriaNome ?? 'Sem categoria';
+  }
+
+  previewTitulo(): string {
+    return this.form.controls.titulo.value?.trim() || 'Sem título';
+  }
+
+  previewDescricao(): string {
+    return this.form.controls.descricao.value?.trim() || '';
+  }
+
+  previewDuracao(): string {
+    const raw = this.form.controls.duracao.value?.trim();
+    return raw || '—';
+  }
+
+  previewCoverWords(): string[] {
+    return this.previewTitulo().split(/\s+/).filter(Boolean).slice(0, 2);
+  }
+
+  previewSetor(): DocumentoSetor | null {
+    const raw = this.form.controls.setor_id.value;
+    const id = Number(raw);
+    if (!id) return null;
+    return this.setores().find((s) => s.id === id) ?? null;
+  }
+
+  hexAlpha(hex: string, alpha: number): string {
+    const h = hex.replace('#', '');
+    if (h.length !== 6) return `rgba(29, 84, 230, ${alpha})`;
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 }

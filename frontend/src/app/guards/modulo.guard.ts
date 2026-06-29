@@ -1,11 +1,10 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { map } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { rotaParaModulo } from '../data/admin-modulos';
 
-function redirectSemModulo(): ReturnType<Router['createUrlTree']> {
-  const auth = inject(AuthService);
-  const router = inject(Router);
+function redirectSemModulo(auth: AuthService, router: Router): ReturnType<Router['createUrlTree']> {
   const fallback = auth.primeiraRotaAdmin();
   if (fallback) {
     return router.createUrlTree(['/admin', fallback]);
@@ -15,10 +14,14 @@ function redirectSemModulo(): ReturnType<Router['createUrlTree']> {
 
 export const moduloGuard = (codigo: string): CanActivateFn => () => {
   const auth = inject(AuthService);
-  if (auth.estaLogado() && auth.hasModulo(codigo)) {
-    return true;
-  }
-  return redirectSemModulo();
+  const router = inject(Router);
+
+  return auth.ensureSession().pipe(
+    map((ok) => {
+      if (ok && auth.hasModulo(codigo)) return true;
+      return redirectSemModulo(auth, router);
+    })
+  );
 };
 
 export const moduloGuardFromRoute: CanActivateFn = (route) => {
@@ -27,8 +30,12 @@ export const moduloGuardFromRoute: CanActivateFn = (route) => {
   if (!codigo) return true;
 
   const auth = inject(AuthService);
-  if (auth.estaLogado() && auth.hasModulo(codigo)) {
-    return true;
-  }
-  return redirectSemModulo();
+  const router = inject(Router);
+
+  return auth.ensureSession().pipe(
+    map((ok) => {
+      if (ok && auth.hasModulo(codigo)) return true;
+      return redirectSemModulo(auth, router);
+    })
+  );
 };

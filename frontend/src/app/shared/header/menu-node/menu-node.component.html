@@ -16,6 +16,11 @@
         (click)="onTriggerClick($event)"
         (keydown)="onTriggerKeydown($event)"
       >
+        @if (item.icone) {
+          <span class="menu-ico">
+            <app-doc-cat-icone [nome]="item.icone" [size]="15" />
+          </span>
+        }
         {{ item.label }}
         <svg class="chev" viewBox="0 0 12 12" aria-hidden="true">
           <path
@@ -71,7 +76,13 @@
         (click)="onTriggerClick($event)"
         (keydown)="onTriggerKeydown($event)"
       >
-        <span class="ic"></span>
+        @if (item.icone) {
+          <span class="menu-ico menu-ico--entry">
+            <app-doc-cat-icone [nome]="item.icone" [size]="16" />
+          </span>
+        } @else {
+          <span class="ic"></span>
+        }
         <span class="entry-label">{{ item.label }}</span>
         <span class="flyout-arrow" aria-hidden="true">›</span>
       </button>
@@ -103,11 +114,10 @@
     <div class="bar-item bar-leaf">
       @if (isInterno(item.url)) {
         <a class="bar-link" [routerLink]="item.url!" (click)="onCloseMenu()">
-          @if (item.icone === 'envelope') {
-            <svg class="menu-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
-              <path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          @if (item.icone) {
+            <span class="menu-ico">
+              <app-doc-cat-icone [nome]="item.icone" [size]="15" />
+            </span>
           }
           {{ item.label }}
         </a>
@@ -118,15 +128,36 @@
           target="_blank"
           rel="noopener noreferrer"
           (click)="onCloseMenu()"
-        >{{ item.label }}</a>
+        >
+          @if (item.icone) {
+            <span class="menu-ico">
+              <app-doc-cat-icone [nome]="item.icone" [size]="15" />
+            </span>
+          }
+          {{ item.label }}
+        </a>
       } @else {
-        <a class="bar-link" href="#" (click)="$event.preventDefault(); onCloseMenu()">{{ item.label }}</a>
+        <a class="bar-link" href="#" (click)="$event.preventDefault(); onCloseMenu()">
+          @if (item.icone) {
+            <span class="menu-ico">
+              <app-doc-cat-icone [nome]="item.icone" [size]="15" />
+            </span>
+          }
+          {{ item.label }}
+        </a>
       }
     </div>
   } @else {
     @if (isInterno(item.url)) {
       <a class="entry-link" role="menuitem" [routerLink]="item.url!" (click)="onCloseMenu()" (keydown)="onLeafKeydown($event)">
-        <span class="ic"></span>{{ item.label }}
+        @if (item.icone) {
+          <span class="menu-ico menu-ico--entry">
+            <app-doc-cat-icone [nome]="item.icone" [size]="16" />
+          </span>
+        } @else {
+          <span class="ic"></span>
+        }
+        {{ item.label }}
       </a>
     } @else if (isExterno(item.url)) {
       <a
@@ -138,11 +169,25 @@
         (click)="onCloseMenu()"
         (keydown)="onLeafKeydown($event)"
       >
-        <span class="ic"></span>{{ item.label }}
+        @if (item.icone) {
+          <span class="menu-ico menu-ico--entry">
+            <app-doc-cat-icone [nome]="item.icone" [size]="16" />
+          </span>
+        } @else {
+          <span class="ic"></span>
+        }
+        {{ item.label }}
       </a>
     } @else {
       <a class="entry-link" role="menuitem" href="#" (click)="$event.preventDefault(); onCloseMenu()" (keydown)="onLeafKeydown($event)">
-        <span class="ic"></span>{{ item.label }}
+        @if (item.icone) {
+          <span class="menu-ico menu-ico--entry">
+            <app-doc-cat-icone [nome]="item.icone" [size]="16" />
+          </span>
+        } @else {
+          <span class="ic"></span>
+        }
+        {{ item.label }}
       </a>
     }
   }

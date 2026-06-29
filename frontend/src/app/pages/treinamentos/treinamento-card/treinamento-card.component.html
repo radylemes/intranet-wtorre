@@ -1,6 +1,9 @@
 @if (modo === 'featured') {
-  <div class="thumb featured-thumb" [ngStyle]="thumbStyle()">
-    @if (!thumbUrl()) {
+  <div class="thumb featured-thumb" [class.has-thumb]="temThumbVisivel()" [ngStyle]="thumbStyle()">
+    @if (temThumbVisivel()) {
+      <img class="thumb-img" [src]="thumbUrl()!" alt="" (error)="onThumbError()" />
+    }
+    @if (mostrarFallback()) {
       <span class="thumb-icon">
         <app-doc-cat-icone [nome]="catIcone()" [size]="32" />
       </span>
@@ -18,21 +21,61 @@
         <span class="novo">Destaque</span>
       }
     </div>
-    <h2>{{ video.titulo }}</h2>
+    <h2 [appTextTooltip]="video.titulo">{{ video.titulo }}</h2>
     @if (video.descricao) {
-      <p>{{ video.descricao }}</p>
+      <p class="desc-tip" [appTextTooltip]="video.descricao">{{ video.descricao }}</p>
     }
     <div class="info">
       <span>{{ duracao() }}</span>
-      @if (video.area) {
-        <span> · {{ video.area }}</span>
+      @if (setorLabel()) {
+        <span> · {{ setorLabel() }}</span>
       }
+    </div>
+  </div>
+} @else if (modo === 'grid') {
+  <div class="grid-card" (click)="onClick()" role="button" tabindex="0" (keyup.enter)="onClick()">
+    <div class="cover vthumb" [class.has-thumb]="temThumbVisivel()" [ngStyle]="thumbStyle()">
+      @if (temThumbVisivel()) {
+        <img class="thumb-img" [src]="thumbUrl()!" alt="" (error)="onThumbError()" />
+      }
+      <span class="vt-type">VÍDEO</span>
+      <span class="play">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l11-7z" /></svg>
+      </span>
+      <span class="dur">{{ duracao() }}</span>
+    </div>
+    <div class="body">
+      <div class="cbadges">
+        @if (setorLabel()) {
+          <span class="chip chip-op dot">{{ setorLabel() }}</span>
+        }
+        <span class="chip chip-video">Vídeo</span>
+        @if (video.destaque) {
+          <span class="chip chip-destaque">Destaque</span>
+        }
+      </div>
+      <h3 [appTextTooltip]="video.titulo">{{ video.titulo }}</h3>
+      @if (video.descricao) {
+        <p class="cdesc" [appTextTooltip]="video.descricao">{{ video.descricao }}</p>
+      }
+      <div class="cmeta">
+        <span>{{ duracao() }}</span>
+      </div>
+      <div class="cfoot">
+        <button type="button" class="btn btn-primary btn-sm" (click)="onClick(); $event.stopPropagation()">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5v14l11-7z" /></svg>
+          Assistir
+        </button>
+      </div>
     </div>
   </div>
 } @else {
   <div class="vcard" (click)="onClick()" role="button" tabindex="0" (keyup.enter)="onClick()">
-    <div class="thumb" [ngStyle]="thumbStyle()">
-      @if (!thumbUrl()) {
+    <div class="thumb" [class.has-thumb]="temThumbVisivel()" [ngStyle]="thumbStyle()">
+      @if (temThumbVisivel()) {
+        <img class="thumb-img" [src]="thumbUrl()!" alt="" (error)="onThumbError()" />
+      }
+      @if (mostrarFallback()) {
         <span class="thumb-icon">
           <app-doc-cat-icone [nome]="catIcone()" [size]="28" />
         </span>
@@ -44,10 +87,10 @@
       </span>
     </div>
     <div class="vbody">
-      <h3>{{ video.titulo }}</h3>
+      <h3 [appTextTooltip]="video.titulo">{{ video.titulo }}</h3>
       <div class="vmeta">
-        @if (video.area) {
-          <span class="area">{{ video.area }}</span>
+        @if (setorLabel()) {
+          <span class="area" [style.color]="setorCor() || null">{{ setorLabel() }}</span>
           <span> · </span>
         }
         <span>{{ duracao() }}</span>

@@ -11,7 +11,8 @@ import { FooterComponent } from '../../shared/footer/footer.component';
 import { DocumentosService } from '../../services/documentos.service';
 import { ContentRefreshService } from '../../services/content-refresh.service';
 import { AuthService } from '../../services/auth.service';
-import { DocumentoListComponent } from './documento-list.component';
+import { DocumentoFeaturedCarouselComponent } from './documento-featured-carousel/documento-featured-carousel.component';
+import { DocumentoGridCardComponent } from './documento-grid-card/documento-grid-card.component';
 import { DocumentoPreviewModalComponent } from './documento-preview-modal.component';
 import {
   CategoriaDocumento,
@@ -26,7 +27,8 @@ import { TreinamentosService } from '../../services/treinamentos.service';
 import { Treinamento } from '../../models/treinamento.model';
 import { formatarDuracao } from '../../utils/treinamento-categoria.util';
 import { TreinamentoCardComponent } from '../treinamentos/treinamento-card/treinamento-card.component';
-import { filtrarDocumentos } from './documento.util';
+import { TreinamentoFeaturedCarouselComponent } from '../treinamentos/treinamento-featured-carousel/treinamento-featured-carousel.component';
+import { filtrarDocumentos, corEntidadeTab, entidadeTabGradiente } from './documento.util';
 
 interface ItemNavCategoria {
   slug: string;
@@ -49,10 +51,12 @@ const CHIP_CORES = ['#1d54e6', '#7c3aed', '#0d9488', '#f59e0b', '#22c55e', '#ef4
     FooterComponent,
     FormsModule,
     RouterLink,
-    DocumentoListComponent,
+    DocumentoFeaturedCarouselComponent,
+    DocumentoGridCardComponent,
     DocumentoPreviewModalComponent,
     DocCatIconeComponent,
     TreinamentoCardComponent,
+    TreinamentoFeaturedCarouselComponent,
   ],
   templateUrl: './documento-categoria.component.html',
   styleUrl: './documento-categoria.component.scss',
@@ -125,12 +129,34 @@ export class DocumentoCategoriaComponent implements OnInit, OnDestroy {
     filtrarDocumentos(this.documentos(), this.busca())
   );
 
+  readonly documentosDestaque = computed(() => {
+    const lista = this.documentosFiltrados();
+    const marcados = lista.filter((d) => d.destaque);
+    if (marcados.length) return marcados;
+    return lista.length ? [lista[0]] : [];
+  });
+
+  readonly documentosGrade = computed(() => this.documentosFiltrados());
+
+  readonly treinamentosDestaque = computed(() => {
+    const lista = this.treinamentosFiltrados();
+    const marcados = lista.filter((v) => v.destaque);
+    if (marcados.length) return marcados;
+    return lista.length ? [lista[0]] : [];
+  });
+
+  readonly treinamentosGrade = computed(() => this.treinamentosFiltrados());
+
+  readonly mostrarSecaoGrade = computed(
+    () => this.documentosGrade().length > 0 || this.treinamentosGrade().length > 0
+  );
+
   readonly treinamentosFiltrados = computed(() => {
     const f = this.busca().trim().toLowerCase();
     const lista = this.treinamentos();
     if (!f) return lista;
     return lista.filter((v) => {
-      const hay = `${v.titulo} ${v.area ?? ''} ${v.categoriaNome ?? ''} ${v.descricao ?? ''}`.toLowerCase();
+      const hay = `${v.titulo} ${v.setor?.nome ?? ''} ${v.categoriaNome ?? ''} ${v.descricao ?? ''}`.toLowerCase();
       return hay.includes(f);
     });
   });
@@ -141,6 +167,14 @@ export class DocumentoCategoriaComponent implements OnInit, OnDestroy {
 
   readonly temDocumentos = computed(
     () => !this.carregandoConteudo() && this.documentosFiltrados().length > 0
+  );
+
+  readonly temDestaque = computed(
+    () => !this.carregandoConteudo() && this.documentosDestaque().length > 0
+  );
+
+  readonly temDestaqueTreinamentos = computed(
+    () => !this.carregandoConteudo() && this.treinamentosDestaque().length > 0
   );
 
   readonly temResultados = computed(
@@ -262,6 +296,18 @@ export class DocumentoCategoriaComponent implements OnInit, OnDestroy {
 
   corSubcategoria(index: number): string {
     return CHIP_CORES[index % CHIP_CORES.length];
+  }
+
+  corTabEntidade(slug: string): string {
+    return corEntidadeTab(slug);
+  }
+
+  gradienteTabEntidade(slug: string): string | null {
+    return entidadeTabGradiente(slug);
+  }
+
+  iconeCategoriaAtual(): string | null {
+    return this.categoriaRaiz()?.icone ?? null;
   }
 
   isSubcategoriaSidebarAtiva(raiz: CategoriaDocumento, child: CategoriaDocumento): boolean {
@@ -430,8 +476,8 @@ export class DocumentoCategoriaComponent implements OnInit, OnDestroy {
     this.erro.set('');
 
     forkJoin({
-      docs: this.documentosService.listarDocumentos(categoriaSlug, setor),
-      videos: this.treinamentosService.listar(pag.slug, { categoriaSlug }),
+      docs: this.documentosService.listarDocumentos(categoriaSlug, setor, pag.slug),
+      videos: this.treinamentosService.listar(pag.slug, { categoriaSlug, setor: setor ?? undefined }),
     }).subscribe({
       next: ({ docs, videos }) => {
         this.documentos.set(docs);

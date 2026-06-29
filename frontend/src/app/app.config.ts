@@ -1,6 +1,6 @@
 import { APP_INITIALIZER, ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withEnabledBlockingInitialNavigation } from '@angular/router';
 import { InteractionType } from '@azure/msal-browser';
 import { MSAL_INSTANCE, MSAL_GUARD_CONFIG, MsalGuardConfiguration } from '@azure/msal-angular';
 
@@ -10,7 +10,11 @@ import {
   MsalConfigService,
   msalConfigInitializer,
 } from './services/msal-config.service';
-import { AuthService, authMsalRedirectInitializer } from './services/auth.service';
+import {
+  AuthService,
+  authMsalRedirectInitializer,
+  authSessionInitializer,
+} from './services/auth.service';
 
 export function msalInstanceFactory(msalConfig: MsalConfigService) {
   const instance = msalConfig.getInstance();
@@ -32,7 +36,7 @@ export function msalGuardConfigFactory(): MsalGuardConfiguration {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    provideRouter(routes, withEnabledBlockingInitialNavigation()),
     provideHttpClient(withInterceptors([authInterceptor])),
     {
       provide: APP_INITIALIZER,
@@ -43,6 +47,12 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: authMsalRedirectInitializer,
+      deps: [AuthService, MsalConfigService],
+      multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: authSessionInitializer,
       deps: [AuthService],
       multi: true,
     },

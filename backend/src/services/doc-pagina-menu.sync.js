@@ -17,6 +17,10 @@ function treinamentoMenuLabel(pagina) {
   return `Treinamentos — ${pagina.nome}`;
 }
 
+function exibirMenuTreinamento(pagina) {
+  return !!pagina.exibir_menu_treinamento;
+}
+
 async function ensureDocumentosMenuParent() {
   let parentId = await findDocumentosMenuParent();
   if (parentId) return parentId;
@@ -95,7 +99,8 @@ async function findMenuItemTreinamentoByPaginaId(paginaId) {
 
 function parsePaginaSlugFromMenuUrl(url) {
   if (!url || !url.startsWith(`${DOCUMENTOS_URL}/`)) return null;
-  const slug = url.slice(DOCUMENTOS_URL.length + 1);
+  if (isTreinamentoMenuUrl(url)) return null;
+  const slug = url.slice(DOCUMENTOS_URL.length + 1).split('?')[0];
   return slug || null;
 }
 
@@ -119,31 +124,17 @@ function isTreinamentoMenuUrl(url) {
   return /^\/documentos\/[a-z0-9-]+\?cat=treinamentos/.test(url);
 }
 
-async function upsertMenuItemForPagina(pagina, parentId) {
-  const existing =
-    (await findMenuItemByPaginaId(pagina.id)) || (await findMenuItemByPaginaSlug(pagina.slug));
+async function removeTreinamentoMenuItem(pagina) {
+  const treinItem =
+    (await findMenuItemTreinamentoByPaginaId(pagina.id)) ||
+    (await findMenuItemByTreinamentoSlug(pagina.slug));
 
-  const ordemBase = (pagina.ordem ?? 0) * 2;
-
-  const payload = {
-    label: pagina.nome,
-    url: paginaMenuUrl(pagina.slug),
-    parent_id: parentId,
-    abrir_nova_aba: false,
-    ativo: pagina.ativo !== false,
-    ordem: ordemBase,
-  };
-
-  if (existing) {
-    await menuRepo.update(existing.id, payload);
-  } else {
-    await menuRepo.create(payload);
+  if (treinItem) {
+    await menuRepo.remove(treinItem.id);
   }
-
-  await upsertTreinamentoMenuItemForPagina(pagina, parentId, ordemBase + 1);
 }
 
-async function upsertTreinamentoMenuItemForPagina(pagina, parentId, ordem) {
+async function upsertTreinamentoMenuItemForPagina(pagina, parentId) {
   const existing =
     (await findMenuItemTreinamentoByPaginaId(pagina.id)) ||
     (await findMenuItemByTreinamentoSlug(pagina.slug));
@@ -154,7 +145,6 @@ async function upsertTreinamentoMenuItemForPagina(pagina, parentId, ordem) {
     parent_id: parentId,
     abrir_nova_aba: false,
     ativo: pagina.ativo !== false,
-    ordem,
   };
 
   if (existing) {
@@ -165,9 +155,58 @@ async function upsertTreinamentoMenuItemForPagina(pagina, parentId, ordem) {
   await menuRepo.create(payload);
 }
 
+async function assignMenuOrdens(parentId) {
+  const paginas = await paginaRepo.findAll();
+  paginas.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0) || a.id - b.id);
+
+  let menuOrdem = 0;
+  for (const pagina of paginas) {
+    const menuItem =
+      (await findMenuItemByPaginaId(pagina.id)) || (await findMenuItemByPaginaSlug(pagina.slug));
+    if (menuItem) {
+      await menuRepo.update(menuItem.id, { ordem: menuOrdem++ });
+    }
+
+    if (exibirMenuTreinamento(pagina)) {
+      const treinItem =
+        (await findMenuItemTreinamentoByPaginaId(pagina.id)) ||
+        (await findMenuItemByTreinamentoSlug(pagina.slug));
+      if (treinItem) {
+        await menuRepo.update(treinItem.id, { ordem: menuOrdem++ });
+      }
+    }
+  }
+}
+
+async function upsertMenuItemForPagina(pagina, parentId) {
+  const existing =
+    (await findMenuItemByPaginaId(pagina.id)) || (await findMenuItemByPaginaSlug(pagina.slug));
+
+  const payload = {
+    label: pagina.nome,
+    url: paginaMenuUrl(pagina.slug),
+    parent_id: parentId,
+    abrir_nova_aba: false,
+    ativo: pagina.ativo !== false,
+  };
+
+  if (existing) {
+    await menuRepo.update(existing.id, payload);
+  } else {
+    await menuRepo.create(payload);
+  }
+
+  if (exibirMenuTreinamento(pagina)) {
+    await upsertTreinamentoMenuItemForPagina(pagina, parentId);
+  } else {
+    await removeTreinamentoMenuItem(pagina);
+  }
+}
+
 async function syncOnCreate(pagina) {
   const parentId = await ensureDocumentosMenuParent();
   await upsertMenuItemForPagina(pagina, parentId);
+  await assignMenuOrdens(parentId);
 }
 
 async function syncOnUpdate(before, after) {
@@ -175,43 +214,43 @@ async function syncOnUpdate(before, after) {
     (await findMenuItemByPaginaId(after.id)) ||
     (before.slug !== after.slug ? await findMenuItemByPaginaSlug(before.slug) : null);
 
-  const treinItem =
-    (await findMenuItemTreinamentoByPaginaId(after.id)) ||
-    (before.slug !== after.slug ? await findMenuItemByTreinamentoSlug(before.slug) : null);
-
   const parentId = await ensureDocumentosMenuParent();
-  const ordemBase = (after.ordem ?? 0) * 2;
 
   if (menuItem) {
-    const updatePayload = {
+    await menuRepo.update(menuItem.id, {
       label: after.nome,
       url: paginaMenuUrl(after.slug),
       parent_id: parentId,
       abrir_nova_aba: false,
       ativo: after.ativo !== false,
-      ordem: ordemBase,
-    };
-    if (before.ordem !== after.ordem) {
-      updatePayload.ordem = ordemBase;
-    }
-    await menuRepo.update(menuItem.id, updatePayload);
+    });
   } else {
     await upsertMenuItemForPagina(after, parentId);
+    await assignMenuOrdens(parentId);
     return;
   }
 
-  if (treinItem) {
-    await menuRepo.update(treinItem.id, {
-      label: treinamentoMenuLabel(after),
-      url: treinamentoMenuUrl(after.slug),
-      parent_id: parentId,
-      abrir_nova_aba: false,
-      ativo: after.ativo !== false,
-      ordem: ordemBase + 1,
-    });
+  if (exibirMenuTreinamento(after)) {
+    const treinItem =
+      (await findMenuItemTreinamentoByPaginaId(after.id)) ||
+      (before.slug !== after.slug ? await findMenuItemByTreinamentoSlug(before.slug) : null);
+
+    if (treinItem) {
+      await menuRepo.update(treinItem.id, {
+        label: treinamentoMenuLabel(after),
+        url: treinamentoMenuUrl(after.slug),
+        parent_id: parentId,
+        abrir_nova_aba: false,
+        ativo: after.ativo !== false,
+      });
+    } else {
+      await upsertTreinamentoMenuItemForPagina(after, parentId);
+    }
   } else {
-    await upsertTreinamentoMenuItemForPagina(after, parentId, ordemBase + 1);
+    await removeTreinamentoMenuItem(after);
   }
+
+  await assignMenuOrdens(parentId);
 }
 
 async function syncOnDelete(pagina) {
@@ -222,13 +261,7 @@ async function syncOnDelete(pagina) {
     await menuRepo.remove(menuItem.id);
   }
 
-  const treinItem =
-    (await findMenuItemTreinamentoByPaginaId(pagina.id)) ||
-    (await findMenuItemByTreinamentoSlug(pagina.slug));
-
-  if (treinItem) {
-    await menuRepo.remove(treinItem.id);
-  }
+  await removeTreinamentoMenuItem(pagina);
 }
 
 async function reconcileAll() {
@@ -239,8 +272,12 @@ async function reconcileAll() {
     await upsertMenuItemForPagina(pagina, parentId);
   }
 
+  await assignMenuOrdens(parentId);
+
   const validDocUrls = new Set(paginas.map((p) => paginaMenuUrl(p.slug)));
-  const validTreinUrls = new Set(paginas.map((p) => treinamentoMenuUrl(p.slug)));
+  const validTreinUrls = new Set(
+    paginas.filter((p) => exibirMenuTreinamento(p)).map((p) => treinamentoMenuUrl(p.slug))
+  );
 
   const pool = getPool();
   const [children] = await pool.execute(
@@ -266,22 +303,32 @@ async function reconcileAll() {
 }
 
 async function syncMenuOrdemToPaginas(menuReorderItems) {
+  const docItems = [];
+
   for (const item of menuReorderItems) {
     const menuItem = await menuRepo.findById(Number(item.id));
     if (!menuItem) continue;
 
     const docSlug = parsePaginaSlugFromMenuUrl(menuItem.url);
-    const treinSlug = parseTreinamentoSlugFromMenuUrl(menuItem.url);
-    const slug = docSlug || treinSlug;
-    if (!slug) continue;
+    if (!docSlug) continue;
 
-    const pagina = await paginaRepo.findBySlug(slug);
+    docItems.push({
+      slug: docSlug,
+      ordem: Number(item.ordem),
+    });
+  }
+
+  docItems.sort((a, b) => a.ordem - b.ordem);
+
+  for (let index = 0; index < docItems.length; index++) {
+    const pagina = await paginaRepo.findBySlug(docItems[index].slug);
     if (!pagina) continue;
+    await paginaRepo.update(pagina.id, { ordem: index });
+  }
 
-    const ordemMenu = Number(item.ordem);
-    if (docSlug) {
-      await paginaRepo.update(pagina.id, { ordem: Math.floor(ordemMenu / 2) });
-    }
+  const parentId = await findDocumentosMenuParent();
+  if (parentId) {
+    await assignMenuOrdens(parentId);
   }
 }
 
@@ -292,19 +339,10 @@ async function syncPaginasOrdemToMenu(paginaReorderItems) {
   for (const item of paginaReorderItems) {
     const pagina = await paginaRepo.findById(Number(item.id));
     if (!pagina) continue;
-
-    const ordemBase = (pagina.ordem ?? 0) * 2;
-
-    const menuItem = await findMenuItemByPaginaId(pagina.id);
-    if (menuItem) {
-      await menuRepo.update(menuItem.id, { ordem: ordemBase });
-    }
-
-    const treinItem = await findMenuItemTreinamentoByPaginaId(pagina.id);
-    if (treinItem) {
-      await menuRepo.update(treinItem.id, { ordem: ordemBase + 1 });
-    }
+    await paginaRepo.update(pagina.id, { ordem: Number(item.ordem) });
   }
+
+  await assignMenuOrdens(parentId);
 }
 
 module.exports = {

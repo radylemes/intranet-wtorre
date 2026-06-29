@@ -22,6 +22,7 @@ function parseBody(body) {
     logo_url: body.logo_url?.trim() || null,
     ordem: body.ordem != null ? Number(body.ordem) : 0,
     ativo: body.ativo !== false,
+    exibir_menu_treinamento: body.exibir_menu_treinamento === true,
   };
 }
 

@@ -189,6 +189,15 @@ export class RodapeAdminComponent implements OnInit, OnDestroy {
     this.linksArray(colIndex).removeAt(linkIndex);
   }
 
+  moverLink(colIndex: number, linkIndex: number, dir: -1 | 1): void {
+    const arr = this.linksArray(colIndex);
+    const target = linkIndex + dir;
+    if (target < 0 || target >= arr.length) return;
+    const ctrl = arr.at(linkIndex);
+    arr.removeAt(linkIndex);
+    arr.insert(target, ctrl);
+  }
+
   salvar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

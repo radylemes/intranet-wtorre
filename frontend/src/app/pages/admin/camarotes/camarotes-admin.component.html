@@ -1,200 +1,757 @@
-<div class="admin-page">
-  <header class="page-head">
-    <h1>Configuração de Camarotes</h1>
-    <p>
-      Sincronização, alertas e gestão de quem pode visualizar o dashboard em BI / Camarotes.
-      Última sync: <strong>{{ ultimaSyncLabel() }}</strong>.
-    </p>
+<div class="admin-page camarotes-admin-page">
+  <header class="page-head camarotes-head">
+    <div>
+      <h1>Configuração de Camarotes</h1>
+      <p class="page-subtitle">Alertas de vencimento, templates de e-mail e sincronização automática</p>
+    </div>
+    <div class="hd-actions">
+      <span class="sync-info"><span class="dot-ok"></span>Última sync: {{ ultimaSyncLabel() }}</span>
+      <button type="button" class="btn-ghost btn-sm" [disabled]="sincronizando()" (click)="sincronizar()">
+        {{ sincronizando() ? 'Sincronizando…' : '⟳ Sincronizar agora' }}
+      </button>
+      <button type="button" class="btn-camarotes btn-sm" [disabled]="enviando()" (click)="enviarAlertas()">
+        {{ enviando() ? 'Enviando…' : 'Enviar alertas' }}
+      </button>
+    </div>
   </header>
 
-  <section class="card">
-    <div class="card-head">
-      <h2>Usuários com visualização</h2>
-    </div>
-    <div class="card-body">
-      <div class="field busca-field">
-        <label for="busca-viz">Adicionar colaborador</label>
-        <input
-          id="busca-viz"
-          type="search"
-          placeholder="Buscar por nome ou e-mail…"
-          [ngModel]="buscaTexto()"
-          (ngModelChange)="onBuscaInput($event)"
-          [disabled]="adicionandoVisualizador()"
-        />
-        @if (resultadosBusca().length) {
-          <ul class="busca-resultados">
-            @for (c of resultadosBusca(); track c.id) {
-              <li>
-                <button
-                  type="button"
-                  class="busca-item"
-                  [disabled]="adicionandoVisualizador()"
-                  (click)="adicionarVisualizador(c)"
-                >
-                  <strong>{{ c.nome }}</strong>
-                  <span>{{ c.email || '—' }}</span>
-                  @if (c.departamento) {
-                    <small>{{ c.departamento }}</small>
-                  }
-                </button>
-              </li>
-            }
-          </ul>
-        }
-      </div>
-
-      @if (!visualizadores().length) {
-        <p class="empty">Nenhum visualizador cadastrado. Admins e usuários com módulo Camarotes já têm acesso automático.</p>
-      } @else {
-        <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Departamento</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (v of visualizadores(); track v.usuario_id) {
-              <tr>
-                <td>{{ v.nome_completo }}</td>
-                <td>{{ v.email }}</td>
-                <td>{{ v.departamento || '—' }}</td>
-                <td class="acoes">
-                  <button type="button" class="btn-icon danger" title="Remover" (click)="removerVisualizador(v)">
-                    Remover
-                  </button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        </div>
-      }
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="card-head">
-      <h2>Configuração e ações</h2>
-      <div class="actions">
-        <button type="button" class="btn-ghost btn-sm" [disabled]="sincronizando()" (click)="sincronizar()">
-          {{ sincronizando() ? 'Sincronizando…' : 'Sincronizar agora' }}
-        </button>
-        <button type="button" class="btn-ghost btn-sm" [disabled]="enviando()" (click)="previewResumo()">
-          Pré-visualizar
-        </button>
-        <button type="button" class="btn-primary btn-sm" [disabled]="enviando()" (click)="enviarResumo()">
-          Enviar resumo
-        </button>
-      </div>
-    </div>
-    <div class="card-body config-grid">
-      <div class="field field-span">
-        <h3 class="sub-title">Sincronização automática</h3>
-        <p class="hint">Próxima execução conforme intervalo desde a última sync bem-sucedida.</p>
-      </div>
-      <div class="field toggle-row">
-        <label>
-          <input type="checkbox" [ngModel]="syncAutomatica()" (ngModelChange)="syncAutomatica.set($event)" />
-          Sync automática ativa
-        </label>
-      </div>
-      <div class="field">
-        <label for="sync-frequencia">Frequência da sync</label>
-        <select
-          id="sync-frequencia"
-          [ngModel]="syncFrequencia()"
-          (ngModelChange)="syncFrequencia.set($event)"
-          [disabled]="!syncAutomatica()"
+  @if (carregando()) {
+    <p class="empty">Carregando...</p>
+  } @else {
+    <section class="card camarotes-unified-card">
+      <nav class="admin-tabs" aria-label="Configuração de Camarotes">
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'alertas'"
+          (click)="selecionarAba('alertas')"
         >
-          <option value="1h">A cada 1 hora</option>
-          <option value="6h">A cada 6 horas</option>
-          <option value="12h">A cada 12 horas</option>
-          <option value="24h">A cada 24 horas</option>
-          <option value="semanal">Semanal</option>
-        </select>
-      </div>
-      <div class="field field-span">
-        <h3 class="sub-title">Alertas por e-mail</h3>
-      </div>
-      <div class="field">
-        <label for="emails">E-mails de alerta (um por linha, domínios internos)</label>
-        <textarea id="emails" rows="4" [ngModel]="emailsTexto()" (ngModelChange)="emailsTexto.set($event)"></textarea>
-      </div>
-      <div class="field">
-        <label for="dias">Dias "vence em breve"</label>
-        <input id="dias" type="number" min="1" max="365" [ngModel]="diasVenceBreve()" (ngModelChange)="diasVenceBreve.set(+$event)" />
-      </div>
-      <div class="field">
-        <label for="cadencia">Cadência</label>
-        <select id="cadencia" [ngModel]="cadencia()" (ngModelChange)="cadencia.set($event)">
-          <option value="diaria">Diária</option>
-          <option value="semanal">Semanal</option>
-        </select>
-      </div>
-      <div class="field toggle-row">
-        <label>
-          <input type="checkbox" [ngModel]="envioAtivo()" (ngModelChange)="envioAtivo.set($event)" />
-          Envio automático ativo
-        </label>
-      </div>
-      <div class="field">
-        <button type="button" class="btn-primary" [disabled]="salvandoConfig()" (click)="salvarConfig()">
-          {{ salvandoConfig() ? 'Salvando…' : 'Salvar configuração' }}
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 6h16v12H4V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+              <path d="M4 8l8 5 8-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Alertas por e-mail</span>
         </button>
-      </div>
-      @if (config()?.ultima_sync) {
-        <p class="hint">Última sync: {{ config()!.ultima_sync | date:'dd/MM/yyyy HH:mm' }}</p>
-      }
-      @if (config()?.ultimo_envio) {
-        <p class="hint">Último envio: {{ config()!.ultimo_envio | date:'dd/MM/yyyy HH:mm' }}</p>
-      }
-    </div>
-  </section>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'contratos'"
+          (click)="selecionarAba('contratos')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Contratos em alerta</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'usuarios'"
+          (click)="selecionarAba('usuarios')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Usuários</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'sync'"
+          (click)="selecionarAba('sync')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Sincronização</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'disparos'"
+          (click)="selecionarAba('disparos')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Disparos de e-mail</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'historico'"
+          (click)="selecionarAba('historico')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+              <path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Histórico</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'sharepoint'"
+          (click)="selecionarAba('sharepoint')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="tab-label">SharePoint</span>
+        </button>
+      </nav>
 
-  <section class="card">
-    <div class="card-head"><h2>Histórico de sincronizações</h2></div>
-    <div class="card-body">
-      @if (!syncLogs().length) {
-        <p class="empty">Nenhuma sincronização registrada.</p>
-      } @else {
-        <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Tipo</th>
-              <th>Status</th>
-              <th>Lidas</th>
-              <th>Gravadas</th>
-              <th>Duração</th>
-              <th>Erro</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (log of syncLogs(); track log.id) {
-              <tr>
-                <td>{{ log.executado_em | date:'dd/MM/yyyy HH:mm' }}</td>
-                <td>{{ log.tipo_unidade }}</td>
-                <td>
-                  <span class="status-badge" [class.on]="log.status === 'ok'" [class.off]="log.status === 'erro'">
-                    {{ log.status }}
-                  </span>
-                </td>
-                <td>{{ log.linhas_lidas }}</td>
-                <td>{{ log.linhas_gravadas }}</td>
-                <td>{{ log.duracao_ms }} ms</td>
-                <td class="erro-cell">{{ log.erro || '—' }}</td>
-              </tr>
+      @if (abaAtiva() === 'alertas') {
+        <div class="camarotes-tab-panel">
+          <div class="config-bar">
+            <div class="config-bar-emails">
+              <label class="fl">E-mails de destino (um por linha)</label>
+              <div class="email-busca-wrap">
+                <input
+                  type="search"
+                  class="email-busca-input"
+                  placeholder="Buscar colaborador no AD para adicionar…"
+                  [ngModel]="buscaEmailTexto()"
+                  (ngModelChange)="onBuscaEmailInput($event)"
+                />
+                @if (resultadosBuscaEmail().length) {
+                  <ul class="busca-resultados">
+                    @for (c of resultadosBuscaEmail(); track c.id) {
+                      <li>
+                        <button type="button" class="busca-item" (click)="adicionarEmailDestino(c)">
+                          <strong>{{ c.nome }}</strong>
+                          <span>{{ c.email || '—' }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+              <textarea
+                rows="3"
+                [ngModel]="emailsTexto()"
+                (ngModelChange)="emailsTexto.set($event)"
+                placeholder="usuario@nubankparque.com"
+              ></textarea>
+            </div>
+            <div class="config-bar-cadencia">
+              <label class="fl">Cadência global</label>
+              <select [ngModel]="cadencia()" (ngModelChange)="cadencia.set($event)">
+                <option value="diaria">Diária</option>
+                <option value="semanal">Semanal</option>
+              </select>
+            </div>
+            <div class="config-bar-horario">
+              <label class="fl">Horário</label>
+              <input type="text" [ngModel]="horarioEnvio()" (ngModelChange)="horarioEnvio.set($event)" placeholder="08:00" />
+            </div>
+            <button type="button" class="btn-primary" [disabled]="salvandoConfig()" (click)="salvarConfig()">
+              {{ salvandoConfig() ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
+
+          <div class="section-label">Gatilhos de vencimento</div>
+
+          <div class="triggers-grid">
+            @for (meta of gatilhoUi; track meta.dias) {
+              @let g = gatilhoPorDias(meta.dias);
+              <div class="tcard" [class]="meta.cardClass" [class.tcard-off]="!g.ativo">
+                <div class="tcard-head" [class]="meta.headClass">
+                  <span class="tcard-title">{{ meta.titulo }}</span>
+                  <span class="tbadge" [class]="meta.badgeClass">{{ meta.badge }}</span>
+                </div>
+                <div class="tcard-body">
+                  <div>
+                    <label class="fl">Antecedência (dias)</label>
+                    <input type="number" [value]="g.dias" readonly />
+                  </div>
+                  <div>
+                    <label class="fl">Template de e-mail</label>
+                    <select
+                      [ngModel]="g.template_codigo"
+                      (ngModelChange)="atualizarGatilho(meta.dias, { template_codigo: $event })"
+                    >
+                      @for (opt of templateOpcoes; track opt.value) {
+                        <option [value]="opt.value">{{ opt.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label class="fl">Assunto</label>
+                    <input
+                      type="text"
+                      [ngModel]="g.assunto"
+                      (ngModelChange)="atualizarGatilho(meta.dias, { assunto: $event })"
+                    />
+                  </div>
+                </div>
+                <div class="tcard-foot">
+                  <label class="tog-wrap">
+                    <span class="tog">
+                      <input
+                        type="checkbox"
+                        [checked]="g.ativo"
+                        (change)="atualizarGatilho(meta.dias, { ativo: $any($event.target).checked })"
+                      />
+                      <span class="tog-sl"></span>
+                    </span>
+                    <span class="tog-txt">{{ g.ativo ? 'Disparo ativo' : 'Inativo' }}</span>
+                  </label>
+                  <button
+                    type="button"
+                    class="preview-btn"
+                    [disabled]="carregandoPreview()"
+                    (click)="previewGatilho(meta.dias)"
+                  >
+                    Pré-visualizar
+                  </button>
+                </div>
+              </div>
             }
-          </tbody>
-        </table>
+          </div>
+
+          <div class="toggle-field global-envio">
+            <div>
+              <div class="tt">Envio de e-mail ativo</div>
+              <div class="ts">Habilita o disparo automático nos horários configurados</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [ngModel]="envioAtivo()" (ngModelChange)="envioAtivo.set($event)" />
+              <span class="slider"></span>
+            </label>
+          </div>
         </div>
       }
+
+      @if (abaAtiva() === 'contratos') {
+        <div class="camarotes-tab-panel">
+          <div class="disparos-header">
+            <div>
+              <div class="section-label">Contratos em alerta</div>
+              <p class="disparos-hint">
+                Contratos nos marcos de envio: 90 e 30 dias até o vencimento, ou vencidos / vence hoje (gatilho 0).
+              </p>
+              @if (contratosPendentes() > 0) {
+                <span class="sbadge sbadge-pend contratos-pend-badge">
+                  {{ contratosPendentes() }} pendente(s) de notificação
+                </span>
+              }
+            </div>
+            <div class="disparos-toolbar">
+              <div class="disparos-filtro">
+                <label class="fl" for="filtro-gatilho-contratos">Gatilho</label>
+                <select
+                  id="filtro-gatilho-contratos"
+                  [ngModel]="filtroGatilhoContratos()"
+                  (ngModelChange)="filtroGatilhoContratos.set($event); onFiltroContratosChange()"
+                >
+                  <option [ngValue]="'todos'">Todos</option>
+                  <option [ngValue]="90">90 dias</option>
+                  <option [ngValue]="30">30 dias</option>
+                  <option [ngValue]="0">Hoje / vencidos</option>
+                </select>
+              </div>
+              <div class="disparos-filtro">
+                <label class="fl" for="filtro-notif-contratos">Notificação</label>
+                <select
+                  id="filtro-notif-contratos"
+                  [ngModel]="filtroNotificadoContratos()"
+                  (ngModelChange)="filtroNotificadoContratos.set($event); onFiltroContratosChange()"
+                >
+                  <option [ngValue]="'todos'">Todos</option>
+                  <option [ngValue]="'sim'">Notificado</option>
+                  <option [ngValue]="'nao'">Pendente</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                class="btn-ghost btn-sm"
+                [disabled]="carregandoContratosAlerta()"
+                (click)="carregarContratosAlerta()"
+              >
+                {{ carregandoContratosAlerta() ? 'Atualizando…' : 'Atualizar' }}
+              </button>
+            </div>
+          </div>
+
+          @if (carregandoContratosAlerta() && !contratosAlerta().length) {
+            <p class="empty">Carregando contratos…</p>
+          } @else if (!contratosAlerta().length) {
+            <p class="empty">Nenhum contrato nos marcos de alerta hoje.</p>
+          } @else {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Gatilho</th>
+                    <th>Camarote</th>
+                    <th>Cessionário</th>
+                    <th>Setor / Andar</th>
+                    <th>Vencimento</th>
+                    <th>Notificação</th>
+                    <th class="td-r"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of contratosAlerta(); track c.unidade_id + '-' + c.gatilho_dias) {
+                    <tr>
+                      <td>
+                        @let meta = metaGatilho(c.gatilho_dias);
+                        <span class="tbadge" [class]="meta?.badgeClass || ''">
+                          {{ meta?.titulo || c.gatilho_dias + ' dias' }}
+                        </span>
+                        @if (!c.gatilho_ativo) {
+                          <span class="gatilho-inativo-tag">Inativo</span>
+                        }
+                      </td>
+                      <td class="td-name">Nº {{ c.numero }}</td>
+                      <td>{{ c.cessionario }}</td>
+                      <td>{{ c.setor || '—' }} · {{ c.andar || '—' }}</td>
+                      <td>{{ c.final_locacao | date: 'dd/MM/yyyy' }}</td>
+                      <td>
+                        @if (c.notificado) {
+                          <span class="sbadge sbadge-ok">Enviado</span>
+                          <span class="notif-data">{{ c.notificado_em | date: 'dd/MM/yyyy HH:mm' }}</span>
+                        } @else {
+                          <span class="sbadge sbadge-pend">Pendente</span>
+                        }
+                      </td>
+                      <td class="td-r">
+                        <button
+                          type="button"
+                          [class]="c.notificado ? 'btn-ghost btn-sm btn-disparo-row' : 'btn-camarotes btn-sm btn-disparo-row'"
+                          [disabled]="disparandoContratoKey() === contratoDisparoKey(c)"
+                          (click)="dispararContrato(c)"
+                        >
+                          {{
+                            disparandoContratoKey() === contratoDisparoKey(c)
+                              ? 'Enviando…'
+                              : c.notificado ? 'Reenviar' : 'Disparar'
+                          }}
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+      @if (abaAtiva() === 'usuarios') {
+        <div class="camarotes-tab-panel">
+          <div class="config-bar">
+            <div class="field busca-field">
+              <label class="fl" for="busca-viz">Buscar colaborador</label>
+              <input
+                id="busca-viz"
+                type="search"
+                placeholder="Nome ou e-mail"
+                [ngModel]="buscaTexto()"
+                (ngModelChange)="onBuscaInput($event)"
+                [disabled]="adicionandoVisualizador()"
+              />
+              @if (resultadosBusca().length) {
+                <ul class="busca-resultados">
+                  @for (c of resultadosBusca(); track c.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="busca-item"
+                        [disabled]="adicionandoVisualizador()"
+                        (click)="adicionarVisualizador(c)"
+                      >
+                        <strong>{{ c.nome }}</strong>
+                        <span>{{ c.email || '—' }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          </div>
+
+          @if (!visualizadores().length) {
+            <p class="empty">Nenhum visualizador cadastrado.</p>
+          } @else {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Departamento</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (v of visualizadores(); track v.usuario_id) {
+                    <tr>
+                      <td class="td-name">{{ v.nome_completo }}</td>
+                      <td>{{ v.email }}</td>
+                      <td>{{ v.departamento || '—' }}</td>
+                      <td class="td-r">
+                        <button type="button" class="link-danger" (click)="removerVisualizador(v)">
+                          Remover
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+      @if (abaAtiva() === 'sync') {
+        <div class="camarotes-tab-panel">
+          <div class="section-label">Sync automática</div>
+          <div class="config-bar config-bar-sync">
+            <label class="tog-wrap">
+              <span class="tog">
+                <input
+                  type="checkbox"
+                  [ngModel]="syncAutomatica()"
+                  (ngModelChange)="syncAutomatica.set($event)"
+                />
+                <span class="tog-sl"></span>
+              </span>
+              <span class="tog-txt">Sync automática ativa</span>
+            </label>
+            <div class="config-bar-freq">
+              <label class="fl">Frequência</label>
+              <select
+                [ngModel]="syncFrequencia()"
+                (ngModelChange)="syncFrequencia.set($event)"
+                [disabled]="!syncAutomatica()"
+              >
+                <option value="1h">A cada 1 hora</option>
+                <option value="6h">A cada 6 horas</option>
+                <option value="12h">A cada 12 horas</option>
+                <option value="24h">A cada 24 horas</option>
+                <option value="semanal">Semanal</option>
+              </select>
+            </div>
+            <button type="button" class="btn-ghost" [disabled]="sincronizando()" (click)="sincronizar()">
+              {{ sincronizando() ? 'Sincronizando…' : '⟳ Sincronizar agora' }}
+            </button>
+          </div>
+
+          <div class="section-label">Envio automático</div>
+          <div class="config-bar config-bar-sync">
+            <label class="tog-wrap">
+              <span class="tog">
+                <input
+                  type="checkbox"
+                  [ngModel]="envioAposSync()"
+                  (ngModelChange)="envioAposSync.set($event)"
+                />
+                <span class="tog-sl"></span>
+              </span>
+              <span class="tog-txt">Disparar e-mails automaticamente ao sincronizar</span>
+            </label>
+            <button type="button" class="btn-primary" [disabled]="salvandoConfig()" (click)="salvarConfig()">
+              {{ salvandoConfig() ? 'Salvando…' : 'Salvar configuração' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (abaAtiva() === 'disparos') {
+        <div class="camarotes-tab-panel">
+          <div class="disparos-header">
+            <div>
+              <div class="section-label">Disparos de e-mail</div>
+              <p class="disparos-hint">
+                Cada combinação de camarote, gatilho e vencimento é registrada uma única vez. E-mails de teste não aparecem aqui.
+                Com Azure ACS e webhook configurado, o status de entrega ou bounce é atualizado automaticamente; falhas de envio também ficam no histórico.
+              </p>
+            </div>
+            <div class="disparos-toolbar">
+              <div class="disparos-filtro">
+                <label class="fl" for="filtro-gatilho">Gatilho</label>
+                <select
+                  id="filtro-gatilho"
+                  [ngModel]="filtroGatilhoDisparos()"
+                  (ngModelChange)="filtroGatilhoDisparos.set($event)"
+                >
+                  <option [ngValue]="'todos'">Todos</option>
+                  <option [ngValue]="90">90 dias</option>
+                  <option [ngValue]="30">30 dias</option>
+                  <option [ngValue]="0">Hoje / vencidos</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                class="btn-ghost btn-sm"
+                [disabled]="carregandoDisparos()"
+                (click)="carregarDisparos()"
+              >
+                {{ carregandoDisparos() ? 'Atualizando…' : 'Atualizar' }}
+              </button>
+            </div>
+          </div>
+
+          @if (carregandoDisparos() && !alertasLogs().length) {
+            <p class="empty">Carregando disparos…</p>
+          } @else if (!alertasLogsFiltrados().length) {
+            <p class="empty">Nenhum disparo registrado ainda.</p>
+          } @else {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Gatilho</th>
+                    <th>Camarote</th>
+                    <th>Cessionário</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Destinatários</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (log of alertasLogsFiltrados(); track log.id) {
+                    <tr>
+                      <td>{{ log.enviado_em | date: 'dd/MM/yyyy HH:mm' }}</td>
+                      <td>
+                        @let meta = metaGatilho(log.gatilho_dias);
+                        <span class="tbadge" [class]="meta?.badgeClass || ''">
+                          {{ meta?.titulo || log.gatilho_dias + ' dias' }}
+                        </span>
+                      </td>
+                      <td class="td-name">Nº {{ log.numero }}</td>
+                      <td>{{ log.cessionario }}</td>
+                      <td>{{ log.final_locacao | date: 'dd/MM/yyyy' }}</td>
+                      <td>
+                        @let statusMeta = metaStatusEntrega(log.status_entrega);
+                        @let detalhe = detalheStatusEntrega(log);
+                        <div class="status-cell">
+                          <span
+                            class="tbadge"
+                            [class]="statusMeta.badgeClass"
+                            [title]="detalhe"
+                          >
+                            {{ statusMeta.label }}
+                          </span>
+                          @if (detalhe) {
+                            <button
+                              type="button"
+                              class="btn-copy"
+                              [title]="'Copiar detalhes de erro'"
+                              (click)="copiarErro(detalhe)"
+                            >
+                              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                              </svg>
+                            </button>
+                          }
+                        </div>
+                      </td>
+                      <td class="td-destinatarios">
+                        @if (!log.destinatarios.length) {
+                          <span class="destino-muted">—</span>
+                        } @else {
+                          <ul class="destinos-lista">
+                            @for (d of log.destinatarios; track d.message_id || d.destinatario) {
+                              <li class="destino-linha">
+                                <span class="destino-email">{{ d.destinatario }}</span>
+                                <span
+                                  class="tbadge tbadge-sm"
+                                  [class]="metaStatusEntrega(d.status).badgeClass"
+                                  [title]="d.erro || undefined"
+                                >
+                                  {{ labelStatusDestinatario(d.status) }}
+                                </span>
+                                @if (d.erro) {
+                                  <button
+                                    type="button"
+                                    class="btn-copy btn-copy-sm"
+                                    title="Copiar erro"
+                                    (click)="copiarErro(d.erro)"
+                                  >
+                                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                      <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                                      <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                  </button>
+                                }
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+      @if (abaAtiva() === 'historico') {
+        <div class="camarotes-tab-panel">
+          <div class="section-label">Sincronizações</div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th class="right">Lidas</th>
+                  <th class="right">Gravadas</th>
+                  <th class="right">Duração</th>
+                  <th>Erro</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (log of syncLogs(); track log.id) {
+                  <tr>
+                    <td>{{ log.executado_em | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ log.tipo_unidade }}</td>
+                    <td>
+                      <span class="sbadge" [class.sbadge-ok]="log.status === 'ok'" [class.sbadge-err]="log.status === 'erro'">
+                        {{ log.status === 'ok' ? 'OK' : 'Erro' }}
+                      </span>
+                    </td>
+                    <td class="td-r">{{ log.linhas_lidas }}</td>
+                    <td class="td-r">{{ log.linhas_gravadas }}</td>
+                    <td class="td-r">{{ log.duracao_ms }} ms</td>
+                    <td>{{ log.erro || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      @if (abaAtiva() === 'sharepoint') {
+        <div class="camarotes-tab-panel">
+          <div class="section-label">Arquivo de origem</div>
+          <p class="disparos-hint">
+            URL de compartilhamento do arquivo Excel no SharePoint (sem <code>?rtime=…</code>).
+            Cole o link gerado pelo botão "Copiar link" do SharePoint.
+            Se não configurado aqui, o sistema usa a variável de ambiente <code>CAMAROTES_FILE_SHARE_URL</code>.
+          </p>
+
+          <div class="sp-form">
+            <div class="field">
+              <label class="fl" for="sp-url">URL do arquivo SharePoint</label>
+              <input
+                id="sp-url"
+                type="url"
+                placeholder="https://grupowtorre.sharepoint.com/:x:/s/…"
+                [ngModel]="sharepointUrl()"
+                (ngModelChange)="sharepointUrl.set($event)"
+              />
+            </div>
+            <div class="field sp-field-sheet">
+              <label class="fl" for="sp-sheet">Nome da aba (sheet)</label>
+              <input
+                id="sp-sheet"
+                type="text"
+                placeholder="Camarotes"
+                [ngModel]="sharepointSheet()"
+                (ngModelChange)="sharepointSheet.set($event)"
+              />
+            </div>
+          </div>
+
+          @if (config()?.sharepoint_url) {
+            <div class="sp-status">
+              <span class="sbadge sbadge-ok">Configurado</span>
+              <span class="sp-url-preview">{{ config()!.sharepoint_url }}</span>
+            </div>
+          } @else {
+            <div class="sp-status">
+              <span class="sbadge sbadge-pend">Usando variável de ambiente</span>
+            </div>
+          }
+
+          <div class="sp-actions">
+            <button
+              type="button"
+              class="btn-primary"
+              [disabled]="salvandoSharepoint()"
+              (click)="salvarSharepoint()"
+            >
+              {{ salvandoSharepoint() ? 'Salvando…' : 'Salvar' }}
+            </button>
+            <button
+              type="button"
+              class="btn-ghost btn-sm"
+              [disabled]="sincronizando()"
+              (click)="sincronizar()"
+            >
+              {{ sincronizando() ? 'Sincronizando…' : '⟳ Testar sincronização' }}
+            </button>
+          </div>
+        </div>
+      }
+    </section>
+  }
+
+  @if (previewAberto()) {
+    <div class="preview-backdrop" (click)="fecharPreview()">
+      <div class="preview-modal" (click)="$event.stopPropagation()">
+        <div class="preview-modal-hd">
+          <h3>{{ previewTitulo() }}</h3>
+          <button type="button" class="preview-close" (click)="fecharPreview()">×</button>
+        </div>
+        <div class="preview-modal-body">
+          @if (previewHtml()) {
+            <div class="preview-email" [innerHTML]="previewHtml()"></div>
+          }
+        </div>
+        <div class="preview-modal-ft">
+          <div class="preview-test-field">
+            <label class="fl" for="preview-destinatario">Destinatário do teste</label>
+            <input
+              id="preview-destinatario"
+              type="email"
+              placeholder="seu@email.com"
+              [ngModel]="previewDestinatario()"
+              (ngModelChange)="previewDestinatario.set($event)"
+            />
+          </div>
+          <div class="preview-ft-actions">
+            <button type="button" class="btn-ghost" (click)="fecharPreview()">Fechar</button>
+            <button
+              type="button"
+              class="btn-camarotes"
+              [disabled]="enviandoTestePreview()"
+              (click)="enviarTestePreview()"
+            >
+              {{ enviandoTestePreview() ? 'Enviando…' : 'Enviar e-mail de teste' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-  </section>
+  }
 </div>

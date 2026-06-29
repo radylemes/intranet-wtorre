@@ -1,68 +1,95 @@
-<div class="icone-picker">
-  <div class="icone-picker__search">
-    <input
-      type="search"
-      placeholder="Buscar ícone..."
-      [ngModel]="busca()"
-      (ngModelChange)="aplicarBusca($event)"
-      autocomplete="off"
-    />
-  </div>
-
-  <div class="icone-picker__chips" role="group" aria-label="Sugestões de busca">
-    @for (chip of chips(); track chip.label) {
-      @if (chipVisivel(chip)) {
-        <button type="button" class="chip" (click)="aplicarChip(chip)">{{ chip.label }}</button>
+@if (collapsible() && !expandido()) {
+  <div class="icone-picker__compact">
+    <span class="icone-picker__preview" aria-hidden="true">
+      @if (temValor()) {
+        <app-doc-cat-icone [nome]="value()" [size]="28" />
+      } @else {
+        <svg viewBox="0 0 24 24" fill="none" class="icone-picker__placeholder">
+          <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.8" />
+          <path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
       }
+    </span>
+    <button type="button" class="icone-picker__toggle" (click)="abrirPicker()">
+      {{ temValor() ? 'Trocar ícone' : 'Escolher ícone' }}
+    </button>
+  </div>
+} @else {
+  <div class="icone-picker">
+    @if (collapsible()) {
+      <div class="icone-picker__expanded-head">
+        <button type="button" class="icone-picker__collapse" (click)="fecharPicker()">
+          Fechar seletor
+        </button>
+      </div>
+    }
+
+    <div class="icone-picker__search">
+      <input
+        type="search"
+        placeholder="Buscar ícone..."
+        [ngModel]="busca()"
+        (ngModelChange)="aplicarBusca($event)"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="icone-picker__chips" role="group" aria-label="Sugestões de busca">
+      @for (chip of chips(); track chip.label) {
+        @if (chipVisivel(chip)) {
+          <button type="button" class="chip" (click)="aplicarChip(chip)">{{ chip.label }}</button>
+        }
+      }
+    </div>
+
+    <div class="icone-picker__segments" role="tablist" aria-label="Tipo de ícone">
+      <button
+        type="button"
+        role="tab"
+        class="seg"
+        [class.active]="segmento() === 'lucide'"
+        [attr.aria-selected]="segmento() === 'lucide'"
+        (click)="setSegmento('lucide')"
+      >
+        Ícones
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="seg"
+        [class.active]="segmento() === 'brand'"
+        [attr.aria-selected]="segmento() === 'brand'"
+        (click)="setSegmento('brand')"
+      >
+        Marcas
+      </button>
+    </div>
+
+    <p class="icone-picker__hint">{{ contador() }}</p>
+
+    @if (carregando()) {
+      <p class="icone-picker__loading">Carregando catálogo…</p>
+    } @else if (!resultados().length) {
+      <p class="icone-picker__empty">Nenhum ícone encontrado.</p>
+    } @else {
+      <cdk-virtual-scroll-viewport class="icone-picker__grid" [itemSize]="itemSize">
+        <div
+          class="icone-picker__row"
+          *cdkVirtualFor="let row of linhas(); trackBy: trackRow"
+        >
+          @for (item of row; track item.namespaced) {
+            <button
+              type="button"
+              class="icone-picker__cell"
+              [class.sel]="selecionado(item.namespaced)"
+              [title]="item.label"
+              (click)="selecionar(item.namespaced)"
+            >
+              <app-doc-cat-icone [nome]="item.namespaced" [size]="20" />
+            </button>
+          }
+        </div>
+      </cdk-virtual-scroll-viewport>
     }
   </div>
-
-  <div class="icone-picker__segments" role="tablist" aria-label="Tipo de ícone">
-    <button
-      type="button"
-      role="tab"
-      class="seg"
-      [class.active]="segmento() === 'lucide'"
-      [attr.aria-selected]="segmento() === 'lucide'"
-      (click)="setSegmento('lucide')"
-    >
-      Ícones
-    </button>
-    <button
-      type="button"
-      role="tab"
-      class="seg"
-      [class.active]="segmento() === 'brand'"
-      [attr.aria-selected]="segmento() === 'brand'"
-      (click)="setSegmento('brand')"
-    >
-      Marcas
-    </button>
-  </div>
-
-  <p class="icone-picker__hint">{{ contador() }}</p>
-
-  @if (carregando()) {
-    <p class="icone-picker__loading">Carregando catálogo…</p>
-  } @else if (!resultados().length) {
-    <p class="icone-picker__empty">Nenhum ícone encontrado.</p>
-  } @else {
-    <cdk-virtual-scroll-viewport class="icone-picker__grid" [itemSize]="itemSize">
-      <div
-        class="icone-picker__row"
-        *cdkVirtualFor="let row of linhas(); trackBy: trackRow"      >
-        @for (item of row; track item.namespaced) {
-          <button
-            type="button"
-            class="icone-picker__cell"
-            [class.sel]="selecionado(item.namespaced)"
-            [title]="item.label"
-            (click)="selecionar(item.namespaced)"
-          >
-            <app-doc-cat-icone [nome]="item.namespaced" [size]="20" />
-          </button>
-        }
-      </div>
-    </cdk-virtual-scroll-viewport>
-  }
-</div>
+}

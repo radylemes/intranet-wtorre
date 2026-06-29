@@ -29,7 +29,7 @@ interface ModalDrilldownConfig {
   titulo: string;
   subtitulo: string;
   modo: KpiModalModo;
-  fetch: { tipo: 'camarote'; situacao?: SituacaoUnidade; setor?: string };
+  fetch: { tipo: 'camarote'; situacao?: SituacaoUnidade; setor?: string; dias_max?: number };
   filtro?: (u: CamaroteUnidade) => boolean;
   countEsperado?: number;
   vazioMsg?: string;
@@ -142,6 +142,22 @@ export class CamarotesDashboardComponent {
     });
   }
 
+  vence30dClickable(): boolean {
+    return (this.dashboard.camarotes.alertas.vence_30d ?? 0) > 0;
+  }
+
+  abrirVence30d(): void {
+    const dias = this.dashboard.dias_vencimento_urgente ?? 30;
+    const count = this.dashboard.camarotes.alertas.vence_30d ?? 0;
+    this.abrirModal({
+      titulo: 'Vencem em 30 dias',
+      subtitulo: `Contratos que vencem nos próximos ${dias} dias`,
+      modo: 'contrato',
+      fetch: { tipo: 'camarote', dias_max: dias },
+      countEsperado: count,
+    });
+  }
+
   abrirPack30(comPack30: boolean): void {
     const count = comPack30
       ? this.dashboard.camarotes.pack30.com_pack30
@@ -214,6 +230,13 @@ export class CamarotesDashboardComponent {
         this.matchTipoRaw(tipoNome, u.tipo_cessionario),
       countEsperado: qtd,
     });
+  }
+
+  onVence30dKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.abrirVence30d();
+    }
   }
 
   onKpiKeydown(event: KeyboardEvent, situacao: SituacaoUnidade): void {

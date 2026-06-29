@@ -2,28 +2,84 @@
 @use 'breakpoints' as bp;
 
 .admin-page {
-  max-width: 1200px;
+  max-width: none;
   margin: 0 auto;
   font-family: 'Hanken Grotesk', system-ui, sans-serif;
   color: var(--ink, #10151f);
 }
 
 .page-head {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .page-head h1 {
   font-family: 'Archivo', sans-serif;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
-.page-head p {
-  margin-top: 8px;
-  font-size: 14px;
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--line-solid, #e2e6ee);
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: 'Archivo', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-dim, #8a93a8);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.admin-tab:hover {
   color: var(--ink-soft, #48536a);
-  line-height: 1.5;
+}
+
+.admin-tab.active {
+  color: var(--wtorre, #1d54e6);
+  border-bottom-color: var(--wtorre, #1d54e6);
+}
+
+.admin-tab .tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-tab .tab-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.card > .admin-tabs:first-child {
+  border-bottom: 1px solid var(--line-solid, #e2e6ee);
+}
+
+/* Cards dentro de containers com abas — sem borda/radius entre tabs e conteúdo */
+.menu-unified-card .tabpane section.card,
+.menu-unified-card .tabpane .comunicados-card,
+.docs-unified-card .docs-tab-panel section.card {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  margin: 0;
+  border-radius: 0;
 }
 
 .card {
@@ -55,6 +111,108 @@
   margin-top: 4px;
 }
 
+.pane-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--line, #e4e8f0);
+}
+
+.pane-head h2 {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  margin: 0;
+}
+
+.pane-head .hint {
+  font-size: 12.5px;
+  margin-top: 3px;
+  color: var(--ink-dim, #8a93a8);
+}
+
+.pane-head .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pane-head .linkbtn {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+}
+
+.pane-head .linkbtn:hover {
+  color: var(--wtorre, #1d54e6);
+}
+
+.pane-head .linkbtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.admin-page .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.18s;
+  white-space: nowrap;
+}
+
+.admin-page .btn-primary {
+  background: linear-gradient(135deg, #2f6bff, #1538b8);
+  color: #fff;
+  box-shadow: 0 12px 26px -14px rgba(47, 107, 255, 0.7);
+}
+
+.admin-page .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.admin-page .btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.admin-page .btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.pane-head--section {
+  padding: 0;
+  border-bottom: none;
+  margin-bottom: 14px;
+  align-items: center;
+}
+
+.pane-head--section h2 {
+  font-size: 15px;
+}
+
 .card-body {
   padding: 20px 24px 24px;
 }
@@ -83,6 +241,8 @@
 }
 
 .admin-page .field input[type='text'],
+.admin-page .field input[type='email'],
+.admin-page .field input[type='url'],
 .admin-page .field input[type='password'],
 .admin-page .field input[type='number'],
 .admin-page .field input[type='file'],
@@ -493,5 +653,20 @@
     flex: 1 1 100%;
     min-width: 0;
     width: 100%;
+  }
+
+  .admin-tabs {
+    padding: 0 16px;
+  }
+
+  .admin-tab {
+    padding: 12px 14px;
+    font-size: 10px;
+    gap: 6px;
+  }
+
+  .admin-tab .tab-icon svg {
+    width: 16px;
+    height: 16px;
   }
 }

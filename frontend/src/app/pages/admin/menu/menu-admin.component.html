@@ -1,175 +1,373 @@
 <div class="admin-page menu-admin-page">
   <header class="page-head">
     <h1>Gestão do Menu</h1>
-    <p>Adicione, edite, remova e reordene os itens de navegação da intranet.</p>
   </header>
 
-  <section class="card">
-    <div class="card-head">
-      <div>
-        <h2>Estrutura do menu</h2>
-        <p class="hint">Arraste pelo ⠿ para reordenar · clique no ▸ para expandir</p>
-      </div>
-      <div class="toolbar">
-        <button type="button" class="linkbtn" (click)="expandirTudo()">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M8 9l4-4 4 4M8 15l4 4 4-4"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          Expandir tudo
+  <section class="card menu-unified-card">
+    <nav class="admin-tabs" aria-label="Seções do menu">
+      @if (mostrarAbaEstrutura()) {
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'estrutura'"
+          (click)="selecionarAba('estrutura')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Estrutura do menu</span>
         </button>
-        <button type="button" class="linkbtn" (click)="recolherTudo()">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M8 5l4 4 4-4M8 19l4-4 4 4"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          Recolher tudo
-        </button>
-        <button type="button" class="btn btn-primary" (click)="novoItem()">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path
-              d="M12 5v14M5 12h14"
-              stroke="#fff"
-              stroke-width="2.4"
-              stroke-linecap="round"
-            />
-          </svg>
-          Novo item
-        </button>
-      </div>
-    </div>
-    <div class="tree">
-      @if (!menuTree().length) {
-        <p class="empty">Nenhum item cadastrado.</p>
-      } @else {
-        <app-menu-admin-node
-          [items]="menuTree()"
-          [depth]="0"
-          [parentId]="null"
-          [recolhidos]="recolhidos()"
-          [tipoUrl]="tipoUrl"
-          (action)="onNodeAction($event)"
-          (reordered)="onReordered()"
-        />
       }
-    </div>
-  </section>
+      @if (mostrarAbasMenuHome()) {
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'topbar'"
+          (click)="selecionarAba('topbar')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="4" width="18" height="4" rx="1" stroke="currentColor" stroke-width="2" />
+              <rect x="3" y="10" width="18" height="10" rx="1" stroke="currentColor" stroke-width="2" />
+            </svg>
+          </span>
+          <span class="tab-label">Barra superior</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'header'"
+          (click)="selecionarAba('header')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M14 4h6v6M10 14L20 4M18 20H6a2 2 0 01-2-2V8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Botão do header</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'carrossel'"
+          (click)="selecionarAba('carrossel')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" />
+              <circle cx="8.5" cy="10.5" r="1.5" fill="currentColor" />
+              <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Carrossel</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'sistemas'"
+          (click)="selecionarAba('sistemas')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2" />
+            </svg>
+          </span>
+          <span class="tab-label">Sistemas</span>
+        </button>
+      }
+      @if (mostrarAbaRodape()) {
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'rodape'"
+          (click)="selecionarAba('rodape')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 8h16M4 12h16M4 16h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Rodapé</span>
+        </button>
+      }
+      @if (mostrarAbaComunicados()) {
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'comunicados'"
+          (click)="selecionarAba('comunicados')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Comunicados</span>
+        </button>
+      }
+    </nav>
 
-  <app-menu-topbar-admin />
-  <app-menu-header-chamado-admin />
-  <app-menu-carrossel-admin />
-  <app-menu-sistemas-admin />
+    @if (abaAtiva() === 'estrutura') {
+      <div class="tabpane">
+        <div class="pane-head">
+          <div>
+            <h2>Estrutura do menu</h2>
+            <p class="hint">Arraste pelo ⠿ para reordenar · clique no ▸ para expandir</p>
+          </div>
+          <div class="toolbar">
+            <button type="button" class="linkbtn" (click)="expandirTudo()">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M8 9l4-4 4 4M8 15l4 4 4-4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Expandir tudo
+            </button>
+            <button type="button" class="linkbtn" (click)="recolherTudo()">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M8 5l4 4 4-4M8 19l4-4 4 4"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Recolher tudo
+            </button>
+            <button type="button" class="btn btn-primary" (click)="novoItem()">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="#fff"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Novo item
+            </button>
+          </div>
+        </div>
+        <div class="tree">
+          @if (!menuTree().length) {
+            <p class="empty">Nenhum item cadastrado.</p>
+          } @else {
+            <app-menu-admin-node
+              [items]="menuTree()"
+              [depth]="0"
+              [parentId]="null"
+              [recolhidos]="recolhidos()"
+              [tipoUrl]="tipoUrl"
+              (action)="onNodeAction($event)"
+              (reordered)="onReordered()"
+            />
+          }
+        </div>
+      </div>
+    }
+
+    @if (abaAtiva() === 'topbar') {
+      <div class="tabpane">
+        <app-menu-topbar-admin />
+      </div>
+    }
+
+    @if (abaAtiva() === 'header') {
+      <div class="tabpane">
+        <app-menu-header-chamado-admin />
+      </div>
+    }
+
+    @if (abaAtiva() === 'carrossel') {
+      <div class="tabpane">
+        <app-menu-carrossel-admin />
+      </div>
+    }
+
+    @if (abaAtiva() === 'sistemas') {
+      <div class="tabpane">
+        <app-menu-sistemas-admin />
+      </div>
+    }
+
+    @if (abaAtiva() === 'rodape') {
+      <div class="tabpane">
+        <app-rodape-admin />
+      </div>
+    }
+
+    @if (abaAtiva() === 'comunicados') {
+      <div class="tabpane">
+        <app-comunicados-admin />
+      </div>
+    }
+  </section>
 </div>
 
 <app-admin-modal
   [open]="modalAberto()"
+  [size]="'wide'"
   [title]="tituloModal()"
   [subtitle]="subtituloModal()"
-  icon="folder"
+  [headerIcon]="iconeHeader()"
   [salvando]="salvando()"
   saveLabel="Salvar item"
   (save)="salvar()"
   (cancel)="fecharModal()"
 >
-  <form [formGroup]="form" (ngSubmit)="salvar()">
-    <div class="field">
-      <label for="menu-label">Rótulo</label>
-      <input id="menu-label" formControlName="label" placeholder="Portal RH" />
-    </div>
-    <div class="field">
-      <label for="menu-tipo">Tipo de destino</label>
-      <select id="menu-tipo" formControlName="tipo_destino">
-        <option value="interna">Página interna</option>
-        <option value="externa">Link externo</option>
-        <option value="agrupador">Sem link (agrupador)</option>
-      </select>
-    </div>
-    @if (form.controls.tipo_destino.value === 'interna') {
+  <form class="menu-modal-form" [formGroup]="form" (ngSubmit)="salvar()">
+    <section class="block">
+      <p class="sec-label">Destino</p>
+
       <div class="field">
-        <label for="menu-pagina">Página interna</label>
-        <select id="menu-pagina" formControlName="pagina_interna">
-          <option value="">Selecione uma página</option>
-          @for (pagina of paginasInternas(); track pagina.path) {
-            <option [value]="pagina.path">{{ pagina.label }}</option>
-          }
-        </select>
-        @if (urlLegadoInterno()) {
-          <div class="help warn">
-            Caminho atual não listado ({{ urlLegadoInterno() }}). Selecione uma página da lista.
+        <label for="menu-label">Rótulo</label>
+        <input id="menu-label" formControlName="label" placeholder="Portal RH" />
+      </div>
+
+      <div class="row-two">
+        <div class="field">
+          <label for="menu-tipo">Tipo de destino</label>
+          <select id="menu-tipo" formControlName="tipo_destino">
+            <option value="interna">Página interna</option>
+            <option value="externa">Link externo</option>
+            <option value="agrupador">Sem link (agrupador)</option>
+          </select>
+        </div>
+        @if (form.controls.tipo_destino.value === 'interna') {
+          <div class="field">
+            <label for="menu-pagina">Página interna</label>
+            <select id="menu-pagina" formControlName="pagina_interna">
+              <option value="">Selecione uma página</option>
+              @for (pagina of paginasInternas(); track pagina.path) {
+                <option [value]="pagina.path">{{ pagina.label }}</option>
+              }
+            </select>
+          </div>
+        } @else if (form.controls.tipo_destino.value === 'externa') {
+          <div class="field">
+            <label for="menu-url-ext">URL externa</label>
+            <input id="menu-url-ext" formControlName="url_externa" placeholder="https://..." />
           </div>
         }
       </div>
-    }
-    @if (form.controls.tipo_destino.value === 'externa') {
-      <div class="field">
-        <label for="menu-url-ext">URL externa</label>
-        <input id="menu-url-ext" formControlName="url_externa" placeholder="https://..." />
+
+      @if (form.controls.tipo_destino.value === 'interna' && urlLegadoInterno()) {
+        <div class="help warn">
+          Caminho atual não listado ({{ urlLegadoInterno() }}). Selecione uma página da lista.
+        </div>
+      }
+
+      <div class="row2 row2-pai-ordem">
+        <div class="field">
+          <label for="menu-pai">Item pai</label>
+          <select id="menu-pai" formControlName="parent_id">
+            <option value="">Nenhum (topo)</option>
+            @for (pai of paisDisponiveis(); track pai.id) {
+              <option [value]="pai.id">{{ '— '.repeat(pai.depth) }}{{ pai.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="field field-ordem">
+          <label for="menu-ordem">Ordem</label>
+          <input id="menu-ordem" formControlName="ordem" type="number" min="0" />
+        </div>
       </div>
-    }
-    <div class="field">
-      <label for="menu-pai">Item pai</label>
-      <select id="menu-pai" formControlName="parent_id">
-        <option value="">Nenhum (topo)</option>
-        @for (pai of paisDisponiveis(); track pai.id) {
-          <option [value]="pai.id">{{ '— '.repeat(pai.depth) }}{{ pai.label }}</option>
+
+      @if (isDropdownPai()) {
+        <div class="field">
+          <label for="menu-cab">Cabeçalho do dropdown</label>
+          <input id="menu-cab" formControlName="cabecalho" placeholder="Plataformas" />
+        </div>
+      }
+    </section>
+
+    <section class="block">
+      <div class="sec-label-row">
+        <p class="sec-label">Ícone <span class="hint">opcional</span></p>
+        @if (temIcone()) {
+          <button type="button" class="linkbtn-sm" (click)="limparIcone()">Remover</button>
         }
-      </select>
-    </div>
-    @if (isDropdownPai()) {
-      <div class="field">
-        <label for="menu-cab">Cabeçalho do dropdown</label>
-        <input id="menu-cab" formControlName="cabecalho" placeholder="Plataformas" />
       </div>
-    }
-    <div class="field">
-      <label for="menu-ordem">Ordem</label>
-      <input id="menu-ordem" formControlName="ordem" type="number" min="0" />
-    </div>
-    <div class="field">
-      <label for="menu-icone">
-        Ícone <span class="label-hint">· opcional</span>
-      </label>
-      <input id="menu-icone" formControlName="icone" placeholder="nome-do-icone" />
-    </div>
-    <div class="field">
-      <label for="menu-perfil">Visível para perfil</label>
-      <select id="menu-perfil" formControlName="visivel_perfil">
-        <option value="">Todos</option>
-        <option value="ADMIN">Somente ADMIN</option>
-        <option value="USER">Somente USER</option>
-      </select>
-    </div>
-    @if (mostrarAbrirNovaAba()) {
+      <div class="menu-icone-compact">
+        <span class="menu-icone-compact__preview" aria-hidden="true">
+          @if (temIcone()) {
+            <app-doc-cat-icone [nome]="iconeSelecionado()" [size]="28" />
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" class="menu-icone-compact__placeholder">
+              <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.8" />
+              <path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          }
+        </span>
+        <button type="button" class="menu-icone-compact__toggle" (click)="abrirModalIcone()">
+          {{ temIcone() ? 'Trocar ícone' : 'Escolher ícone' }}
+        </button>
+      </div>
+    </section>
+
+    <section class="block">
+      <p class="sec-label">Visibilidade e comportamento</p>
+
+      <div class="field">
+        <label for="menu-perfil">Visível para perfil</label>
+        <select id="menu-perfil" formControlName="visivel_perfil">
+          <option value="">Todos</option>
+          <option value="ADMIN">Somente ADMIN</option>
+          <option value="USER">Somente USER</option>
+        </select>
+      </div>
+
+      @if (mostrarAbrirNovaAba()) {
+        <div class="toggle-field">
+          <div>
+            <div class="tt">Abrir em nova aba</div>
+            <div class="ts">Abre a página interna em uma nova aba do navegador</div>
+          </div>
+          <label class="switch">
+            <input id="menu-nova-aba" type="checkbox" formControlName="abrir_nova_aba" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      }
+
       <div class="toggle-field">
         <div>
-          <div class="tt">Abrir em nova aba</div>
-          <div class="ts">Abre a página interna em uma nova aba do navegador</div>
+          <div class="tt">Item ativo</div>
+          <div class="ts">Itens inativos não aparecem no menu da intranet</div>
         </div>
         <label class="switch">
-          <input id="menu-nova-aba" type="checkbox" formControlName="abrir_nova_aba" />
+          <input id="menu-ativo" type="checkbox" formControlName="ativo" />
           <span class="slider"></span>
         </label>
       </div>
-    }
-    <div class="toggle-field">
-      <div>
-        <div class="tt">Item ativo</div>
-        <div class="ts">Itens inativos não aparecem no menu da intranet</div>
-      </div>
-      <label class="switch">
-        <input id="menu-ativo" type="checkbox" formControlName="ativo" />
-        <span class="slider"></span>
-      </label>
-    </div>
+    </section>
   </form>
+</app-admin-modal>
+
+<app-admin-modal
+  [open]="modalIconeAberto()"
+  [size]="'xlarge'"
+  title="Escolher ícone"
+  subtitle="Busque entre ícones Lucide ou marcas"
+  [headerIcon]="iconTemp() || null"
+  saveLabel="Confirmar"
+  (save)="confirmarIcone()"
+  (cancel)="fecharModalIcone()"
+>
+  <div class="icone-modal-body">
+    <app-doc-cat-icone-picker
+      [value]="iconTemp()"
+      (valueChange)="selecionarIconTemp($event)"
+    />
+  </div>
 </app-admin-modal>

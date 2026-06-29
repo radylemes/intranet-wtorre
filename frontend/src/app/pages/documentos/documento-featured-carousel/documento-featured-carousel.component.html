@@ -1,0 +1,53 @@
+@if (documentos().length === 1) {
+  <app-documento-featured-card
+    [documento]="documentos()[0]"
+    [iconeCategoria]="iconeCategoria()"
+    [kicker]="kicker()"
+    (visualizar)="onVisualizar(documentos()[0])"
+    (baixar)="onBaixar(documentos()[0])"
+  />
+} @else if (documentos().length > 1) {
+  <div
+    class="doc-carousel"
+    role="region"
+    aria-roledescription="carrossel"
+    [attr.aria-label]="'Destaques com ' + total() + ' documentos'"
+    tabindex="0"
+    (keydown)="onKeydown($event)"
+  >
+    <div class="viewport" aria-live="polite">
+      @for (doc of documentos(); track doc.id; let i = $index) {
+        <div
+          class="slide"
+          [class.active]="indice() === i"
+          [attr.aria-hidden]="indice() !== i"
+        >
+          <app-documento-featured-card
+            [documento]="doc"
+            [iconeCategoria]="iconeCategoria()"
+            [kicker]="kicker()"
+            (visualizar)="onVisualizar(doc)"
+            (baixar)="onBaixar(doc)"
+          />
+        </div>
+      }
+
+      <div class="dots" role="tablist" aria-label="Destaques">
+        @for (doc of documentos(); track doc.id; let i = $index) {
+          <button
+            type="button"
+            role="tab"
+            class="dot"
+            [class.active]="indice() === i"
+            [attr.aria-selected]="indice() === i"
+            [attr.aria-label]="'Destaque ' + (i + 1)"
+            (click)="irPara(i)"
+          ></button>
+        }
+      </div>
+    </div>
+
+    <button type="button" class="nav prev" aria-label="Destaque anterior" (click)="anterior()">‹</button>
+    <button type="button" class="nav next" aria-label="Próximo destaque" (click)="proximo()">›</button>
+  </div>
+}

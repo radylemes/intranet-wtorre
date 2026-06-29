@@ -13,6 +13,18 @@
     <div class="sub">exigem renovação imediata</div>
   </div>
   <div
+    class="card kpi is-orange"
+    [class.is-clickable]="vence30dClickable()"
+    role="button"
+    [tabindex]="vence30dClickable() ? 0 : -1"
+    (click)="abrirVence30d()"
+    (keydown)="onVence30dKeydown($event)"
+  >
+    <div class="label">Vencem em 30 dias</div>
+    <div class="value num">{{ dashboard.camarotes.alertas.vence_30d }}</div>
+    <div class="sub">renovação urgente</div>
+  </div>
+  <div
     class="card kpi is-amber"
     [class.is-clickable]="kpiClickable('vence_breve')"
     role="button"
@@ -60,61 +72,63 @@
     @if (vencimentosVazio()) {
       <p class="empty-hint">Sem vencimentos no período.</p>
     } @else {
-      <div class="venc-wrap">
-        <div
-          class="tl-cap"
-          [class.is-clickable]="vencidosTimelineClickable()"
-          role="button"
-          [tabindex]="vencidosTimelineClickable() ? 0 : -1"
-          (click)="abrirVencidosTimeline()"
-          (keydown)="onDrilldownKeydown($event, () => abrirVencidosTimeline())"
-        >
-          <div class="tl-cap-num is-red num">{{ dashboard.vencimentos.vencidos }}</div>
-          <div class="tl-cap-lbl">vencidos</div>
-        </div>
-        <div class="tl" aria-label="Vencimentos por mês nos próximos 12 meses">
-          @for (mes of dashboard.vencimentos.meses; track mes.ym) {
-            <div
-              class="tl-col"
-              [class.is-clickable]="mes.qtd > 0"
-              role="button"
-              [tabindex]="mes.qtd > 0 ? 0 : -1"
-              (click)="abrirMesVencimento(mes)"
-              (keydown)="onDrilldownKeydown($event, () => abrirMesVencimento(mes))"
-            >
-              <span class="tl-qty num">{{ mes.qtd }}</span>
-              <div class="tl-bar-wrap">
-                <span
-                  class="tl-bar"
-                  [class.is-breve]="mes.venceBreve"
-                  [style.height.%]="alturaBarraVenc(mes.qtd)"
-                ></span>
+      <div class="venc-body">
+        <div class="venc-wrap">
+          <div
+            class="tl-cap"
+            [class.is-clickable]="vencidosTimelineClickable()"
+            role="button"
+            [tabindex]="vencidosTimelineClickable() ? 0 : -1"
+            (click)="abrirVencidosTimeline()"
+            (keydown)="onDrilldownKeydown($event, () => abrirVencidosTimeline())"
+          >
+            <div class="tl-cap-num is-red num">{{ dashboard.vencimentos.vencidos }}</div>
+            <div class="tl-cap-lbl">vencidos</div>
+          </div>
+          <div class="tl" aria-label="Vencimentos por mês nos próximos 12 meses">
+            @for (mes of dashboard.vencimentos.meses; track mes.ym) {
+              <div
+                class="tl-col"
+                [class.is-clickable]="mes.qtd > 0"
+                role="button"
+                [tabindex]="mes.qtd > 0 ? 0 : -1"
+                (click)="abrirMesVencimento(mes)"
+                (keydown)="onDrilldownKeydown($event, () => abrirMesVencimento(mes))"
+              >
+                <span class="tl-qty num">{{ mes.qtd }}</span>
+                <div class="tl-bar-wrap">
+                  <span
+                    class="tl-bar"
+                    [class.is-breve]="mes.venceBreve"
+                    [style.height.%]="alturaBarraVenc(mes.qtd)"
+                  ></span>
+                </div>
+                <span class="tl-lbl">{{ mes.label }}</span>
               </div>
-              <span class="tl-lbl">{{ mes.label }}</span>
-            </div>
-          }
+            }
+          </div>
+          <div
+            class="tl-cap"
+            [class.is-clickable]="apos12mClickable()"
+            role="button"
+            [tabindex]="apos12mClickable() ? 0 : -1"
+            (click)="abrirApos12m()"
+            (keydown)="onDrilldownKeydown($event, () => abrirApos12m())"
+          >
+            <div class="tl-cap-num num">{{ dashboard.vencimentos.apos12m }}</div>
+            <div class="tl-cap-lbl">após 12 meses</div>
+          </div>
         </div>
-        <div
-          class="tl-cap"
-          [class.is-clickable]="apos12mClickable()"
-          role="button"
-          [tabindex]="apos12mClickable() ? 0 : -1"
-          (click)="abrirApos12m()"
-          (keydown)="onDrilldownKeydown($event, () => abrirApos12m())"
-        >
-          <div class="tl-cap-num num">{{ dashboard.vencimentos.apos12m }}</div>
-          <div class="tl-cap-lbl">após 12 meses</div>
+        <div class="venc-legend">
+          <span class="venc-legend-item">
+            <span class="swatch swatch-breve"></span>
+            meses com vencimento em ~90 dias
+          </span>
+          <span class="venc-legend-item">
+            <span class="swatch swatch-futuro"></span>
+            mais adiante
+          </span>
         </div>
-      </div>
-      <div class="venc-legend">
-        <span class="venc-legend-item">
-          <span class="swatch swatch-breve"></span>
-          meses com vencimento em ~90 dias
-        </span>
-        <span class="venc-legend-item">
-          <span class="swatch swatch-futuro"></span>
-          mais adiante
-        </span>
       </div>
     }
   </section>
@@ -126,43 +140,45 @@
     @if (receitaVazia()) {
       <p class="empty-hint">Sem receita a renovar no período.</p>
     } @else {
-      <div
-        class="rr-total"
-        [class.is-clickable]="receitaTotal12mClickable()"
-        role="button"
-        [tabindex]="receitaTotal12mClickable() ? 0 : -1"
-        (click)="abrirReceitaTotal12m()"
-        (keydown)="onDrilldownKeydown($event, () => abrirReceitaTotal12m())"
-      >
-        <div class="rr-total-val num">{{ moeda(dashboard.receitaRenovar.total12m) }}</div>
-        <div class="rr-total-lbl">receita anual que vence nos próximos 12 meses</div>
-      </div>
-      <div class="rr-q-list">
-        @for (tri of dashboard.receitaRenovar.trimestres; track tri.label) {
-          <div
-            class="rr-q"
-            [class.is-clickable]="tri.valor > 0"
-            role="button"
-            [tabindex]="tri.valor > 0 ? 0 : -1"
-            (click)="abrirTrimestreReceita(tri)"
-            (keydown)="onDrilldownKeydown($event, () => abrirTrimestreReceita(tri))"
-          >
-            <span class="rr-q-lbl">{{ tri.label }}</span>
-            <span class="rr-q-bar"><i [style.width.%]="larguraBarraReceita(tri.valor)"></i></span>
-            <span class="rr-q-val num">{{ moedaCompacta(tri.valor) }}</span>
-          </div>
-        }
-      </div>
-      <div
-        class="rr-venc"
-        [class.is-clickable]="receitaVencidaClickable()"
-        role="button"
-        [tabindex]="receitaVencidaClickable() ? 0 : -1"
-        (click)="abrirReceitaVencida()"
-        (keydown)="onDrilldownKeydown($event, () => abrirReceitaVencida())"
-      >
-        <span class="rr-venc-lbl">Vencida · renovação em aberto</span>
-        <span class="rr-venc-val num">{{ moeda(dashboard.receitaRenovar.vencida) }}</span>
+      <div class="rr-body">
+        <div
+          class="rr-total"
+          [class.is-clickable]="receitaTotal12mClickable()"
+          role="button"
+          [tabindex]="receitaTotal12mClickable() ? 0 : -1"
+          (click)="abrirReceitaTotal12m()"
+          (keydown)="onDrilldownKeydown($event, () => abrirReceitaTotal12m())"
+        >
+          <div class="rr-total-val num">{{ moeda(dashboard.receitaRenovar.total12m) }}</div>
+          <div class="rr-total-lbl">receita anual que vence nos próximos 12 meses</div>
+        </div>
+        <div class="rr-q-list">
+          @for (tri of dashboard.receitaRenovar.trimestres; track tri.label) {
+            <div
+              class="rr-q"
+              [class.is-clickable]="tri.valor > 0"
+              role="button"
+              [tabindex]="tri.valor > 0 ? 0 : -1"
+              (click)="abrirTrimestreReceita(tri)"
+              (keydown)="onDrilldownKeydown($event, () => abrirTrimestreReceita(tri))"
+            >
+              <span class="rr-q-lbl">{{ tri.label }}</span>
+              <span class="rr-q-bar"><i [style.width.%]="larguraBarraReceita(tri.valor)"></i></span>
+              <span class="rr-q-val num">{{ moedaCompacta(tri.valor) }}</span>
+            </div>
+          }
+        </div>
+        <div
+          class="rr-venc"
+          [class.is-clickable]="receitaVencidaClickable()"
+          role="button"
+          [tabindex]="receitaVencidaClickable() ? 0 : -1"
+          (click)="abrirReceitaVencida()"
+          (keydown)="onDrilldownKeydown($event, () => abrirReceitaVencida())"
+        >
+          <span class="rr-venc-lbl">Vencida · renovação em aberto</span>
+          <span class="rr-venc-val num">{{ moeda(dashboard.receitaRenovar.vencida) }}</span>
+        </div>
       </div>
     }
   </section>

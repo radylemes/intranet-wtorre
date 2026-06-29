@@ -1,98 +1,265 @@
-<div class="admin-page">
+<div class="admin-page acessos-admin-page">
   <header class="page-head">
     <h1>Gestão de Acessos</h1>
-    <p>Busque colaboradores do Azure AD e atribua perfis e módulos extras.</p>
+    <p class="page-subtitle">Colaboradores com permissões e perfis de acesso da intranet.</p>
   </header>
 
-  <section class="card">
-    <div class="card-head">
-      <h2>Buscar colaborador</h2>
-    </div>
-    <div class="card-body">
-      <div class="field">
-        <input
-          type="search"
-          placeholder="Nome ou e-mail (mín. 2 caracteres)..."
-          [ngModel]="buscaTexto()"
-          (ngModelChange)="onBuscaInput($event)"
-        />
-      </div>
-      @if (resultadosBusca().length) {
-        <ul class="busca-lista">
-          @for (c of resultadosBusca(); track c.id) {
-            <li>
-              <button type="button" class="busca-item" (click)="abrirColaborador(c)">
-                <span class="nome">{{ c.nome }}</span>
-                <span class="email">{{ c.email }}</span>
-                @if (c.ja_cadastrado) {
-                  <span class="badge">já cadastrado</span>
-                }
-              </button>
-            </li>
-          }
-        </ul>
-      }
-    </div>
-  </section>
+  <section class="card acessos-unified-card">
+    <nav class="admin-tabs" aria-label="Gestão de acessos">
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'colaboradores'"
+        (click)="selecionarAba('colaboradores')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2" />
+            <path d="M4 21v-1a6 6 0 0112 0v1" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </span>
+        <span class="tab-label">Colaboradores</span>
+        <span class="tab-count">{{ usuarios().length }}</span>
+      </button>
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'perfis'"
+        (click)="selecionarAba('perfis')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 2l8 4v6c0 5-4 8-8 10-4-2-8-5-8-10V6z"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <span class="tab-label">Perfis de acesso</span>
+      </button>
+    </nav>
 
-  <section class="card">
-    <div class="card-head">
-      <h2>Usuários com permissões</h2>
-    </div>
-    <div class="card-body">
-      @if (!usuarios().length) {
-        <p class="empty">Nenhum usuário com permissões configuradas.</p>
-      } @else {
-        <div class="table-scroll table-scroll--wide">
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Perfis</th>
-              <th>Módulos efetivos</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (u of usuarios(); track u.id) {
-              <tr>
-                <td><strong>{{ u.nome_completo }}</strong></td>
-                <td>{{ u.email }}</td>
-                <td>
-                  @if (u.perfil === 'ADMIN') {
-                    <span class="super-admin-badge">Super Admin</span>
-                  } @else {
-                    {{ perfisLabel(u) }}
+    @if (abaAtiva() === 'colaboradores') {
+      <div class="acessos-tab-panel">
+        <div class="pane-head">
+          <div>
+            <h2>Usuários com permissões</h2>
+            <p class="hint">Colaboradores com perfil ou módulo atribuído</p>
+          </div>
+          <div class="toolbar toolbar--search">
+            <div class="search-wrap">
+              <div class="search">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+                  <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <input
+                  type="search"
+                  placeholder="Buscar nome ou e-mail (mín. 2 caracteres)…"
+                  [ngModel]="buscaTexto()"
+                  (ngModelChange)="onBuscaInput($event)"
+                />
+              </div>
+              @if (resultadosBusca().length) {
+                <ul class="busca-lista">
+                  @for (c of resultadosBusca(); track c.id) {
+                    <li>
+                      <button type="button" class="busca-item" (click)="abrirColaborador(c)">
+                        <span class="nome">{{ c.nome }}</span>
+                        <span class="email">{{ c.email }}</span>
+                        @if (c.ja_cadastrado) {
+                          <span class="badge">já cadastrado</span>
+                        }
+                      </button>
+                    </li>
                   }
-                </td>
-                <td class="mono small">{{ modulosLabel(u) }}</td>
-                <td>
-                  <span class="status-badge" [class.on]="u.ativo" [class.off]="!u.ativo">
-                    {{ u.ativo ? 'Ativo' : 'Inativo' }}
-                  </span>
-                </td>
-                <td>
-                  <div class="row-actions">
-                    <button type="button" class="btn-ghost btn-sm" (click)="abrirUsuario(u)">Editar</button>
-                    <button
-                      type="button"
-                      class="iconbtn del"
-                      title="Excluir"
-                      (click)="excluir(u)"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+                </ul>
+              }
+            </div>
+          </div>
         </div>
-      }
-    </div>
+
+        <div class="tab-body">
+          @if (!usuariosFiltrados().length) {
+            <div class="empty">
+              <div class="eic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2" />
+                  <path d="M4 21v-1a6 6 0 0112 0v1" stroke="currentColor" stroke-width="2" />
+                </svg>
+              </div>
+              <div class="et">Nenhum usuário com permissões</div>
+              <div class="es">Busque um colaborador para atribuir perfil ou módulo.</div>
+            </div>
+          } @else {
+            <div class="table-scroll table-scroll--wide">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Colaborador</th>
+                    <th>Perfis</th>
+                    <th>Módulos efetivos</th>
+                    <th>Status</th>
+                    <th class="right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (u of usuariosFiltrados(); track u.id) {
+                    <tr>
+                      <td>
+                        <div class="u-nome">{{ u.nome_completo }}</div>
+                        <div class="u-email">{{ u.email }}</div>
+                      </td>
+                      <td>
+                        @if (u.perfil === 'ADMIN') {
+                          <span class="perfil">Super Admin</span>
+                        } @else if (!u.perfis.length) {
+                          <span class="perfil none">—</span>
+                        } @else {
+                          @for (p of u.perfis; track p.id) {
+                            <span class="perfil">{{ p.nome }}</span>
+                          }
+                        }
+                      </td>
+                      <td>
+                        @if (temTodosModulos(u)) {
+                          <span class="modulos">Todos os módulos</span>
+                        } @else if (!modulosLista(u).length) {
+                          <span class="modulos">—</span>
+                        } @else {
+                          @for (m of modulosLista(u); track m) {
+                            <span class="modulos chip">{{ m }}</span>
+                          }
+                        }
+                      </td>
+                      <td>
+                        <span class="badge-status" [class.off]="!u.ativo">
+                          {{ u.ativo ? 'Ativo' : 'Inativo' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="acts">
+                          <button type="button" class="iact txt" (click)="abrirUsuario(u)">Editar</button>
+                          <button
+                            type="button"
+                            class="iact sq del"
+                            title="Excluir"
+                            (click)="excluirUsuario(u)"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path
+                                d="M6 6l12 12M18 6L6 18"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (abaAtiva() === 'perfis') {
+      <div class="acessos-tab-panel">
+        <div class="pane-head">
+          <div>
+            <h2>Perfis cadastrados</h2>
+            <p class="hint">Conjuntos de módulos atribuíveis aos colaboradores</p>
+          </div>
+          <div class="toolbar">
+            <button type="button" class="btn-primary" (click)="novoPerfil()">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+              Novo perfil
+            </button>
+          </div>
+        </div>
+
+        <div class="tab-body">
+          @if (!perfisCadastrados().length) {
+            <div class="empty">
+              <div class="eic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 2l8 4v6c0 5-4 8-8 10-4-2-8-5-8-10V6z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div class="et">Nenhum perfil cadastrado</div>
+              <div class="es">Crie um perfil para agrupar módulos e atribuir a vários colaboradores de uma vez.</div>
+            </div>
+          } @else {
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Módulos</th>
+                    <th>Usuários</th>
+                    <th>Status</th>
+                    <th class="right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of perfisCadastrados(); track p.id) {
+                    <tr>
+                      <td>
+                        <div class="u-nome">{{ p.nome }}</div>
+                        @if (p.descricao) {
+                          <div class="u-email">{{ p.descricao }}</div>
+                        }
+                      </td>
+                      <td class="mono small">{{ modulosLabelPerfil(p) }}</td>
+                      <td>{{ p.usuarios_vinculados ?? 0 }}</td>
+                      <td>
+                        <span class="badge-status" [class.off]="!p.ativo">
+                          {{ p.ativo ? 'Ativo' : 'Inativo' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="acts">
+                          <button type="button" class="iact txt" (click)="abrirModulos(p)">Módulos</button>
+                          <button type="button" class="iact txt" (click)="editarPerfil(p)">Editar</button>
+                          <button
+                            type="button"
+                            class="iact sq del"
+                            title="Remover"
+                            (click)="excluirPerfil(p)"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <path
+                                d="M6 6l12 12M18 6L6 18"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    }
   </section>
 </div>
 
@@ -108,8 +275,8 @@
     <div>
       <div class="tt">Super Admin</div>
       <div class="ts">
-        Acesso total à administração, incluindo Gestão de Perfis e Gestão de Acessos.
-        O usuário promovido precisa fazer login novamente para ver as novas permissões.
+        Acesso total à administração, incluindo Gestão de Perfis e Gestão de Acessos. O usuário
+        promovido precisa fazer login novamente para ver as novas permissões.
       </div>
     </div>
     <label class="switch">
@@ -126,7 +293,7 @@
     <div class="drawer-section">
       <h3>Perfis</h3>
       <div class="checks">
-        @for (p of perfis(); track p.id) {
+        @for (p of perfisDrawer(); track p.id) {
           <label class="check-row">
             <input
               type="checkbox"
@@ -168,3 +335,59 @@
     </label>
   </div>
 </app-admin-drawer>
+
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="tituloModal()"
+  [subtitle]="subtituloModal()"
+  icon="tenant"
+  [salvando]="salvando()"
+  saveLabel="Salvar perfil"
+  (save)="salvarPerfil()"
+  (cancel)="fecharModal()"
+>
+  <form [formGroup]="form" (ngSubmit)="salvarPerfil()">
+    <div class="field">
+      <label for="perfil-nome">Nome</label>
+      <input id="perfil-nome" formControlName="nome" type="text" placeholder="Ex.: Gestor de Conteúdo" />
+    </div>
+    <div class="field">
+      <label for="perfil-desc">Descrição</label>
+      <input id="perfil-desc" formControlName="descricao" type="text" placeholder="Opcional" />
+    </div>
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Perfil ativo</div>
+        <div class="ts">Perfis inativos não concedem módulos aos usuários vinculados</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="ativo" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </form>
+</app-admin-modal>
+
+<app-admin-modal
+  [open]="modalModulosAberto()"
+  title="Módulos do perfil"
+  subtitle="Selecione os módulos administrativos deste perfil"
+  icon="tenant"
+  [salvando]="salvando()"
+  saveLabel="Salvar módulos"
+  (save)="salvarModulos()"
+  (cancel)="fecharModalModulos()"
+>
+  <div class="modulos-grid">
+    @for (m of modulos(); track m.codigo) {
+      <label class="modulo-check">
+        <input
+          type="checkbox"
+          [checked]="modulosSelecionados().includes(m.codigo)"
+          (change)="toggleModuloPerfil(m.codigo)"
+        />
+        <span>{{ m.nome }}</span>
+      </label>
+    }
+  </div>
+</app-admin-modal>

@@ -1,8 +1,10 @@
-import { Component, OnInit, effect, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, of, Observable } from 'rxjs';
 import { AdminDrawerComponent } from '../../../shared/admin/admin-drawer/admin-drawer.component';
+import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AlertasService } from '../../../services/alertas.service';
 import { PerfisAcessoService } from '../../../services/perfis-acesso.service';
 import {
@@ -12,20 +14,26 @@ import {
   UsuarioAcesso,
 } from '../../../models/perfil-acesso.model';
 
+type AbaAcessos = 'colaboradores' | 'perfis';
+
 @Component({
   selector: 'app-acessos-admin',
   standalone: true,
-  imports: [FormsModule, AdminDrawerComponent],
+  imports: [FormsModule, ReactiveFormsModule, AdminDrawerComponent, AdminModalComponent],
   templateUrl: './acessos-admin.component.html',
   styleUrl: './acessos-admin.component.scss',
 })
 export class AcessosAdminComponent implements OnInit {
   private readonly api = inject(PerfisAcessoService);
   private readonly alertas = inject(AlertasService);
+  private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
   private readonly busca$ = new Subject<string>();
 
+  readonly abaAtiva = signal<AbaAcessos>('colaboradores');
   readonly usuarios = signal<UsuarioAcesso[]>([]);
-  readonly perfis = signal<PerfilAcesso[]>([]);
+  readonly perfisDrawer = signal<PerfilAcesso[]>([]);
+  readonly perfisCadastrados = signal<PerfilAcesso[]>([]);
   readonly modulos = signal<ModuloAdmin[]>([]);
   readonly resultadosBusca = signal<ColaboradorBusca[]>([]);
   readonly buscaTexto = signal('');
@@ -41,6 +49,28 @@ export class AcessosAdminComponent implements OnInit {
   readonly usuarioAtivo = signal(true);
   readonly isSuperAdmin = signal(false);
 
+  readonly modulosSelecionados = signal<string[]>([]);
+  readonly editandoPerfilId = signal<number | null>(null);
+  readonly modalAberto = signal(false);
+  readonly modalModulosAberto = signal(false);
+  readonly perfilModulosId = signal<number | null>(null);
+
+  readonly form = this.fb.nonNullable.group({
+    nome: ['', Validators.required],
+    descricao: [''],
+    ativo: [true],
+  });
+
+  readonly usuariosFiltrados = computed(() => {
+    const q = this.buscaTexto().trim().toLowerCase();
+    const list = this.usuarios();
+    if (q.length < 2) return list;
+    return list.filter(
+      (u) =>
+        u.nome_completo.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    );
+  });
+
   constructor() {
     effect(() => {
       const msg = this.mensagem();
@@ -53,10 +83,9 @@ export class AcessosAdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.carregar();
-    this.api.listarPerfis().subscribe({
-      next: (list) => this.perfis.set(list.filter((p) => p.ativo)),
-    });
+    this.abaAtiva.set(this.abaInicial());
+    this.carregarUsuarios();
+    this.carregarPerfis();
     this.api.listarModulos().subscribe({
       next: (list) => this.modulos.set(list),
     });
@@ -73,11 +102,31 @@ export class AcessosAdminComponent implements OnInit {
       });
   }
 
-  carregar(): void {
+  selecionarAba(aba: AbaAcessos): void {
+    this.abaAtiva.set(aba);
+  }
+
+  private abaInicial(): AbaAcessos {
+    const qp = this.route.snapshot.queryParamMap.get('aba');
+    return qp === 'perfis' ? 'perfis' : 'colaboradores';
+  }
+
+  carregarUsuarios(): void {
     this.api.listarUsuarios().subscribe({
       next: (list) => this.usuarios.set(list),
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar usuários.'),
+    });
+  }
+
+  carregarPerfis(): void {
+    this.api.listarPerfis().subscribe({
+      next: (list) => {
+        this.perfisCadastrados.set(list);
+        this.perfisDrawer.set(list.filter((p) => p.ativo));
+      },
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar perfis.'),
     });
   }
 
@@ -215,7 +264,7 @@ export class AcessosAdminComponent implements OnInit {
   private finalizarSalvamento(): void {
     this.mensagem.set('Acessos salvos.');
     this.fecharDrawer();
-    this.carregar();
+    this.carregarUsuarios();
     this.salvando.set(false);
   }
 
@@ -225,19 +274,16 @@ export class AcessosAdminComponent implements OnInit {
     return u?.nome_completo ?? c?.nome ?? 'Usuário';
   }
 
-  modulosLabel(u: UsuarioAcesso): string {
-    if (u.perfil === 'ADMIN') return 'Todos os módulos';
-    if (!u.modulos.length) return '—';
-    return u.modulos.join(', ');
+  temTodosModulos(u: UsuarioAcesso): boolean {
+    return u.perfil === 'ADMIN';
   }
 
-  perfisLabel(u: UsuarioAcesso): string {
-    if (u.perfil === 'ADMIN') return 'Super Admin';
-    if (!u.perfis.length) return '—';
-    return u.perfis.map((p) => p.nome).join(', ');
+  modulosLista(u: UsuarioAcesso): string[] {
+    if (u.perfil === 'ADMIN') return [];
+    return u.modulos;
   }
 
-  async excluir(u: UsuarioAcesso): Promise<void> {
+  async excluirUsuario(u: UsuarioAcesso): Promise<void> {
     const ok = await this.alertas.confirmarExclusao({
       texto: `Excluir o usuário "${u.nome_completo}"? Esta ação não pode ser desfeita.`,
     });
@@ -248,10 +294,124 @@ export class AcessosAdminComponent implements OnInit {
           this.fecharDrawer();
         }
         this.mensagem.set('Usuário excluído.');
-        this.carregar();
+        this.carregarUsuarios();
       },
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao excluir usuário.'),
     });
+  }
+
+  novoPerfil(): void {
+    this.cancelarPerfil();
+    this.modalAberto.set(true);
+  }
+
+  editarPerfil(p: PerfilAcesso): void {
+    this.editandoPerfilId.set(p.id);
+    this.form.patchValue({
+      nome: p.nome,
+      descricao: p.descricao ?? '',
+      ativo: p.ativo,
+    });
+    this.modalAberto.set(true);
+  }
+
+  abrirModulos(p: PerfilAcesso): void {
+    this.perfilModulosId.set(p.id);
+    this.modulosSelecionados.set([...p.modulos]);
+    this.modalModulosAberto.set(true);
+  }
+
+  fecharModal(): void {
+    this.modalAberto.set(false);
+    this.cancelarPerfil();
+  }
+
+  fecharModalModulos(): void {
+    this.modalModulosAberto.set(false);
+    this.perfilModulosId.set(null);
+  }
+
+  cancelarPerfil(): void {
+    this.editandoPerfilId.set(null);
+    this.form.reset({ ativo: true, descricao: '' });
+  }
+
+  tituloModal(): string {
+    return this.editandoPerfilId() ? 'Editar perfil' : 'Novo perfil';
+  }
+
+  subtituloModal(): string {
+    return 'Perfis agrupam módulos administrativos que podem ser atribuídos a usuários.';
+  }
+
+  toggleModuloPerfil(codigo: string): void {
+    this.modulosSelecionados.update((list) =>
+      list.includes(codigo) ? list.filter((c) => c !== codigo) : [...list, codigo]
+    );
+  }
+
+  salvarPerfil(): void {
+    if (this.form.invalid) return;
+    this.salvando.set(true);
+    this.erro.set('');
+    this.mensagem.set('');
+
+    const body = this.form.getRawValue();
+    const id = this.editandoPerfilId();
+
+    const req = id ? this.api.atualizarPerfil(id, body) : this.api.criarPerfil(body);
+
+    req.subscribe({
+      next: () => {
+        this.mensagem.set(id ? 'Perfil atualizado.' : 'Perfil criado.');
+        this.modalAberto.set(false);
+        this.cancelarPerfil();
+        this.carregarPerfis();
+        this.salvando.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao salvar.');
+        this.salvando.set(false);
+      },
+    });
+  }
+
+  salvarModulos(): void {
+    const id = this.perfilModulosId();
+    if (!id) return;
+    this.salvando.set(true);
+    this.api.definirModulosPerfil(id, this.modulosSelecionados()).subscribe({
+      next: () => {
+        this.mensagem.set('Módulos do perfil atualizados.');
+        this.fecharModalModulos();
+        this.carregarPerfis();
+        this.salvando.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao salvar módulos.');
+        this.salvando.set(false);
+      },
+    });
+  }
+
+  async excluirPerfil(p: PerfilAcesso): Promise<void> {
+    const ok = await this.alertas.confirmarExclusao({
+      texto: `Excluir perfil "${p.nome}"?`,
+    });
+    if (!ok) return;
+    this.api.excluirPerfil(p.id).subscribe({
+      next: () => {
+        this.mensagem.set('Perfil removido.');
+        this.carregarPerfis();
+      },
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao excluir.'),
+    });
+  }
+
+  modulosLabelPerfil(p: PerfilAcesso): string {
+    if (!p.modulos.length) return '—';
+    return p.modulos.join(', ');
   }
 }

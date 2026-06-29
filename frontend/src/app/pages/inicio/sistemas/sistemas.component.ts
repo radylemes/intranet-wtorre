@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RevealOnScrollDirective } from '../../../shared/directives/reveal-on-scroll.directive';
 import { SISTEMAS } from '../../../data/sistemas.data';
-import { SistemaIconComponent } from './sistema-icon.component';
+import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
 import { MuralComponent } from '../mural/mural.component';
 import { MenuService } from '../../../services/menu.service';
 import { ContentRefreshService } from '../../../services/content-refresh.service';
@@ -18,7 +18,7 @@ interface SistemaExibicao {
   id: string;
   nome: string;
   subtitulo: string;
-  icon: HomeSistemaItem['icon'];
+  icon: string;
   url: string | null;
   abrirNovaAba: boolean;
   linkInterno: boolean;
@@ -27,7 +27,7 @@ interface SistemaExibicao {
 @Component({
   selector: 'app-sistemas',
   standalone: true,
-  imports: [RevealOnScrollDirective, SistemaIconComponent, MuralComponent, RouterLink],
+  imports: [RevealOnScrollDirective, DocCatIconeComponent, MuralComponent, RouterLink],
   templateUrl: './sistemas.component.html',
   styleUrl: './sistemas.component.scss',
 })

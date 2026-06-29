@@ -1,6 +1,7 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, EventEmitter, Input, Output, ViewEncapsulation, forwardRef } from '@angular/core';
 import { MENU_MAX_DEPTH, MenuItem } from '../../../models/menu.model';
+import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
 
 export interface MenuAdminNodeAction {
   type: 'edit' | 'remove' | 'addChild' | 'toggle';
@@ -13,7 +14,7 @@ type UrlTipo = 'interno' | 'externo' | 'placeholder';
 @Component({
   selector: 'app-menu-admin-node',
   standalone: true,
-  imports: [DragDropModule, forwardRef(() => MenuAdminNodeComponent)],
+  imports: [DragDropModule, DocCatIconeComponent, forwardRef(() => MenuAdminNodeComponent)],
   templateUrl: './menu-admin-node.component.html',
   styleUrl: './menu-admin-node.component.scss',
   encapsulation: ViewEncapsulation.None,
@@ -72,10 +73,10 @@ export class MenuAdminNodeComponent {
 
   badgeLabel(url: string | null | undefined): string {
     const map: Record<UrlTipo, string> = {
-      interno: 'Interno',
-      externo: 'Externo',
-      placeholder: 'Placeholder',
+      interno: 'INTERNO',
+      externo: 'EXTERNO',
+      placeholder: 'PLACEHOLDER',
     };
-    return map[this.tipoUrl(url)] ?? 'Placeholder';
+    return map[this.tipoUrl(url)] ?? 'PLACEHOLDER';
   }
 }

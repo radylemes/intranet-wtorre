@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const smtpConfigService = require('../smtp-config.service');
 
 function formatFrom(config) {
   if (config.from_name) {
@@ -95,13 +94,28 @@ async function sendMailBatched(config, { recipients, subject, html, text, attach
 }
 
 async function verifyStoredConnection() {
-  const config = await smtpConfigService.getDecrypted({ requireActive: false });
+  const emailConfigService = require('../email-config.service');
+  const cfg = await emailConfigService.getEmailProviderConfig({ requireActive: false });
+  if (cfg.provider !== 'smtp') {
+    const err = new Error('Verificação de conexão disponível apenas para o provedor SMTP.');
+    err.status = 400;
+    throw err;
+  }
+  const config = {
+    host: cfg.smtp_host,
+    port: cfg.smtp_port,
+    secure: cfg.smtp_secure,
+    user: cfg.smtp_user,
+    password: cfg.smtp_pass,
+    from_email: cfg.smtp_from,
+    from_name: cfg.smtp_from_name,
+  };
   return verifyConnection(config);
 }
 
 async function sendWithStoredConfig(payload) {
-  const config = await smtpConfigService.getDecrypted();
-  await sendMail(config, payload);
+  const emailSender = require('../utils/emailSender');
+  await emailSender.sendEmail(payload);
 }
 
 module.exports = {
@@ -112,4 +126,5 @@ module.exports = {
   verifyStoredConnection,
   sendWithStoredConfig,
   formatFrom,
+  mapSmtpError,
 };

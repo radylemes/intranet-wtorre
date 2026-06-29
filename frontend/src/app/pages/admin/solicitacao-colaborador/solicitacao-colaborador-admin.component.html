@@ -50,6 +50,28 @@
 
           <div class="field">
             <label>Destinatários (somente domínios internos)</label>
+            <div class="dest-busca">
+              <input
+                type="search"
+                placeholder="Buscar no AD por nome ou e-mail…"
+                [ngModel]="buscaDestinatariosTexto()"
+                (ngModelChange)="onBuscaDestinatario($event)"
+              />
+              @if (resultadosDestinatarios().length) {
+                <ul class="busca-resultados">
+                  @for (c of resultadosDestinatarios(); track c.id) {
+                    <li>
+                      <button type="button" (click)="adicionarDestinatarioDoAd(c)">
+                        {{ c.nome }} — {{ c.email || '—' }}
+                        @if (c.departamento) {
+                          <span class="busca-meta">· {{ c.departamento }}</span>
+                        }
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
             <div class="chips">
               @for (email of grupoDestinatarios(); track email) {
                 <button type="button" class="chip mail" (click)="removerEmailGrupo(email)">
@@ -59,7 +81,7 @@
               <span class="chip add">
                 <input
                   type="email"
-                  placeholder="+ adicionar"
+                  placeholder="+ adicionar e-mail"
                   [ngModel]="grupoEmailNovo()"
                   (ngModelChange)="grupoEmailNovo.set($event)"
                   (keydown)="onEmailGrupoKeydown($event)"
@@ -130,6 +152,28 @@
 
             <div class="field">
               <label>Destinatários (somente domínios internos)</label>
+              <div class="dest-busca">
+                <input
+                  type="search"
+                  placeholder="Buscar no AD por nome ou e-mail…"
+                  [ngModel]="buscaDestinatariosTexto()"
+                  (ngModelChange)="onBuscaDestinatario($event)"
+                />
+                @if (resultadosDestinatarios().length) {
+                  <ul class="busca-resultados">
+                    @for (c of resultadosDestinatarios(); track c.id) {
+                      <li>
+                        <button type="button" (click)="adicionarDestinatarioDoAd(c)">
+                          {{ c.nome }} — {{ c.email || '—' }}
+                          @if (c.departamento) {
+                            <span class="busca-meta">· {{ c.departamento }}</span>
+                          }
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
               <div class="chips">
                 @for (email of grupoDestinatarios(); track email) {
                   <button type="button" class="chip mail" (click)="removerEmailGrupo(email)">
@@ -139,7 +183,7 @@
                 <span class="chip add">
                   <input
                     type="email"
-                    placeholder="+ adicionar"
+                    placeholder="+ adicionar e-mail"
                     [ngModel]="grupoEmailNovo()"
                     (ngModelChange)="grupoEmailNovo.set($event)"
                     (keydown)="onEmailGrupoKeydown($event)"
@@ -225,7 +269,7 @@
         <div class="viewer-add">
           <input
             type="search"
-            placeholder="Buscar colaborador por nome ou e-mail…"
+            placeholder="Buscar colaborador no AD por nome ou e-mail…"
             [ngModel]="buscaTexto()"
             (ngModelChange)="onBuscaVisualizador($event)"
             [disabled]="adicionandoVisualizador()"

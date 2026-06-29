@@ -6,6 +6,8 @@ export interface HeaderChamadoConfig {
   tipo_destino: 'interna' | 'externa';
 }
 
+export type EmailProvider = 'smtp' | 'acs';
+
 export interface SmtpConfig {
   host: string;
   port: number;
@@ -16,6 +18,13 @@ export interface SmtpConfig {
   from_name: string;
   ativo: boolean;
   atualizado_em?: string;
+}
+
+export interface EmailConfig extends SmtpConfig {
+  provider: EmailProvider;
+  has_acs_connection_string: boolean;
+  acs_sender: string;
+  ocultar_para: boolean;
 }
 
 export interface ConfiguracoesAdmin {

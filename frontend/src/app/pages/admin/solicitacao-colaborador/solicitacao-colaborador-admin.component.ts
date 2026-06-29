@@ -6,15 +6,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { AlertasService } from '../../../services/alertas.service';
 import { SolicitacaoColaboradorService } from '../../../services/solicitacao-colaborador.service';
-import { PerfisAcessoService } from '../../../services/perfis-acesso.service';
 import {
   SolicitacaoCampo,
   SolicitacaoColaborador,
   SolicitacaoEnvio,
   SolicitacaoGrupo,
   SolicitacaoVisualizador,
+  UsuarioAdBusca,
 } from '../../../models/solicitacao-colaborador.model';
-import { ColaboradorBusca } from '../../../models/perfil-acesso.model';
 
 @Component({
   selector: 'app-solicitacao-colaborador-admin',
@@ -25,10 +24,10 @@ import { ColaboradorBusca } from '../../../models/perfil-acesso.model';
 })
 export class SolicitacaoColaboradorAdminComponent implements OnInit {
   private readonly service = inject(SolicitacaoColaboradorService);
-  private readonly perfisService = inject(PerfisAcessoService);
   private readonly alertas = inject(AlertasService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly busca$ = new Subject<string>();
+  private readonly buscaDestinatarios$ = new Subject<string>();
 
   readonly carregando = signal(false);
   readonly mensagem = signal('');
@@ -50,8 +49,10 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
   readonly grupoOrdem = signal(0);
 
   readonly adicionarViewerAberto = signal(false);
-  readonly resultadosBusca = signal<ColaboradorBusca[]>([]);
+  readonly resultadosBusca = signal<UsuarioAdBusca[]>([]);
   readonly buscaTexto = signal('');
+  readonly resultadosDestinatarios = signal<UsuarioAdBusca[]>([]);
+  readonly buscaDestinatariosTexto = signal('');
   readonly adicionandoVisualizador = signal(false);
 
   readonly expandedSolicitacaoId = signal<number | null>(null);
@@ -78,17 +79,21 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregarTudo();
+    const buscaAd = (q: string) =>
+      q.trim().length >= 2 ? this.service.buscarUsuariosAd(q.trim()) : of([]);
+
     this.busca$
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((q) =>
-          q.trim().length >= 2 ? this.perfisService.buscarColaboradores(q.trim()) : of([])
-        )
-      )
+      .pipe(debounceTime(300), distinctUntilChanged(), switchMap(buscaAd))
       .subscribe({
         next: (list) => this.resultadosBusca.set(list),
         error: () => this.erro.set('Erro na busca de colaboradores.'),
+      });
+
+    this.buscaDestinatarios$
+      .pipe(debounceTime(300), distinctUntilChanged(), switchMap(buscaAd))
+      .subscribe({
+        next: (list) => this.resultadosDestinatarios.set(list),
+        error: () => this.erro.set('Erro na busca de destinatários.'),
       });
   }
 
@@ -153,6 +158,8 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
     this.grupoNome.set('');
     this.grupoDestinatarios.set([]);
     this.grupoEmailNovo.set('');
+    this.buscaDestinatariosTexto.set('');
+    this.resultadosDestinatarios.set([]);
     this.grupoCamposSel.set([]);
     this.grupoAtivo.set(true);
     this.grupoOrdem.set(this.grupos().length);
@@ -163,6 +170,8 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
     this.grupoNome.set(g.nome);
     this.grupoDestinatarios.set([...g.destinatarios]);
     this.grupoEmailNovo.set('');
+    this.buscaDestinatariosTexto.set('');
+    this.resultadosDestinatarios.set([]);
     this.grupoCamposSel.set([...g.campos]);
     this.grupoAtivo.set(g.ativo);
     this.grupoOrdem.set(g.ordem);
@@ -170,6 +179,8 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
 
   cancelarEditor(): void {
     this.editandoGrupoId.set(null);
+    this.buscaDestinatariosTexto.set('');
+    this.resultadosDestinatarios.set([]);
   }
 
   toggleCampoGrupo(chave: string): void {
@@ -184,12 +195,32 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
   adicionarEmailGrupo(): void {
     const email = this.grupoEmailNovo().trim().toLowerCase();
     if (!email) return;
+    this.adicionarEmailDestinatario(email);
+    this.grupoEmailNovo.set('');
+  }
+
+  adicionarDestinatarioDoAd(col: UsuarioAdBusca): void {
+    const email = col.email?.trim().toLowerCase();
+    if (!email) {
+      this.erro.set('Colaborador sem e-mail cadastrado no AD.');
+      return;
+    }
+    this.adicionarEmailDestinatario(email);
+    this.buscaDestinatariosTexto.set('');
+    this.resultadosDestinatarios.set([]);
+  }
+
+  private adicionarEmailDestinatario(email: string): void {
     if (this.grupoDestinatarios().includes(email)) {
       this.erro.set('E-mail já adicionado.');
       return;
     }
     this.grupoDestinatarios.update((list) => [...list, email]);
-    this.grupoEmailNovo.set('');
+  }
+
+  onBuscaDestinatario(q: string): void {
+    this.buscaDestinatariosTexto.set(q);
+    this.buscaDestinatarios$.next(q);
   }
 
   removerEmailGrupo(email: string): void {
@@ -288,7 +319,7 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
     this.busca$.next(q);
   }
 
-  adicionarVisualizador(col: ColaboradorBusca): void {
+  adicionarVisualizador(col: UsuarioAdBusca): void {
     if (!col.email?.trim()) {
       this.erro.set('Colaborador sem e-mail cadastrado.');
       return;

@@ -5,6 +5,7 @@ const envioService = require('../services/solicitacao-envio.service');
 const { usuarioPodeVisualizar } = require('../services/solicitacao-acesso.service');
 const permissoesService = require('../services/permissoes.service');
 const usersRepo = require('../repositories/users.repository');
+const colaboradoresRepo = require('../repositories/colaboradores.repository');
 const auditRepo = require('../repositories/auditLog.repository');
 const { listarCampos } = require('../config/solicitacao-campos');
 const {
@@ -104,6 +105,7 @@ async function criar(req, res) {
 
     const solicitacao = await repo.createSolicitacao({
       ...payload,
+      solicitante_nome: payload.solicitante ?? null,
       solicitante_usuario_id: req.user.id,
       foto_url,
       boas_vindas_url,
@@ -270,6 +272,27 @@ async function removerGrupo(req, res) {
   }
 }
 
+async function buscarUsuariosAd(req, res) {
+  try {
+    const q = req.query.q?.trim();
+    if (!q || q.length < 2) {
+      return res.json([]);
+    }
+
+    const colaboradores = await colaboradoresRepo.findAll({ busca: q, ativoOnly: true });
+    const result = colaboradores.slice(0, 20).map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      email: c.email,
+      departamento: c.departamento,
+      empresa: c.empresa,
+    }));
+    return res.json(result);
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
 async function listarVisualizadores(_req, res) {
   try {
     const lista = await repo.listVisualizadores();
@@ -331,6 +354,7 @@ module.exports = {
   criarGrupo,
   atualizarGrupo,
   removerGrupo,
+  buscarUsuariosAd,
   listarVisualizadores,
   adicionarVisualizador,
   removerVisualizador,

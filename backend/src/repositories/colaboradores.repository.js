@@ -193,6 +193,54 @@ async function updateTemFoto(id, temFoto) {
   await pool.execute('UPDATE colaboradores SET tem_foto = ? WHERE id = ?', [temFoto ? 1 : 0, id]);
 }
 
+async function findDepartamentoFallback(adId, email) {
+  const pool = getPool();
+  const tentativas = [
+    adId ? { sql: 'ad_id = ?', val: adId } : null,
+    email ? { sql: 'email = ?', val: email } : null,
+  ].filter(Boolean);
+
+  for (const t of tentativas) {
+    const [rows] = await pool.execute(
+      `SELECT departamento, empresa, cargo FROM colaboradores
+       WHERE ${t.sql} AND ativo = 1 LIMIT 1`,
+      [t.val]
+    );
+    const row = rows[0];
+    if (!row) continue;
+    for (const campo of [row.departamento, row.empresa, row.cargo]) {
+      if (campo && String(campo).trim()) return String(campo).trim();
+    }
+  }
+  return null;
+}
+
+async function findDepartamentoByAdId(adId) {
+  if (!adId) return null;
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT departamento FROM colaboradores
+     WHERE ad_id = ? AND ativo = 1 AND departamento IS NOT NULL AND departamento != ''
+     LIMIT 1`,
+    [adId]
+  );
+  const dept = rows[0]?.departamento;
+  return dept ? String(dept).trim() : null;
+}
+
+async function findDepartamentoByEmail(email) {
+  if (!email) return null;
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT departamento FROM colaboradores
+     WHERE email = ? AND ativo = 1 AND departamento IS NOT NULL AND departamento != ''
+     LIMIT 1`,
+    [email]
+  );
+  const dept = rows[0]?.departamento;
+  return dept ? String(dept).trim() : null;
+}
+
 module.exports = {
   upsertBatch,
   markInactiveByTenant,
@@ -202,6 +250,9 @@ module.exports = {
   findById,
   getUltimaSincronizacao,
   updateTemFoto,
+  findDepartamentoByAdId,
+  findDepartamentoByEmail,
+  findDepartamentoFallback,
   mapColaborador,
   mapAniversariante,
 };

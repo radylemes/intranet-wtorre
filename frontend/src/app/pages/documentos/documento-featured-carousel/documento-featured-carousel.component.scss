@@ -1,0 +1,101 @@
+:host {
+  display: block;
+  margin-bottom: 26px;
+}
+
+.doc-carousel {
+  position: relative;
+  outline: none;
+}
+
+.doc-carousel:focus-visible {
+  border-radius: 18px;
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.25);
+}
+
+.viewport {
+  position: relative;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.slide.active {
+  position: relative;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.slide app-documento-featured-card ::ng-deep .feature {
+  margin-bottom: 0;
+}
+
+.nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink, #10151f);
+}
+
+.nav.prev {
+  left: -14px;
+}
+
+.nav.next {
+  right: -14px;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 0 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: var(--line-solid, #e2e6ee);
+  cursor: pointer;
+  padding: 0;
+}
+
+.dot.active {
+  background: var(--wtorre, #2f6bff);
+}
+
+@media (max-width: 760px) {
+  .nav {
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+  }
+
+  .nav.prev {
+    left: 4px;
+  }
+
+  .nav.next {
+    right: 4px;
+  }
+}

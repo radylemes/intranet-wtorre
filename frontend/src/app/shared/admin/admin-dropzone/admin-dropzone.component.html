@@ -1,5 +1,6 @@
 <div
   class="dropzone"
+  [class.dropzone--compact]="compact()"
   [class.is-dragover]="isDragover"
   [class.disabled]="disabled()"
   (click)="onClick()"
@@ -16,21 +17,34 @@
     (change)="onInputChange($event)"
   />
   <div class="dropzone-icon">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg
+      [attr.width]="compact() ? 16 : 32"
+      [attr.height]="compact() ? 16 : 32"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
       <path
-        d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+        d="M12 16V4m0 0L7 9m5-5l5 5M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1"
         stroke="currentColor"
-        stroke-width="1.8"
+        stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
       />
     </svg>
   </div>
-  <p class="dropzone-text">
-    {{ hint() }}
-    <span class="dropzone-link">{{ hintLink() }}</span>
-  </p>
-  @if (subhint()) {
-    <p class="dropzone-sub">{{ subhint() }}</p>
-  }
+  <div class="dropzone-copy">
+    <p class="dropzone-text">
+      @if (compact()) {
+        <span class="dropzone-link">{{ hintLink() }}</span>
+        {{ hint() }}
+      } @else {
+        {{ hint() }}
+        <span class="dropzone-link">{{ hintLink() }}</span>
+      }
+    </p>
+    @if (subhint()) {
+      <p class="dropzone-sub">{{ subhint() }}</p>
+    }
+  </div>
 </div>
