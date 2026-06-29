@@ -1,4 +1,5 @@
 const { getPool } = require('../db/pool');
+const { sqlIncompletosCondition } = require('../utils/colaboradores.pendencias');
 
 function mapColaborador(row, { includeAdId = false, includeAdminFields = false } = {}) {
   if (!row) return null;
@@ -29,9 +30,20 @@ function mapColaborador(row, { includeAdId = false, includeAdminFields = false }
   return base;
 }
 
-function buildWhereClause({ busca, empresa, departamento, ativoFilter } = {}) {
+function buildWhereClause({
+  busca,
+  empresa,
+  departamento,
+  ativoFilter,
+  tenantId,
+  cargoFilter,
+  empresaStatus,
+  incompletos,
+  intranetFilter,
+} = {}) {
   const conditions = [];
   const values = [];
+  let needsIntranetJoin = false;
 
   if (ativoFilter === '1' || ativoFilter === true) {
     conditions.push('c.ativo = 1');
@@ -39,14 +51,33 @@ function buildWhereClause({ busca, empresa, departamento, ativoFilter } = {}) {
     conditions.push('c.ativo = 0');
   }
 
+  if (tenantId) {
+    conditions.push('c.tenant_id = ?');
+    values.push(Number(tenantId));
+  }
+
   if (empresa) {
     conditions.push('c.empresa = ?');
     values.push(empresa);
   }
+
+  if (empresaStatus === 'com') {
+    conditions.push("(c.empresa IS NOT NULL AND TRIM(c.empresa) != '')");
+  } else if (empresaStatus === 'sem') {
+    conditions.push("(c.empresa IS NULL OR TRIM(c.empresa) = '')");
+  }
+
+  if (cargoFilter === 'com') {
+    conditions.push("(c.cargo IS NOT NULL AND TRIM(c.cargo) != '')");
+  } else if (cargoFilter === 'sem') {
+    conditions.push("(c.cargo IS NULL OR TRIM(c.cargo) = '')");
+  }
+
   if (departamento) {
     conditions.push('c.departamento = ?');
     values.push(departamento);
   }
+
   if (busca) {
     const like = `%${busca}%`;
     conditions.push(
@@ -55,8 +86,31 @@ function buildWhereClause({ busca, empresa, departamento, ativoFilter } = {}) {
     values.push(like, like, like, like, like, like, like);
   }
 
+  if (incompletos) {
+    conditions.push(sqlIncompletosCondition('c'));
+  }
+
+  if (intranetFilter === 'com') {
+    needsIntranetJoin = true;
+    conditions.push('u.id IS NOT NULL');
+  } else if (intranetFilter === 'sem') {
+    needsIntranetJoin = true;
+    conditions.push('u.id IS NULL');
+  }
+
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  return { where, values };
+  return { where, values, needsIntranetJoin };
+}
+
+function adminFromJoin(needsIntranetJoin) {
+  let sql = `
+     FROM colaboradores c
+     LEFT JOIN azure_tenants t ON t.id = c.tenant_id`;
+  if (needsIntranetJoin) {
+    sql += `
+     LEFT JOIN usuarios u ON u.microsoft_id = c.ad_id`;
+  }
+  return sql;
 }
 
 function mapAniversariante(row) {
@@ -170,16 +224,40 @@ async function findAll({ busca, empresa, departamento, ativoOnly = true } = {}) 
   return rows.map((r) => mapColaborador(r));
 }
 
-async function findAllPaginated({ busca, empresa, departamento, ativoFilter = '1', page = 1, limit = 50 } = {}) {
+async function findAllPaginated({
+  busca,
+  empresa,
+  departamento,
+  ativoFilter = '1',
+  tenantId,
+  cargoFilter,
+  empresaStatus,
+  incompletos,
+  intranetFilter,
+  page = 1,
+  limit = 50,
+} = {}) {
   const pool = getPool();
   const safePage = Math.max(1, Number(page) || 1);
   const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50));
   const offset = (safePage - 1) * safeLimit;
 
-  const { where, values } = buildWhereClause({ busca, empresa, departamento, ativoFilter });
+  const { where, values, needsIntranetJoin } = buildWhereClause({
+    busca,
+    empresa,
+    departamento,
+    ativoFilter,
+    tenantId,
+    cargoFilter,
+    empresaStatus,
+    incompletos,
+    intranetFilter,
+  });
+
+  const fromJoin = adminFromJoin(needsIntranetJoin);
 
   const [countRows] = await pool.execute(
-    `SELECT COUNT(*) AS total FROM colaboradores c ${where}`,
+    `SELECT COUNT(*) AS total ${fromJoin} ${where}`,
     values
   );
   const total = countRows[0]?.total ?? 0;
@@ -188,12 +266,11 @@ async function findAllPaginated({ busca, empresa, departamento, ativoFilter = '1
     `SELECT c.id, c.ad_id, c.nome, c.cargo, c.departamento, c.email, c.celular, c.ramal,
             c.telefone_fixo, c.nasc_dia, c.nasc_mes, c.nasc_ano, c.empresa, c.tenant_id,
             c.tem_foto, c.ativo, c.sincronizado_em, t.nome AS tenant_nome
-     FROM colaboradores c
-     LEFT JOIN azure_tenants t ON t.id = c.tenant_id
+     ${fromJoin}
      ${where}
      ORDER BY c.nome ASC
-     LIMIT ? OFFSET ?`,
-    [...values, safeLimit, offset]
+     LIMIT ${safeLimit} OFFSET ${offset}`,
+    values
   );
 
   return {
@@ -206,18 +283,47 @@ async function findAllPaginated({ busca, empresa, departamento, ativoFilter = '1
 
 async function countStats() {
   const pool = getPool();
+  const incompletosSql = sqlIncompletosCondition('c');
   const [rows] = await pool.execute(
     `SELECT
        SUM(ativo = 1) AS ativos,
        SUM(ativo = 0) AS inativos,
-       MAX(sincronizado_em) AS ultima_sync
-     FROM colaboradores`
+       MAX(sincronizado_em) AS ultima_sync,
+       SUM(ativo = 1 AND ${incompletosSql}) AS incompletos_ativos
+     FROM colaboradores c`
   );
   const row = rows[0] || {};
   return {
     ativos: Number(row.ativos) || 0,
     inativos: Number(row.inativos) || 0,
     ultima_sync: row.ultima_sync ?? null,
+    incompletos_ativos: Number(row.incompletos_ativos) || 0,
+  };
+}
+
+async function findAdminFiltros() {
+  const pool = getPool();
+  const [empresasRows] = await pool.execute(
+    `SELECT DISTINCT empresa FROM colaboradores
+     WHERE empresa IS NOT NULL AND empresa != ''
+     ORDER BY empresa ASC`
+  );
+  const [deptRows] = await pool.execute(
+    `SELECT DISTINCT departamento FROM colaboradores
+     WHERE ativo = 1 AND departamento IS NOT NULL AND departamento != ''
+     ORDER BY departamento ASC`
+  );
+  const [tenantRows] = await pool.execute(
+    `SELECT DISTINCT c.tenant_id AS id, t.nome
+     FROM colaboradores c
+     INNER JOIN azure_tenants t ON t.id = c.tenant_id
+     WHERE c.tenant_id IS NOT NULL
+     ORDER BY t.nome ASC`
+  );
+  return {
+    empresas: empresasRows.map((r) => r.empresa),
+    departamentos: deptRows.map((r) => r.departamento),
+    tenants: tenantRows.map((r) => ({ id: r.id, nome: r.nome })),
   };
 }
 
@@ -232,6 +338,74 @@ async function findAdminById(id) {
     [id]
   );
   return mapColaborador(rows[0], { includeAdminFields: true });
+}
+
+async function findAdminByAdId(adId) {
+  if (!adId) return null;
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT c.*, t.nome AS tenant_nome
+     FROM colaboradores c
+     LEFT JOIN azure_tenants t ON t.id = c.tenant_id
+     WHERE c.ad_id = ?
+     LIMIT 1`,
+    [adId]
+  );
+  return mapColaborador(rows[0], { includeAdminFields: true });
+}
+
+async function findAdminByEmail(email) {
+  if (!email) return null;
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT c.*, t.nome AS tenant_nome
+     FROM colaboradores c
+     LEFT JOIN azure_tenants t ON t.id = c.tenant_id
+     WHERE LOWER(c.email) = LOWER(?)
+     LIMIT 1`,
+    [email]
+  );
+  return mapColaborador(rows[0], { includeAdminFields: true });
+}
+
+async function findAllForExport({
+  busca,
+  empresa,
+  departamento,
+  ativoFilter = '1',
+  tenantId,
+  cargoFilter,
+  empresaStatus,
+  incompletos,
+  intranetFilter,
+} = {}) {
+  const pool = getPool();
+  const { where, values, needsIntranetJoin } = buildWhereClause({
+    busca,
+    empresa,
+    departamento,
+    ativoFilter,
+    tenantId,
+    cargoFilter,
+    empresaStatus,
+    incompletos,
+    intranetFilter,
+  });
+
+  const fromJoin = adminFromJoin(needsIntranetJoin);
+
+  const [rows] = await pool.execute(
+    `SELECT c.id, c.ad_id, c.nome, c.cargo, c.departamento, c.email, c.celular, c.ramal,
+            c.telefone_fixo, c.nasc_dia, c.nasc_mes, c.nasc_ano, c.empresa, c.tenant_id,
+            c.tem_foto, c.ativo, c.sincronizado_em, t.nome AS tenant_nome
+     ${fromJoin}
+     ${where}
+     ORDER BY c.nome ASC
+     LIMIT 10000`,
+    values
+  );
+
+  return rows.map((r) => mapColaborador(r, { includeAdminFields: true }));
 }
 
 async function findDistinctEmpresas() {
@@ -339,7 +513,11 @@ module.exports = {
   findAll,
   findAllPaginated,
   countStats,
+  findAdminFiltros,
   findAdminById,
+  findAdminByAdId,
+  findAdminByEmail,
+  findAllForExport,
   findDistinctEmpresas,
   findAniversariantesByMes,
   findDistinctDepartamentos,

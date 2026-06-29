@@ -7,7 +7,12 @@ import {
   Colaborador,
   ColaboradorAdmin,
   ColaboradoresAdminFiltros,
+  ColaboradoresAdminFiltrosOpcoes,
   ColaboradoresAdminResposta,
+  ColaboradoresImportAplicarResposta,
+  ColaboradoresImportPreviewResposta,
+  ColaboradorGraphUpdatePayload,
+  ColaboradorGraphUpdateResposta,
   ColaboradoresStats,
   ColaboradoresSyncResumo,
   DiretorioResposta,
@@ -77,22 +82,70 @@ export class ColaboradoresService {
   }
 
   listarAdmin(filtros: ColaboradoresAdminFiltros = {}): Observable<ColaboradoresAdminResposta> {
-    const params: Record<string, string> = {};
-    if (filtros.busca?.trim()) params['busca'] = filtros.busca.trim();
-    if (filtros.empresa?.trim()) params['empresa'] = filtros.empresa.trim();
-    if (filtros.departamento?.trim()) params['departamento'] = filtros.departamento.trim();
-    if (filtros.ativo) params['ativo'] = filtros.ativo;
+    const params: Record<string, string> = this.adminFiltrosParams(filtros);
     if (filtros.page) params['page'] = String(filtros.page);
     if (filtros.limit) params['limit'] = String(filtros.limit);
     return this.http.get<ColaboradoresAdminResposta>(this.api('/colaboradores/admin'), { params });
+  }
+
+  obterFiltrosAdmin(): Observable<ColaboradoresAdminFiltrosOpcoes> {
+    return this.http.get<ColaboradoresAdminFiltrosOpcoes>(this.api('/colaboradores/admin/filtros'));
   }
 
   obterAdmin(id: number): Observable<ColaboradorAdmin> {
     return this.http.get<ColaboradorAdmin>(this.api(`/colaboradores/admin/${id}`));
   }
 
+  atualizarGraph(
+    id: number,
+    body: ColaboradorGraphUpdatePayload
+  ): Observable<ColaboradorGraphUpdateResposta> {
+    return this.http.patch<ColaboradorGraphUpdateResposta>(this.api(`/colaboradores/admin/${id}`), body).pipe(
+      tap(() => this.invalidarCache())
+    );
+  }
+
   obterStats(): Observable<ColaboradoresStats> {
     return this.http.get<ColaboradoresStats>(this.api('/colaboradores/admin/stats'));
+  }
+
+  private adminFiltrosParams(filtros: ColaboradoresAdminFiltros = {}): Record<string, string> {
+    const params: Record<string, string> = {};
+    if (filtros.busca?.trim()) params['busca'] = filtros.busca.trim();
+    if (filtros.empresa?.trim()) params['empresa'] = filtros.empresa.trim();
+    if (filtros.departamento?.trim()) params['departamento'] = filtros.departamento.trim();
+    if (filtros.ativo) params['ativo'] = filtros.ativo;
+    if (filtros.tenant_id) params['tenant_id'] = String(filtros.tenant_id);
+    if (filtros.intranet) params['intranet'] = filtros.intranet;
+    if (filtros.cargo) params['cargo'] = filtros.cargo;
+    if (filtros.empresa_status) params['empresa_status'] = filtros.empresa_status;
+    if (filtros.incompletos) params['incompletos'] = '1';
+    return params;
+  }
+
+  exportarAdmin(filtros: ColaboradoresAdminFiltros = {}): Observable<Blob> {
+    return this.http.get(this.api('/colaboradores/admin/export'), {
+      params: this.adminFiltrosParams(filtros),
+      responseType: 'blob',
+    });
+  }
+
+  previewImport(arquivo: File): Observable<ColaboradoresImportPreviewResposta> {
+    const form = new FormData();
+    form.append('arquivo', arquivo, arquivo.name);
+    return this.http.post<ColaboradoresImportPreviewResposta>(
+      this.api('/colaboradores/admin/import/preview'),
+      form
+    );
+  }
+
+  aplicarImport(arquivo: File): Observable<ColaboradoresImportAplicarResposta> {
+    const form = new FormData();
+    form.append('arquivo', arquivo, arquivo.name);
+    return this.http.post<ColaboradoresImportAplicarResposta>(
+      this.api('/colaboradores/admin/import/aplicar'),
+      form
+    ).pipe(tap(() => this.invalidarCache()));
   }
 
   invalidarCache(): void {

@@ -451,7 +451,7 @@ async function fetchVencimentosEscalares(diasVenceBreve = 90) {
      WHERE tipo_unidade = ?
        AND ${OCUPADO}
        AND final_locacao IS NOT NULL`,
-    [diasVenceBreve, TIPO_CAMAROTE]
+    [diasVenceBreve, diasVenceBreve, TIPO_CAMAROTE]
   );
   return rows[0] || {};
 }

@@ -21,6 +21,64 @@
   </header>
 
   <section class="card colaboradores-card">
+    <nav class="admin-tabs" aria-label="Gestão de usuários">
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'todos'"
+        (click)="selecionarAba('todos')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" />
+            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" />
+          </svg>
+        </span>
+        <span class="tab-label">Todos</span>
+        @if (stats(); as s) {
+          <span class="tab-count">{{ s.ativos }}</span>
+        }
+      </button>
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'pendentes'"
+        (click)="selecionarAba('pendentes')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path
+              d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <span class="tab-label">Informações pendentes</span>
+        @if (stats(); as s) {
+          <span class="tab-count">{{ s.incompletos_ativos }}</span>
+        }
+      </button>
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'import_export'"
+        (click)="selecionarAba('import_export')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="tab-label">Importar / Exportar</span>
+      </button>
+    </nav>
+
+    @if (exibirLista()) {
     <div class="toolbar toolbar-filters">
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -34,6 +92,13 @@
           (ngModelChange)="onBuscaInput($event)"
         />
       </div>
+
+      <select [ngModel]="filtroTenant()" (ngModelChange)="filtroTenant.set($event); onFiltroChange()">
+        <option value="">Todos os tenants</option>
+        @for (t of tenants(); track t.id) {
+          <option [value]="t.id">{{ t.nome }}</option>
+        }
+      </select>
 
       <select [ngModel]="filtroEmpresa()" (ngModelChange)="filtroEmpresa.set($event); onFiltroChange()">
         <option value="">Todas as empresas</option>
@@ -57,12 +122,42 @@
         <option value="0">Inativos</option>
         <option value="todos">Todos</option>
       </select>
+
+      <select
+        [ngModel]="filtroIntranet()"
+        (ngModelChange)="filtroIntranet.set($event); onFiltroChange()"
+      >
+        <option value="">Intranet: todos</option>
+        <option value="com">Com acesso</option>
+        <option value="sem">Sem acesso</option>
+      </select>
+
+      <select [ngModel]="filtroCargo()" (ngModelChange)="filtroCargo.set($event); onFiltroChange()">
+        <option value="">Cargo: todos</option>
+        <option value="com">Com cargo</option>
+        <option value="sem">Sem cargo</option>
+      </select>
+
+      <select
+        [ngModel]="filtroEmpresaStatus()"
+        (ngModelChange)="filtroEmpresaStatus.set($event); onFiltroChange()"
+      >
+        <option value="">Empresa: todos</option>
+        <option value="com">Com empresa</option>
+        <option value="sem">Sem empresa</option>
+      </select>
     </div>
 
     @if (carregando()) {
       <p class="empty">Carregando colaboradores…</p>
     } @else if (!colaboradores().length) {
-      <p class="empty">Nenhum colaborador encontrado.</p>
+      <p class="empty">
+        @if (abaAtiva() === 'pendentes') {
+          Nenhum colaborador com informações pendentes.
+        } @else {
+          Nenhum colaborador encontrado.
+        }
+      </p>
     } @else {
       <div class="table-wrap">
         <table class="data-table">
@@ -74,6 +169,9 @@
               <th>Empresa</th>
               <th>Status AD</th>
               <th>Intranet</th>
+              @if (exibirColunaPendencias()) {
+                <th>Pendências</th>
+              }
               <th class="col-acoes">Ações</th>
             </tr>
           </thead>
@@ -114,6 +212,15 @@
                     {{ c.intranet.cadastrado ? 'Com acesso' : 'Sem acesso' }}
                   </span>
                 </td>
+                @if (exibirColunaPendencias()) {
+                  <td>
+                    <div class="pendencias-cell">
+                      @for (p of c.pendencias ?? []; track p) {
+                        <span class="pendencia-badge">{{ labelPendencia(p) }}</span>
+                      }
+                    </div>
+                  </td>
+                }
                 <td class="col-acoes">
                   <button type="button" class="btn-icon" title="Ver detalhes" (click)="abrirDetalhe(c)">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -147,68 +254,245 @@
         </div>
       </div>
     }
+    } @else {
+      <div class="import-export-panel">
+        <div class="import-export-section">
+          <h2>Exportar planilha</h2>
+          <p class="section-hint">
+            Gera um arquivo .xlsx com os colaboradores conforme os filtros das abas Todos ou
+            Informações pendentes. Campos editáveis: cargo, departamento, celular, telefone fixo,
+            ramal e aniversário (directory extension no Entra ID).
+          </p>
+          <button
+            type="button"
+            class="btn-primary btn-sm"
+            [disabled]="exportando()"
+            (click)="exportarPlanilha()"
+          >
+            {{ exportando() ? 'Exportando…' : 'Exportar planilha (.xlsx)' }}
+          </button>
+        </div>
+
+        <div class="import-export-section">
+          <h2>Importar alterações</h2>
+          <p class="section-hint">
+            Envie a planilha editada. As alterações serão aplicadas no Microsoft Graph
+            (requer permissão <strong>User.ReadWrite.All</strong> no Azure AD).
+          </p>
+
+          <app-admin-dropzone
+            accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx"
+            hint="Arraste o arquivo .xlsx aqui ou"
+            hintLink="clique para selecionar"
+            subhint="Máximo 5 MB · campos editáveis gravados no Entra ID (directory extension para ramal/aniversário)"
+            [disabled]="importCarregando() || importAplicando()"
+            (fileSelected)="onArquivoImport($event)"
+          />
+
+          @if (importCarregando()) {
+            <p class="empty">Analisando planilha…</p>
+          }
+
+          @if (importPreview(); as preview) {
+            <div class="preview-resumo">
+              <span>{{ preview.resumo.total }} linha(s)</span>
+              <span>{{ preview.resumo.com_alteracoes }} com alterações</span>
+              <span>{{ preview.resumo.aplicaveis }} prontas para aplicar</span>
+              @if (preview.resumo.com_erros) {
+                <span class="text-erro">{{ preview.resumo.com_erros }} com erro</span>
+              }
+            </div>
+
+            @if (previewLinhasFlat().length) {
+              <div class="table-wrap preview-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Linha</th>
+                      <th>Nome</th>
+                      <th>Campo</th>
+                      <th>Valor atual</th>
+                      <th>Novo valor</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of previewLinhasFlat(); track $index) {
+                      <tr>
+                        <td>{{ row.linha }}</td>
+                        <td>{{ row.nome }}</td>
+                        <td>{{ row.campo }}</td>
+                        <td>{{ row.de }}</td>
+                        <td>{{ row.para }}</td>
+                        <td><span class="status-badge" [class]="row.statusClass">{{ row.status }}</span></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            <div class="import-actions">
+              <button
+                type="button"
+                class="btn-primary btn-sm"
+                [disabled]="importAplicando() || !preview.resumo.aplicaveis"
+                (click)="aplicarImportacao()"
+              >
+                {{ importAplicando() ? 'Aplicando…' : 'Aplicar alterações no Graph' }}
+              </button>
+              <button type="button" class="btn-ghost btn-sm" (click)="limparImport()">Limpar</button>
+            </div>
+          }
+
+          @if (importResultado(); as res) {
+            <div class="import-resultado card-inner">
+              <h3>Resultado da importação</h3>
+              <p>
+                <strong>{{ res.aplicados }}</strong> aplicado(s) ·
+                <strong>{{ res.ignorados }}</strong> ignorado(s)
+                @if (res.erros.length) {
+                  · <strong class="text-erro">{{ res.erros.length }}</strong> erro(s)
+                }
+              </p>
+              @if (res.erros.length) {
+                <ul class="erros-lista">
+                  @for (e of res.erros; track $index) {
+                    <li>
+                      @if (e.linha) {
+                        Linha {{ e.linha }}
+                        @if (e.ad_id) {
+                          ({{ e.ad_id }})
+                        }
+                        :
+                      }
+                      {{ e.mensagem }}
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
   </section>
 </div>
 
-@if (drawerAberto()) {
-  <div class="drawer-overlay" (click)="fecharDrawer()"></div>
-  <aside class="drawer-panel" role="dialog" aria-label="Detalhes do colaborador">
-    <header class="drawer-head">
-      <h2>{{ detalhe()?.nome || 'Colaborador' }}</h2>
-      <button type="button" class="drawer-close" aria-label="Fechar" (click)="fecharDrawer()">×</button>
-    </header>
-
-    <div class="drawer-body">
-      @if (detalheCarregando()) {
-        <p class="empty">Carregando…</p>
-      } @else if (detalhe(); as c) {
-        <div class="detalhe-top">
-          @if (fotoUrls()[c.id]; as foto) {
-            <img [src]="foto" [alt]="c.nome" class="detalhe-avatar" />
-          } @else {
-            <span class="detalhe-avatar detalhe-iniciais">{{ iniciais(c.nome) }}</span>
-          }
-          <div>
-            <div class="detalhe-nome">{{ c.nome }}</div>
-            <div class="detalhe-email">{{ c.email || '—' }}</div>
-          </div>
-        </div>
-
-        <dl class="detalhe-lista">
-          <div><dt>Cargo</dt><dd>{{ c.cargo || '—' }}</dd></div>
-          <div><dt>Departamento</dt><dd>{{ c.departamento || '—' }}</dd></div>
-          <div><dt>Empresa</dt><dd>{{ empresaLabel(c.empresa) }}</dd></div>
-          <div><dt>Ramal</dt><dd>{{ c.ramal || '—' }}</dd></div>
-          <div><dt>Celular</dt><dd>{{ c.celular || '—' }}</dd></div>
-          <div><dt>Telefone fixo</dt><dd>{{ c.telefone_fixo || '—' }}</dd></div>
-          <div><dt>Aniversário</dt><dd>{{ formatAniversario(c) }}</dd></div>
-          <div><dt>Status AD</dt><dd>{{ c.ativo ? 'Ativo' : 'Inativo' }}</dd></div>
-          <div><dt>Tenant</dt><dd>{{ c.tenant_nome || '—' }}</dd></div>
-          <div><dt>AD ID</dt><dd class="mono">{{ c.ad_id || '—' }}</dd></div>
-          <div><dt>Sincronizado em</dt><dd>{{ formatData(c.sincronizado_em) }}</dd></div>
-          <div>
-            <dt>Intranet</dt>
-            <dd>{{ c.intranet.cadastrado ? 'Com acesso' : 'Sem acesso' }}</dd>
-          </div>
-        </dl>
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="detalhe()?.nome || 'Colaborador'"
+  [subtitle]="modalSubtitle()"
+  size="wide"
+  [saveLabel]="modalSaveLabel()"
+  [salvando]="modalSalvando()"
+  [saveDisabled]="modalSalvarDesabilitado()"
+  (save)="onModalSave()"
+  (cancel)="fecharModal()"
+>
+  @if (detalheCarregando()) {
+    <p class="empty">Carregando…</p>
+  } @else if (detalhe(); as c) {
+    <div class="detalhe-top">
+      @if (fotoUrls()[c.id]; as foto) {
+        <img [src]="foto" [alt]="c.nome" class="detalhe-avatar" />
+      } @else {
+        <span class="detalhe-avatar detalhe-iniciais">{{ iniciais(c.nome) }}</span>
       }
+      <div class="detalhe-badges">
+        <span class="badge" [class.badge-ok]="c.ativo" [class.badge-off]="!c.ativo">
+          {{ c.ativo ? 'ATIVO no AD' : 'INATIVO no AD' }}
+        </span>
+        <span
+          class="badge"
+          [class.badge-ok]="c.intranet.cadastrado"
+          [class.badge-warn]="!c.intranet.cadastrado"
+        >
+          {{ c.intranet.cadastrado ? 'Com acesso intranet' : 'Sem acesso intranet' }}
+        </span>
+        @for (p of c.pendencias ?? []; track p) {
+          <span class="pendencia-badge">{{ labelPendencia(p) }}</span>
+        }
+      </div>
     </div>
 
-    @if (detalhe(); as c) {
-      <footer class="drawer-foot">
-        @if (isAdmin()) {
-          @if (c.intranet.cadastrado) {
-            <button type="button" class="btn-primary" (click)="irParaAcessos(false)">
-              Gerenciar acesso
-            </button>
-          } @else {
-            <button type="button" class="btn-primary" (click)="irParaAcessos(true)">
-              Provisionar acesso
-            </button>
-          }
+    @if (!modalPodeEditar()) {
+      <p class="modal-aviso">
+        @if (!c.ativo) {
+          Colaborador inativo — os campos editáveis via Graph não podem ser alterados.
+        } @else {
+          Colaborador sem vínculo Azure AD (ad_id) — edição indisponível.
         }
-        <button type="button" class="btn-ghost" (click)="fecharDrawer()">Fechar</button>
-      </footer>
+      </p>
     }
-  </aside>
-}
+
+    <form class="detalhe-form" [formGroup]="editForm">
+      <dl class="detalhe-lista">
+        <div><dt>E-mail</dt><dd>{{ c.email || '—' }}</dd></div>
+        <div class="field-editavel">
+          <dt><label for="edit-cargo">Cargo</label></dt>
+          <dd>
+            <input id="edit-cargo" type="text" formControlName="cargo" class="field-input" />
+          </dd>
+        </div>
+        <div class="field-editavel">
+          <dt><label for="edit-departamento">Departamento</label></dt>
+          <dd>
+            <input
+              id="edit-departamento"
+              type="text"
+              formControlName="departamento"
+              class="field-input"
+              [class.field-invalid]="editForm.get('departamento')?.invalid && editForm.get('departamento')?.touched"
+            />
+          </dd>
+        </div>
+        <div><dt>Empresa</dt><dd>{{ empresaLabel(c.empresa) }}</dd></div>
+        <div class="field-editavel">
+          <dt><label for="edit-ramal">Ramal</label></dt>
+          <dd>
+            <input id="edit-ramal" type="text" formControlName="ramal" class="field-input" />
+          </dd>
+        </div>
+        <div class="field-editavel">
+          <dt><label for="edit-celular">Celular</label></dt>
+          <dd>
+            <input id="edit-celular" type="text" formControlName="celular" class="field-input" />
+          </dd>
+        </div>
+        <div class="field-editavel">
+          <dt><label for="edit-telefone">Telefone fixo</label></dt>
+          <dd>
+            <input id="edit-telefone" type="text" formControlName="telefone_fixo" class="field-input" />
+          </dd>
+        </div>
+        <div class="field-editavel">
+          <dt><label for="edit-aniversario">Aniversário</label></dt>
+          <dd>
+            <input
+              id="edit-aniversario"
+              type="text"
+              formControlName="aniversario"
+              class="field-input"
+              placeholder="DD/MM ou DD/MM/AAAA"
+            />
+          </dd>
+        </div>
+        <div><dt>Tenant</dt><dd>{{ c.tenant_nome || '—' }}</dd></div>
+        <div><dt>AD ID</dt><dd class="mono">{{ c.ad_id || '—' }}</dd></div>
+        <div><dt>Sincronizado em</dt><dd>{{ formatData(c.sincronizado_em) }}</dd></div>
+      </dl>
+    </form>
+  }
+
+  @if (detalhe(); as c) {
+    <button
+      adminModalFootStart
+      type="button"
+      class="btn btn-ghost btn-acesso-intranet"
+      (click)="irParaAcessos()"
+    >
+      {{ modalAcessoLabel() }}
+    </button>
+  }
+</app-admin-modal>

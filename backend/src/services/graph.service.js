@@ -80,14 +80,13 @@ async function testConnection(tenant) {
   return true;
 }
 
-const USER_LIST_SELECT =
-  'id,displayName,jobTitle,department,mail,userPrincipalName,mobilePhone,businessPhones,companyName,accountEnabled,userType,onPremisesExtensionAttributes';
+const { buildUserSelect } = require('../utils/colaboradores.directory-extension');
 
 async function listAllUsers(tenant) {
   const token = await getAppToken(tenant);
+  const select = buildUserSelect(tenant.client_id);
   const users = [];
-  let url =
-    `https://graph.microsoft.com/v1.0/users?$select=${USER_LIST_SELECT}&$top=999`;
+  let url = `https://graph.microsoft.com/v1.0/users?$select=${encodeURIComponent(select)}&$top=999`;
 
   while (url) {
     const res = await fetch(url, {
@@ -182,6 +181,32 @@ async function downloadDriveItemContent(token, driveId, fileRef) {
   return Buffer.from(arrayBuffer);
 }
 
+async function updateUser(tenant, adId, patch) {
+  if (!adId || !patch || !Object.keys(patch).length) {
+    throw new Error('Nada para atualizar no Graph.');
+  }
+
+  const token = await getAppToken(tenant);
+  const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(adId)}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(patch),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = err.error?.message || 'Falha ao atualizar usuário no Graph';
+    const error = new Error(message);
+    error.status = res.status;
+    throw error;
+  }
+
+  return true;
+}
+
 module.exports = {
   getAppToken,
   getUserProfile,
@@ -189,6 +214,7 @@ module.exports = {
   getUserPhoto,
   testConnection,
   listAllUsers,
+  updateUser,
   normalizeShareUrl,
   encodeShareUrl,
   downloadSharedDriveItemContent,

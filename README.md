@@ -33,8 +33,28 @@ intranet-wtorre/
    - `http://127.0.0.1:4201`
    - URL HTTPS de produção (ex.: `https://intranet.seudominio.com`)
 3. Permissões delegadas: `User.Read`, `openid`, `profile`.
-4. Permissão de aplicação: `User.Read.All` — requer **consentimento de administrador** em cada tenant do grupo.
+4. Permissões de **aplicação** (consentimento de administrador em cada tenant):
+   - `User.Read.All` — leitura do diretório (sync de colaboradores)
+   - `User.ReadWrite.All` — **obrigatória** para edição/importação em Gestão de Usuários (PATCH Graph, inclusive directory extensions para ramal e aniversário)
 5. O `tid` (tenant ID) de cada empresa deve ser cadastrado em `azure_tenants` com `ativo=1`.
+
+### Directory extensions (ramal e aniversário)
+
+Ramal e data de nascimento passam a ser gravados em **schema extensions** do Entra ID (`IntranetWtColaborador`: propriedades `ramal` e `dataNascimento`), graváveis via Graph com `User.ReadWrite.All`.
+
+- **Leitura na sync:** prioridade na directory extension; se vazia, fallback para `extensionAttribute5` / `extensionAttribute6` do AD on-premises.
+- **Valores novos** ficam na nuvem (não replicam para o AD local).
+- **Migração one-shot** dos dados legados do AD para a extension:
+
+```bash
+cd backend
+npm run colaboradores:migrate-extensions -- --dry-run   # simula
+npm run colaboradores:migrate-extensions                # aplica
+```
+
+Ou via API autenticada: `POST /api/v1/colaboradores/admin/migrate-extensions?dry_run=1`
+
+Variável opcional: `GRAPH_SCHEMA_EXTENSION_ID` (padrão: `IntranetWtColaborador`).
 
 ## 2. Backend
 

@@ -39,6 +39,7 @@ const env = {
     path.join(__dirname, '..', '..', 'storage', 'documentos'),
   maxUploadMb: Number(process.env.MAX_UPLOAD_MB) || 50,
   ramalAdField: process.env.RAMAL_AD_FIELD || 'businessPhones',
+  graphSchemaExtensionId: process.env.GRAPH_SCHEMA_EXTENSION_ID || 'IntranetWtColaborador',
   syncColaboradoresMin: Number(process.env.SYNC_COLABORADORES_MIN) || 60,
   colaboradoresFotosDir:
     process.env.COLABORADORES_FOTOS_DIR ||

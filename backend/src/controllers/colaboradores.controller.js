@@ -4,9 +4,14 @@ const colaboradoresRepo = require('../repositories/colaboradores.repository');
 const tenantsRepo = require('../repositories/tenants.repository');
 const usersRepo = require('../repositories/users.repository');
 const syncService = require('../services/colaboradores.sync');
+const xlsxService = require('../services/colaboradores-xlsx.service');
+const graphUpdateService = require('../services/colaboradores-graph-update.service');
+const migrateService = require('../services/colaboradores-extension-migrate.service');
+const auditRepo = require('../repositories/auditLog.repository');
 const { decrypt } = require('../services/crypto.service');
 const { fetchUserPhotoBuffer } = require('../services/microsoftGraph');
 const { env } = require('../config/env');
+const { computePendencias } = require('../utils/colaboradores.pendencias');
 
 function ensureFotosDir() {
   try {
@@ -63,7 +68,19 @@ async function resolveIntranetLink(adId) {
 
 async function toAdminColaborador(c) {
   const intranet = await resolveIntranetLink(c.ad_id);
-  return { ...c, intranet };
+  return { ...c, intranet, pendencias: computePendencias(c) };
+}
+
+function parseComSemFilter(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'com') return 'com';
+  if (v === 'sem') return 'sem';
+  return undefined;
+}
+
+function parseIncompletos(value) {
+  const v = String(value || '').trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'sim';
 }
 
 function parseAtivoFilter(value) {
@@ -71,6 +88,40 @@ function parseAtivoFilter(value) {
   if (v === '0' || v === 'false') return '0';
   if (v === 'todos' || v === 'all') return 'todos';
   return '1';
+}
+
+function parseAdminFilters(query) {
+  const {
+    busca,
+    empresa,
+    departamento,
+    ativo,
+    tenant_id,
+    intranet,
+    cargo,
+    empresa_status,
+    incompletos,
+  } = query;
+  return {
+    busca: busca?.trim() || undefined,
+    empresa: empresa?.trim() || undefined,
+    departamento: departamento?.trim() || undefined,
+    ativoFilter: parseAtivoFilter(ativo),
+    tenantId: tenant_id ? Number(tenant_id) : undefined,
+    cargoFilter: parseComSemFilter(cargo),
+    empresaStatus: parseComSemFilter(empresa_status),
+    intranetFilter: parseComSemFilter(intranet),
+    incompletos: parseIncompletos(incompletos),
+  };
+}
+
+function auditMeta(req) {
+  return {
+    userId: req.user?.id,
+    requestId: req.requestId,
+    ip: req.ip,
+    log: auditRepo.log,
+  };
 }
 
 async function list(req, res) {
@@ -112,12 +163,9 @@ async function sync(req, res) {
 
 async function adminList(req, res) {
   try {
-    const { busca, empresa, departamento, ativo, page, limit } = req.query;
+    const { page, limit } = req.query;
     const result = await colaboradoresRepo.findAllPaginated({
-      busca: busca?.trim() || undefined,
-      empresa: empresa?.trim() || undefined,
-      departamento: departamento?.trim() || undefined,
-      ativoFilter: parseAtivoFilter(ativo),
+      ...parseAdminFilters(req.query),
       page,
       limit,
     });
@@ -130,6 +178,15 @@ async function adminList(req, res) {
       page: result.page,
       limit: result.limit,
     });
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function adminFiltros(req, res) {
+  try {
+    const filtros = await colaboradoresRepo.findAdminFiltros();
+    return res.json(filtros);
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });
   }
@@ -160,6 +217,82 @@ async function adminDetail(req, res) {
     }
 
     return res.json(await toAdminColaborador(colaborador));
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function adminUpdateGraph(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({ mensagem: 'ID inválido.' });
+    }
+
+    const { cargo, departamento, celular, telefone_fixo } = req.body || {};
+    const result = await graphUpdateService.updateColaboradorGraph(
+      id,
+      { cargo, departamento, celular, telefone_fixo },
+      auditMeta(req)
+    );
+
+    return res.json({
+      alterado: result.alterado,
+      alteracoes: result.alteracoes,
+      colaborador: await toAdminColaborador(result.colaborador),
+    });
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function adminExport(req, res) {
+  try {
+    const buffer = await xlsxService.exportar(parseAdminFilters(req.query));
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="colaboradores-${date}.xlsx"`);
+    return res.send(buffer);
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function adminImportPreview(req, res) {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ mensagem: 'Envie um arquivo .xlsx.' });
+    }
+    const resultado = await xlsxService.previewImport(req.file.buffer);
+    return res.json(resultado);
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function adminImportAplicar(req, res) {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ mensagem: 'Envie um arquivo .xlsx.' });
+    }
+    const resultado = await xlsxService.aplicarImport(req.file.buffer, auditMeta(req));
+    return res.json(resultado);
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function adminMigrateExtensions(req, res) {
+  try {
+    const dryRun =
+      req.query.dry_run === '1' ||
+      req.query.dry_run === 'true' ||
+      req.query.dry_run === 'sim';
+    const resultado = await migrateService.migrateExtensionAttributes({ dryRun });
+    return res.json(resultado);
   } catch (err) {
     return res.status(err.status || 500).json({ mensagem: err.message });
   }
@@ -221,8 +354,14 @@ module.exports = {
   departamentos,
   sync,
   adminList,
+  adminFiltros,
   adminStats,
   adminDetail,
+  adminUpdateGraph,
+  adminExport,
+  adminImportPreview,
+  adminImportAplicar,
+  adminMigrateExtensions,
   foto,
   ensureFotosDir,
 };

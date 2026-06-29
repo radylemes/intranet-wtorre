@@ -45,7 +45,9 @@ function parseNascimento(s) {
   return { dia, mes, ano };
 }
 
-function resolveContatosFixos(user) {
+const { extractDirectoryExtension } = require('./colaboradores.directory-extension');
+
+function resolveContatosFixos(user, clientId) {
   const oea = user.onPremisesExtensionAttributes || {};
   const ext5 = (oea.extensionAttribute5 || '').trim();
   const bp =
@@ -56,16 +58,18 @@ function resolveContatosFixos(user) {
   const bpEhCurto = /^\d{3,6}$/.test(bp);
   const bpEhCompleto = /[ \-+().]/.test(bp) || bpDigits.length >= 8;
 
-  const ramal = ext5 || (bpEhCurto ? bp : null);
+  const ext = extractDirectoryExtension(user, clientId);
+  const ramal = ext.ramal || ext5 || (bpEhCurto ? bp : null);
   const telefone_fixo = bpEhCompleto ? bp : null;
-  const nasc = parseNascimento(oea.extensionAttribute6);
+  const nascParsed =
+    parseNascimento(ext.dataNascimento) || parseNascimento(oea.extensionAttribute6);
 
   return {
     ramal: ramal || null,
     telefone_fixo,
-    nasc_dia: nasc.dia,
-    nasc_mes: nasc.mes,
-    nasc_ano: nasc.ano,
+    nasc_dia: nascParsed.dia,
+    nasc_mes: nascParsed.mes,
+    nasc_ano: nascParsed.ano,
   };
 }
 
@@ -73,7 +77,7 @@ function mapUserToColaborador(user, tenant, dominioMap) {
   const mail = user.mail && String(user.mail).trim();
   const upn = user.userPrincipalName && String(user.userPrincipalName).trim();
   const email = mail || upn || null;
-  const contatos = resolveContatosFixos(user);
+  const contatos = resolveContatosFixos(user, tenant.client_id);
 
   return {
     ad_id: user.id,

@@ -19,6 +19,7 @@ export class AdminModalComponent {
   readonly icon = input<AdminModalIcon>('folder');
   readonly headerIcon = input<string | null>(null);
   readonly salvando = input(false);
+  readonly saveDisabled = input(false);
   readonly saveLabel = input('Salvar');
   readonly size = input<AdminModalSize>('default');
 
