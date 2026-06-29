@@ -1,0 +1,214 @@
+<div class="admin-page colaboradores-admin-page">
+  <header class="page-head colaboradores-head">
+    <div>
+      <h1>Gestão de Usuários</h1>
+      <p class="page-subtitle">
+        Diretório de colaboradores sincronizado do Azure AD via Microsoft Graph
+      </p>
+    </div>
+    <div class="hd-actions">
+      <span class="sync-info">
+        <span class="dot-ok"></span>
+        Última sync: {{ ultimaSyncLabel() }}
+        @if (stats(); as s) {
+          <span class="stats-mini">({{ s.ativos }} ativos · {{ s.inativos }} inativos)</span>
+        }
+      </span>
+      <button type="button" class="btn-primary btn-sm" [disabled]="sincronizando()" (click)="sincronizar()">
+        {{ sincronizando() ? 'Sincronizando…' : '⟳ Sincronizar AD' }}
+      </button>
+    </div>
+  </header>
+
+  <section class="card colaboradores-card">
+    <div class="toolbar toolbar-filters">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+          <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <input
+          type="search"
+          placeholder="Buscar nome, e-mail, cargo, departamento…"
+          [ngModel]="buscaTexto()"
+          (ngModelChange)="onBuscaInput($event)"
+        />
+      </div>
+
+      <select [ngModel]="filtroEmpresa()" (ngModelChange)="filtroEmpresa.set($event); onFiltroChange()">
+        <option value="">Todas as empresas</option>
+        @for (e of empresas(); track e) {
+          <option [value]="e">{{ e }}</option>
+        }
+      </select>
+
+      <select
+        [ngModel]="filtroDepartamento()"
+        (ngModelChange)="filtroDepartamento.set($event); onFiltroChange()"
+      >
+        <option value="">Todos os departamentos</option>
+        @for (d of departamentos(); track d) {
+          <option [value]="d">{{ d }}</option>
+        }
+      </select>
+
+      <select [ngModel]="filtroAtivo()" (ngModelChange)="filtroAtivo.set($event); onFiltroChange()">
+        <option value="1">Ativos</option>
+        <option value="0">Inativos</option>
+        <option value="todos">Todos</option>
+      </select>
+    </div>
+
+    @if (carregando()) {
+      <p class="empty">Carregando colaboradores…</p>
+    } @else if (!colaboradores().length) {
+      <p class="empty">Nenhum colaborador encontrado.</p>
+    } @else {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Departamento / Cargo</th>
+              <th>Empresa</th>
+              <th>Status AD</th>
+              <th>Intranet</th>
+              <th class="col-acoes">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of colaboradores(); track c.id) {
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    @if (fotoUrls()[c.id]; as foto) {
+                      <img [src]="foto" [alt]="c.nome" class="avatar" />
+                    } @else {
+                      <span class="avatar avatar-iniciais">{{ iniciais(c.nome) }}</span>
+                    }
+                    <span class="nome">{{ c.nome }}</span>
+                  </div>
+                </td>
+                <td>{{ c.email || '—' }}</td>
+                <td>
+                  <div class="sub-cell">{{ c.departamento || '—' }}</div>
+                  <div class="sub-dim">{{ c.cargo || '—' }}</div>
+                </td>
+                <td>
+                  <span class="empresa-badge empresa-{{ empresaClasse(c.empresa) }}">
+                    {{ empresaLabel(c.empresa) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [class.badge-ok]="c.ativo" [class.badge-off]="!c.ativo">
+                    {{ c.ativo ? 'ATIVO' : 'INATIVO' }}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.badge-ok]="c.intranet.cadastrado"
+                    [class.badge-warn]="!c.intranet.cadastrado"
+                  >
+                    {{ c.intranet.cadastrado ? 'Com acesso' : 'Sem acesso' }}
+                  </span>
+                </td>
+                <td class="col-acoes">
+                  <button type="button" class="btn-icon" title="Ver detalhes" (click)="abrirDetalhe(c)">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" />
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <span class="pag-info">
+          {{ total() }} registro(s) · página {{ page() }} de {{ totalPaginas() }}
+        </span>
+        <div class="pag-actions">
+          <button type="button" class="btn-ghost btn-sm" [disabled]="page() <= 1" (click)="paginaAnterior()">
+            Anterior
+          </button>
+          <button
+            type="button"
+            class="btn-ghost btn-sm"
+            [disabled]="page() >= totalPaginas()"
+            (click)="paginaProxima()"
+          >
+            Próxima
+          </button>
+        </div>
+      </div>
+    }
+  </section>
+</div>
+
+@if (drawerAberto()) {
+  <div class="drawer-overlay" (click)="fecharDrawer()"></div>
+  <aside class="drawer-panel" role="dialog" aria-label="Detalhes do colaborador">
+    <header class="drawer-head">
+      <h2>{{ detalhe()?.nome || 'Colaborador' }}</h2>
+      <button type="button" class="drawer-close" aria-label="Fechar" (click)="fecharDrawer()">×</button>
+    </header>
+
+    <div class="drawer-body">
+      @if (detalheCarregando()) {
+        <p class="empty">Carregando…</p>
+      } @else if (detalhe(); as c) {
+        <div class="detalhe-top">
+          @if (fotoUrls()[c.id]; as foto) {
+            <img [src]="foto" [alt]="c.nome" class="detalhe-avatar" />
+          } @else {
+            <span class="detalhe-avatar detalhe-iniciais">{{ iniciais(c.nome) }}</span>
+          }
+          <div>
+            <div class="detalhe-nome">{{ c.nome }}</div>
+            <div class="detalhe-email">{{ c.email || '—' }}</div>
+          </div>
+        </div>
+
+        <dl class="detalhe-lista">
+          <div><dt>Cargo</dt><dd>{{ c.cargo || '—' }}</dd></div>
+          <div><dt>Departamento</dt><dd>{{ c.departamento || '—' }}</dd></div>
+          <div><dt>Empresa</dt><dd>{{ empresaLabel(c.empresa) }}</dd></div>
+          <div><dt>Ramal</dt><dd>{{ c.ramal || '—' }}</dd></div>
+          <div><dt>Celular</dt><dd>{{ c.celular || '—' }}</dd></div>
+          <div><dt>Telefone fixo</dt><dd>{{ c.telefone_fixo || '—' }}</dd></div>
+          <div><dt>Aniversário</dt><dd>{{ formatAniversario(c) }}</dd></div>
+          <div><dt>Status AD</dt><dd>{{ c.ativo ? 'Ativo' : 'Inativo' }}</dd></div>
+          <div><dt>Tenant</dt><dd>{{ c.tenant_nome || '—' }}</dd></div>
+          <div><dt>AD ID</dt><dd class="mono">{{ c.ad_id || '—' }}</dd></div>
+          <div><dt>Sincronizado em</dt><dd>{{ formatData(c.sincronizado_em) }}</dd></div>
+          <div>
+            <dt>Intranet</dt>
+            <dd>{{ c.intranet.cadastrado ? 'Com acesso' : 'Sem acesso' }}</dd>
+          </div>
+        </dl>
+      }
+    </div>
+
+    @if (detalhe(); as c) {
+      <footer class="drawer-foot">
+        @if (isAdmin()) {
+          @if (c.intranet.cadastrado) {
+            <button type="button" class="btn-primary" (click)="irParaAcessos(false)">
+              Gerenciar acesso
+            </button>
+          } @else {
+            <button type="button" class="btn-primary" (click)="irParaAcessos(true)">
+              Provisionar acesso
+            </button>
+          }
+        }
+        <button type="button" class="btn-ghost" (click)="fecharDrawer()">Fechar</button>
+      </footer>
+    }
+  </aside>
+}

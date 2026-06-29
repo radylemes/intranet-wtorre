@@ -5,6 +5,11 @@ import { environment } from '../../environments/environment';
 import {
   AniversariantesResposta,
   Colaborador,
+  ColaboradorAdmin,
+  ColaboradoresAdminFiltros,
+  ColaboradoresAdminResposta,
+  ColaboradoresStats,
+  ColaboradoresSyncResumo,
   DiretorioResposta,
 } from '../models/colaborador.model';
 
@@ -65,10 +70,29 @@ export class ColaboradoresService {
     }
   }
 
-  sincronizar(): Observable<unknown> {
-    return this.http.post(this.api('/colaboradores/sync'), {}).pipe(
+  sincronizar(): Observable<ColaboradoresSyncResumo> {
+    return this.http.post<ColaboradoresSyncResumo>(this.api('/colaboradores/sync'), {}).pipe(
       tap(() => this.invalidarCache())
     );
+  }
+
+  listarAdmin(filtros: ColaboradoresAdminFiltros = {}): Observable<ColaboradoresAdminResposta> {
+    const params: Record<string, string> = {};
+    if (filtros.busca?.trim()) params['busca'] = filtros.busca.trim();
+    if (filtros.empresa?.trim()) params['empresa'] = filtros.empresa.trim();
+    if (filtros.departamento?.trim()) params['departamento'] = filtros.departamento.trim();
+    if (filtros.ativo) params['ativo'] = filtros.ativo;
+    if (filtros.page) params['page'] = String(filtros.page);
+    if (filtros.limit) params['limit'] = String(filtros.limit);
+    return this.http.get<ColaboradoresAdminResposta>(this.api('/colaboradores/admin'), { params });
+  }
+
+  obterAdmin(id: number): Observable<ColaboradorAdmin> {
+    return this.http.get<ColaboradorAdmin>(this.api(`/colaboradores/admin/${id}`));
+  }
+
+  obterStats(): Observable<ColaboradoresStats> {
+    return this.http.get<ColaboradoresStats>(this.api('/colaboradores/admin/stats'));
   }
 
   invalidarCache(): void {

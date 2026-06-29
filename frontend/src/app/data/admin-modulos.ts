@@ -1,7 +1,5 @@
 /**
  * Espelha a ordem de backend/src/config/modulos-admin.js (módulos com rota admin).
- * `colaboradores` fica de fora intencionalmente: gateia sync AD em Ramais & Contatos,
- * sem tela admin — ver docs/padrao-modulos-admin.md §1.
  */
 export const ADMIN_MODULO_ROTAS: { codigo: string; rota: string }[] = [
   { codigo: 'menu', rota: 'menu' },
@@ -12,6 +10,7 @@ export const ADMIN_MODULO_ROTAS: { codigo: string; rota: string }[] = [
   { codigo: 'containers', rota: 'containers' },
   { codigo: 'paginas', rota: 'paginas' },
   { codigo: 'tenants', rota: 'tenants' },
+  { codigo: 'colaboradores', rota: 'colaboradores' },
   { codigo: 'configuracoes', rota: 'configuracoes' },
   { codigo: 'camarotes', rota: 'camarotes' },
   { codigo: 'solicitacao-colaborador', rota: 'solicitacao-colaborador' },

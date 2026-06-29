@@ -1,6 +1,6 @@
 const { getPool } = require('../db/pool');
 
-function mapColaborador(row, { includeAdId = false } = {}) {
+function mapColaborador(row, { includeAdId = false, includeAdminFields = false } = {}) {
   if (!row) return null;
   const base = {
     id: row.id,
@@ -19,10 +19,44 @@ function mapColaborador(row, { includeAdId = false } = {}) {
     ativo: !!row.ativo,
     sincronizado_em: row.sincronizado_em,
   };
-  if (includeAdId) {
+  if (includeAdId || includeAdminFields) {
     base.ad_id = row.ad_id;
   }
+  if (includeAdminFields) {
+    base.nasc_ano = row.nasc_ano ?? null;
+    base.tenant_nome = row.tenant_nome ?? null;
+  }
   return base;
+}
+
+function buildWhereClause({ busca, empresa, departamento, ativoFilter } = {}) {
+  const conditions = [];
+  const values = [];
+
+  if (ativoFilter === '1' || ativoFilter === true) {
+    conditions.push('c.ativo = 1');
+  } else if (ativoFilter === '0' || ativoFilter === false) {
+    conditions.push('c.ativo = 0');
+  }
+
+  if (empresa) {
+    conditions.push('c.empresa = ?');
+    values.push(empresa);
+  }
+  if (departamento) {
+    conditions.push('c.departamento = ?');
+    values.push(departamento);
+  }
+  if (busca) {
+    const like = `%${busca}%`;
+    conditions.push(
+      '(c.nome LIKE ? OR c.email LIKE ? OR c.cargo LIKE ? OR c.departamento LIKE ? OR c.ramal LIKE ? OR c.celular LIKE ? OR c.telefone_fixo LIKE ?)'
+    );
+    values.push(like, like, like, like, like, like, like);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  return { where, values };
 }
 
 function mapAniversariante(row) {
@@ -120,36 +154,94 @@ async function markInactiveByTenant(tenantId, activeAdIds) {
 
 async function findAll({ busca, empresa, departamento, ativoOnly = true } = {}) {
   const pool = getPool();
-  const conditions = [];
-  const values = [];
+  const { where, values } = buildWhereClause({
+    busca,
+    empresa,
+    departamento,
+    ativoFilter: ativoOnly ? '1' : 'todos',
+  });
 
-  if (ativoOnly) {
-    conditions.push('ativo = 1');
-  }
-  if (empresa) {
-    conditions.push('empresa = ?');
-    values.push(empresa);
-  }
-  if (departamento) {
-    conditions.push('departamento = ?');
-    values.push(departamento);
-  }
-  if (busca) {
-    const like = `%${busca}%`;
-    conditions.push(
-      '(nome LIKE ? OR email LIKE ? OR cargo LIKE ? OR departamento LIKE ? OR ramal LIKE ? OR celular LIKE ? OR telefone_fixo LIKE ?)'
-    );
-    values.push(like, like, like, like, like, like, like);
-  }
-
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const [rows] = await pool.execute(
-    `SELECT id, nome, cargo, departamento, email, celular, ramal, telefone_fixo,
-            nasc_dia, nasc_mes, empresa, tenant_id, tem_foto, ativo, sincronizado_em
-     FROM colaboradores ${where} ORDER BY nome ASC`,
+    `SELECT c.id, c.nome, c.cargo, c.departamento, c.email, c.celular, c.ramal, c.telefone_fixo,
+            c.nasc_dia, c.nasc_mes, c.empresa, c.tenant_id, c.tem_foto, c.ativo, c.sincronizado_em
+     FROM colaboradores c ${where} ORDER BY c.nome ASC`,
     values
   );
   return rows.map((r) => mapColaborador(r));
+}
+
+async function findAllPaginated({ busca, empresa, departamento, ativoFilter = '1', page = 1, limit = 50 } = {}) {
+  const pool = getPool();
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50));
+  const offset = (safePage - 1) * safeLimit;
+
+  const { where, values } = buildWhereClause({ busca, empresa, departamento, ativoFilter });
+
+  const [countRows] = await pool.execute(
+    `SELECT COUNT(*) AS total FROM colaboradores c ${where}`,
+    values
+  );
+  const total = countRows[0]?.total ?? 0;
+
+  const [rows] = await pool.execute(
+    `SELECT c.id, c.ad_id, c.nome, c.cargo, c.departamento, c.email, c.celular, c.ramal,
+            c.telefone_fixo, c.nasc_dia, c.nasc_mes, c.nasc_ano, c.empresa, c.tenant_id,
+            c.tem_foto, c.ativo, c.sincronizado_em, t.nome AS tenant_nome
+     FROM colaboradores c
+     LEFT JOIN azure_tenants t ON t.id = c.tenant_id
+     ${where}
+     ORDER BY c.nome ASC
+     LIMIT ? OFFSET ?`,
+    [...values, safeLimit, offset]
+  );
+
+  return {
+    rows: rows.map((r) => mapColaborador(r, { includeAdminFields: true })),
+    total,
+    page: safePage,
+    limit: safeLimit,
+  };
+}
+
+async function countStats() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT
+       SUM(ativo = 1) AS ativos,
+       SUM(ativo = 0) AS inativos,
+       MAX(sincronizado_em) AS ultima_sync
+     FROM colaboradores`
+  );
+  const row = rows[0] || {};
+  return {
+    ativos: Number(row.ativos) || 0,
+    inativos: Number(row.inativos) || 0,
+    ultima_sync: row.ultima_sync ?? null,
+  };
+}
+
+async function findAdminById(id) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT c.*, t.nome AS tenant_nome
+     FROM colaboradores c
+     LEFT JOIN azure_tenants t ON t.id = c.tenant_id
+     WHERE c.id = ?
+     LIMIT 1`,
+    [id]
+  );
+  return mapColaborador(rows[0], { includeAdminFields: true });
+}
+
+async function findDistinctEmpresas() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    `SELECT DISTINCT empresa FROM colaboradores
+     WHERE empresa IS NOT NULL AND empresa != ''
+     ORDER BY empresa ASC`
+  );
+  return rows.map((r) => r.empresa);
 }
 
 async function findAniversariantesByMes(mes) {
@@ -245,6 +337,10 @@ module.exports = {
   upsertBatch,
   markInactiveByTenant,
   findAll,
+  findAllPaginated,
+  countStats,
+  findAdminById,
+  findDistinctEmpresas,
   findAniversariantesByMes,
   findDistinctDepartamentos,
   findById,

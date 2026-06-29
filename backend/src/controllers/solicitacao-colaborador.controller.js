@@ -21,8 +21,13 @@ function handleError(res, err) {
   if (err.code === 'ER_DUP_ENTRY') {
     return res.status(409).json({ mensagem: 'Registro duplicado. Verifique o nome do grupo.' });
   }
+  const bindParamError =
+    typeof err.message === 'string' &&
+    err.message.includes('Bind parameters must not contain undefined');
   return res.status(err.status || 500).json({
-    mensagem: err.message || 'Erro ao processar solicitação de colaborador.',
+    mensagem: bindParamError
+      ? 'Erro interno ao salvar a solicitação. Contate o suporte.'
+      : err.message || 'Erro ao processar solicitação de colaborador.',
   });
 }
 

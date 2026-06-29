@@ -1,230 +1,112 @@
-<div class="admin-page">
-  <div class="crumb">Administração · Pessoas / RH</div>
-  <h1>Solicitação de Colaborador</h1>
+<div class="admin-page sol-admin-page">
+  <header class="page-head">
+    <h1>Solicitação de colaborador</h1>
+    <p class="page-subtitle">Grupos de e-mail, acesso ao formulário e histórico de solicitações.</p>
+  </header>
 
-  <div class="content">
+  <section class="card sol-unified-card">
+    <nav class="admin-tabs" aria-label="Solicitação de colaborador">
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'grupos'"
+        (click)="selecionarAba('grupos')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 6h16v12H4V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            <path d="M4 8l8 5 8-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span class="tab-label">Grupos de e-mail</span>
+      </button>
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'acesso'"
+        (click)="selecionarAba('acesso')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="9" cy="8" r="3.5" stroke="currentColor" stroke-width="2" />
+            <circle cx="17" cy="9" r="2.5" stroke="currentColor" stroke-width="2" />
+            <path d="M3 20v-1a5 5 0 015-5h2a5 5 0 015 5v1" stroke="currentColor" stroke-width="2" />
+            <path d="M17 14a4 4 0 014 4v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="tab-label">Quem pode abrir</span>
+      </button>
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'historico'"
+        (click)="selecionarAba('historico')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+            <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="tab-label">Histórico</span>
+      </button>
+    </nav>
 
-    <!-- Grupos de e-mail -->
-    <section class="card">
-      <div class="hd">
-        <div>
-          <h2>Grupos de e-mail</h2>
-          <p class="hint">
-            Cada grupo recebe um e-mail só com os campos selecionados. Uma solicitação dispara um e-mail por grupo
-            ativo. Destinatários: somente domínios internos.
-          </p>
+    <!-- Aba: Grupos de e-mail -->
+    @if (abaAtiva() === 'grupos') {
+      <div class="sol-tab-panel">
+        <div class="pane-head">
+          <div>
+            <h2>Grupos de e-mail</h2>
+            <p class="hint">
+              Cada grupo recebe um e-mail só com os campos selecionados. Uma solicitação dispara um e-mail por grupo
+              ativo. Destinatários: somente domínios internos.
+            </p>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" (click)="novoGrupo()" [disabled]="editorAberto()">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Novo grupo
+          </button>
         </div>
-        <button type="button" class="btn btn-primary btn-sm" (click)="novoGrupo()" [disabled]="editorAberto()">
-          + Novo grupo
-        </button>
-      </div>
 
-      @if (editandoNovo()) {
-        <div class="editor">
-          <div class="gh">
-            <span class="name">
-              <span class="dot" [class.off]="!grupoAtivo()"></span>
-              {{ grupoNome() || 'Novo grupo' }}
-              <span class="edit-tag">· editando</span>
-            </span>
-            <button
-              type="button"
-              class="toggle"
-              [class.off]="!grupoAtivo()"
-              [attr.aria-pressed]="grupoAtivo()"
-              aria-label="Grupo ativo"
-              (click)="grupoAtivo.set(!grupoAtivo())"
-            ></button>
-          </div>
-
-          <div class="field">
-            <label for="grupo-nome">Nome do grupo</label>
-            <input
-              id="grupo-nome"
-              type="text"
-              [ngModel]="grupoNome()"
-              (ngModelChange)="grupoNome.set($event)"
-              placeholder="Ex.: TI, Credenciamento…"
-            />
-          </div>
-
-          <div class="field">
-            <label>Destinatários (somente domínios internos)</label>
-            <div class="dest-busca">
-              <input
-                type="search"
-                placeholder="Buscar no AD por nome ou e-mail…"
-                [ngModel]="buscaDestinatariosTexto()"
-                (ngModelChange)="onBuscaDestinatario($event)"
-              />
-              @if (resultadosDestinatarios().length) {
-                <ul class="busca-resultados">
-                  @for (c of resultadosDestinatarios(); track c.id) {
-                    <li>
-                      <button type="button" (click)="adicionarDestinatarioDoAd(c)">
-                        {{ c.nome }} — {{ c.email || '—' }}
-                        @if (c.departamento) {
-                          <span class="busca-meta">· {{ c.departamento }}</span>
-                        }
-                      </button>
-                    </li>
-                  }
-                </ul>
-              }
+        <div class="pane-body">
+          @if (!grupos().length) {
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 6h16v12H4V6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                <path d="M4 8l8 5 8-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+              <p>Nenhum grupo cadastrado.</p>
             </div>
-            <div class="chips">
-              @for (email of grupoDestinatarios(); track email) {
-                <button type="button" class="chip mail" (click)="removerEmailGrupo(email)">
-                  {{ email }} ✕
-                </button>
-              }
-              <span class="chip add">
-                <input
-                  type="email"
-                  placeholder="+ adicionar e-mail"
-                  [ngModel]="grupoEmailNovo()"
-                  (ngModelChange)="grupoEmailNovo.set($event)"
-                  (keydown)="onEmailGrupoKeydown($event)"
-                  (blur)="adicionarEmailGrupo()"
-                />
-              </span>
-            </div>
-          </div>
+          }
 
-          <div class="lbl">Campos que este grupo recebe</div>
-          <div class="catalog">
-            @for (c of camposDisponiveis(); track c.chave) {
-              <label class="cat" [class.on]="grupoCamposSel().includes(c.chave)">
-                <input
-                  type="checkbox"
-                  [checked]="grupoCamposSel().includes(c.chave)"
-                  (change)="toggleCampoGrupo(c.chave)"
-                />
-                {{ c.label }}
-                @if (c.tipo === 'file') {
-                  <span class="file">arquivo</span>
-                }
-              </label>
-            }
-          </div>
-
-          <div class="actions-bar">
-            <button type="button" class="btn btn-ghost btn-sm" (click)="cancelarEditor()">Cancelar</button>
-            <button type="button" class="btn btn-primary btn-sm" (click)="salvarGrupo()" [disabled]="salvandoGrupo()">
-              {{ salvandoGrupo() ? 'Salvando…' : 'Salvar grupo' }}
-            </button>
-          </div>
-        </div>
-      }
-
-      @if (!grupos().length && !editandoNovo()) {
-        <p class="empty">Nenhum grupo cadastrado.</p>
-      }
-
-      @for (g of grupos(); track g.id) {
-        @if (editandoGrupoId() === g.id) {
-          <div class="editor">
-            <div class="gh">
-              <span class="name">
-                <span class="dot" [class.off]="!grupoAtivo()"></span>
-                {{ grupoNome() }}
-                <span class="edit-tag">· editando</span>
-              </span>
-              <button
-                type="button"
-                class="toggle"
-                [class.off]="!grupoAtivo()"
-                [attr.aria-pressed]="grupoAtivo()"
-                aria-label="Grupo ativo"
-                (click)="grupoAtivo.set(!grupoAtivo())"
-              ></button>
-            </div>
-
-            <div class="field">
-              <label for="grupo-nome-edit">Nome do grupo</label>
-              <input
-                id="grupo-nome-edit"
-                type="text"
-                [ngModel]="grupoNome()"
-                (ngModelChange)="grupoNome.set($event)"
-              />
-            </div>
-
-            <div class="field">
-              <label>Destinatários (somente domínios internos)</label>
-              <div class="dest-busca">
-                <input
-                  type="search"
-                  placeholder="Buscar no AD por nome ou e-mail…"
-                  [ngModel]="buscaDestinatariosTexto()"
-                  (ngModelChange)="onBuscaDestinatario($event)"
-                />
-                @if (resultadosDestinatarios().length) {
-                  <ul class="busca-resultados">
-                    @for (c of resultadosDestinatarios(); track c.id) {
-                      <li>
-                        <button type="button" (click)="adicionarDestinatarioDoAd(c)">
-                          {{ c.nome }} — {{ c.email || '—' }}
-                          @if (c.departamento) {
-                            <span class="busca-meta">· {{ c.departamento }}</span>
-                          }
-                        </button>
-                      </li>
-                    }
-                  </ul>
-                }
+          @for (g of grupos(); track g.id) {
+            <div class="group-row">
+              <span class="group-dot" [class.off]="!g.ativo"></span>
+              <div class="group-meta">
+                <div class="group-name">{{ g.nome }}</div>
+                <div class="group-fields-grid">
+                  <div class="group-field-block">
+                    <div class="field-label">Destinatários</div>
+                    <div class="chips">
+                      @for (email of g.destinatarios; track email) {
+                        <span class="chip chip-dest">{{ email }}</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="group-field-block">
+                    <div class="field-label">Campos enviados</div>
+                    <div class="chips">
+                      @for (chave of g.campos; track chave) {
+                        <span class="chip">{{ labelCampo(chave) }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="chips">
-                @for (email of grupoDestinatarios(); track email) {
-                  <button type="button" class="chip mail" (click)="removerEmailGrupo(email)">
-                    {{ email }} ✕
-                  </button>
-                }
-                <span class="chip add">
-                  <input
-                    type="email"
-                    placeholder="+ adicionar e-mail"
-                    [ngModel]="grupoEmailNovo()"
-                    (ngModelChange)="grupoEmailNovo.set($event)"
-                    (keydown)="onEmailGrupoKeydown($event)"
-                    (blur)="adicionarEmailGrupo()"
-                  />
-                </span>
-              </div>
-            </div>
-
-            <div class="lbl">Campos que este grupo recebe</div>
-            <div class="catalog">
-              @for (c of camposDisponiveis(); track c.chave) {
-                <label class="cat" [class.on]="grupoCamposSel().includes(c.chave)">
-                  <input
-                    type="checkbox"
-                    [checked]="grupoCamposSel().includes(c.chave)"
-                    (change)="toggleCampoGrupo(c.chave)"
-                  />
-                  {{ c.label }}
-                  @if (c.tipo === 'file') {
-                    <span class="file">arquivo</span>
-                  }
-                </label>
-              }
-            </div>
-
-            <div class="actions-bar">
-              <button type="button" class="btn btn-ghost btn-sm" (click)="cancelarEditor()">Cancelar</button>
-              <button type="button" class="btn btn-primary btn-sm" (click)="salvarGrupo()" [disabled]="salvandoGrupo()">
-                {{ salvandoGrupo() ? 'Salvando…' : 'Salvar grupo' }}
-              </button>
-            </div>
-          </div>
-        } @else {
-          <div class="grp">
-            <div class="gh">
-              <span class="name">
-                <span class="dot" [class.off]="!g.ativo"></span>
-                {{ g.nome }}
-              </span>
-              <div class="grp-actions">
+              <div class="group-actions">
                 <button
                   type="button"
                   class="toggle"
@@ -233,188 +115,341 @@
                   [attr.aria-label]="g.ativo ? 'Desativar grupo' : 'Ativar grupo'"
                   (click)="toggleGrupoAtivo(g)"
                 ></button>
-                <button type="button" class="btn btn-ghost btn-sm" (click)="editarGrupo(g)">Editar</button>
+                <button type="button" class="btn btn-ghost btn-sm" (click)="editarGrupo(g)">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+                    <path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                  </svg>
+                  Editar
+                </button>
               </div>
             </div>
-            <div class="lbl">Destinatários</div>
-            <div class="chips">
-              @for (email of g.destinatarios; track email) {
-                <span class="chip mail">{{ email }}</span>
-              }
-            </div>
-            <div class="lbl">Campos enviados</div>
-            <div class="chips">
-              @for (chave of g.campos; track chave) {
-                <span class="chip">{{ labelCampo(chave) }}</span>
-              }
-            </div>
-          </div>
-        }
-      }
-    </section>
-
-    <!-- Visualizadores -->
-    <section class="card">
-      <div class="hd">
-        <div>
-          <h2>Quem pode abrir solicitação</h2>
-          <p class="hint">Apenas estes usuários veem e usam a página pública de cadastro.</p>
-        </div>
-        <button type="button" class="btn btn-primary btn-sm" (click)="abrirAdicionarViewer()">
-          + Adicionar
-        </button>
-      </div>
-
-      @if (adicionarViewerAberto()) {
-        <div class="viewer-add">
-          <input
-            type="search"
-            placeholder="Buscar colaborador no AD por nome ou e-mail…"
-            [ngModel]="buscaTexto()"
-            (ngModelChange)="onBuscaVisualizador($event)"
-            [disabled]="adicionandoVisualizador()"
-            autofocus
-          />
-          @if (resultadosBusca().length) {
-            <ul class="busca-resultados">
-              @for (c of resultadosBusca(); track c.id) {
-                <li>
-                  <button type="button" (click)="adicionarVisualizador(c)" [disabled]="adicionandoVisualizador()">
-                    {{ c.nome }} — {{ c.email || '—' }}
-                  </button>
-                </li>
-              }
-            </ul>
           }
-          <button type="button" class="btn btn-ghost btn-sm" (click)="adicionarViewerAberto.set(false)">
-            Cancelar
+        </div>
+      </div>
+    }
+
+    <!-- Aba: Quem pode abrir -->
+    @if (abaAtiva() === 'acesso') {
+      <div class="sol-tab-panel">
+        <div class="pane-head">
+          <div>
+            <h2>Quem pode abrir solicitação</h2>
+            <p class="hint">Apenas estes usuários veem e usam a página pública de cadastro.</p>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" (click)="abrirAdicionarViewer()">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Adicionar
           </button>
         </div>
-      }
 
-      @if (!visualizadores().length) {
-        <p class="empty">Nenhum visualizador cadastrado. Admins e usuários com módulo já têm acesso automático.</p>
-      }
+        <div class="pane-body pane-body--users">
+          @if (adicionarViewerAberto()) {
+            <div class="viewer-add">
+              <input
+                type="search"
+                placeholder="Buscar colaborador no AD por nome ou e-mail…"
+                [ngModel]="buscaTexto()"
+                (ngModelChange)="onBuscaVisualizador($event)"
+                [disabled]="adicionandoVisualizador()"
+                autofocus
+              />
+              @if (resultadosBusca().length) {
+                <ul class="busca-resultados">
+                  @for (c of resultadosBusca(); track c.id) {
+                    <li>
+                      <button type="button" (click)="adicionarVisualizador(c)" [disabled]="adicionandoVisualizador()">
+                        {{ c.nome }} — {{ c.email || '—' }}
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+              <button type="button" class="btn btn-ghost btn-sm" (click)="adicionarViewerAberto.set(false)">
+                Cancelar
+              </button>
+            </div>
+          }
 
-      @for (v of visualizadores(); track v.usuario_id) {
-        <div class="viewer">
-          <div class="who">
-            <span class="av">{{ iniciais(v.nome_completo) }}</span>
-            {{ v.nome_completo }}@if (v.departamento) { · {{ v.departamento }} }
+          @if (!visualizadores().length && !adicionarViewerAberto()) {
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5" />
+                <path d="M4 21v-1a6 6 0 0112 0v1" stroke="currentColor" stroke-width="1.5" />
+              </svg>
+              <p>Nenhum visualizador cadastrado. Admins e usuários com módulo já têm acesso automático.</p>
+            </div>
+          }
+
+          @for (v of visualizadores(); track v.usuario_id) {
+            <div class="user-row">
+              <span class="avatar">{{ iniciais(v.nome_completo) }}</span>
+              <div>
+                <div class="user-name">{{ v.nome_completo }}</div>
+                @if (v.departamento) {
+                  <div class="user-dept">{{ v.departamento }}</div>
+                }
+              </div>
+              <button type="button" class="remove-btn" (click)="removerVisualizador(v)">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                remover
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Aba: Histórico -->
+    @if (abaAtiva() === 'historico') {
+      <div class="sol-tab-panel sol-tab-panel--table">
+        @if (carregando()) {
+          <div class="empty-state">
+            <p>Carregando…</p>
           </div>
-          <button type="button" class="x" (click)="removerVisualizador(v)">remover ✕</button>
-        </div>
-      }
-    </section>
-
-    <!-- Histórico -->
-    <section class="card">
-      <h2>Histórico de solicitações</h2>
-      <p class="hint">Status do envio por grupo. Reenvie ou pré-visualize o e-mail de cada área.</p>
-
-      @if (carregando()) {
-        <p class="empty">Carregando…</p>
-      } @else if (!solicitacoes().length) {
-        <p class="empty">Nenhuma solicitação encontrada.</p>
-      } @else {
-        <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Solicitante</th>
-              <th>Colaborador</th>
-              <th>Tipo</th>
-              <th>Envio</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (s of solicitacoes(); track s.id) {
-              <tr [class.exp]="expandedSolicitacaoId() === s.id">
-                <td class="num">{{ s.criado_em | date: 'dd/MM/yyyy' }}</td>
-                <td>{{ s.solicitante_nome }}</td>
-                <td>{{ s.nome }} {{ s.sobrenome }}</td>
-                <td>{{ labelTipo(s.tipo) }}</td>
-                <td>
-                  <span class="badge" [ngClass]="badgeClass(s.status)">{{ labelStatus(s.status) }}</span>
-                </td>
-                <td>
-                  <button type="button" class="btn btn-ghost btn-sm" (click)="toggleDetalhes(s)">
-                    detalhes
-                  </button>
-                </td>
-              </tr>
-              <tr class="exp" [class.hide]="expandedSolicitacaoId() !== s.id">
-                <td colspan="6">
-                  <div class="expand">
-                    @if (carregandoEnvios() === s.id) {
-                      <p class="empty">Carregando envios…</p>
-                    } @else if (!enviosExpandidos(s.id).length) {
-                      <div class="env">
-                        <div class="g">
-                          <span class="tick ok">✓</span>
-                          Nenhum envio registrado
-                        </div>
+        } @else if (!solicitacoes().length) {
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" />
+              <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            <p>Nenhuma solicitação encontrada.</p>
+          </div>
+        } @else {
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Solicitante</th>
+                  <th>Colaborador</th>
+                  <th>Tipo</th>
+                  <th>Envio</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of solicitacoes(); track s.id) {
+                  <tr class="data-row" (click)="toggleDetalhes(s)">
+                    <td class="td-muted">{{ s.criado_em | date: 'dd/MM/yyyy' }}</td>
+                    <td class="td-accent">{{ s.solicitante_nome }}</td>
+                    <td>{{ s.nome }} {{ s.sobrenome }}</td>
+                    <td class="td-muted">{{ labelTipo(s.tipo) }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="badgeClass(s.status)">{{ labelStatus(s.status) }}</span>
+                    </td>
+                    <td class="td-actions">
+                      <button
+                        type="button"
+                        class="btn btn-ghost btn-sm"
+                        (click)="$event.stopPropagation(); toggleDetalhes(s)"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-hidden="true"
+                          class="chevron"
+                          [class.open]="isExpandido(s.id)"
+                        >
+                          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        detalhes
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="exp-row" [class.hide]="!isExpandido(s.id)">
+                    <td colspan="6">
+                      <div class="exp-inner">
+                        @if (carregandoEnvios() === s.id) {
+                          <p class="empty">Carregando envios…</p>
+                        } @else if (!enviosExpandidos(s.id).length) {
+                          <div class="sub-row">
+                            <span class="sub-icon ok">
+                              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                              </svg>
+                            </span>
+                            <div>
+                              <div class="sub-name">Nenhum envio registrado</div>
+                            </div>
+                          </div>
+                        } @else {
+                          @for (e of enviosExpandidos(s.id); track e.id) {
+                            <div class="sub-row">
+                              <span class="sub-icon" [class.ok]="e.status === 'ok'" [class.err]="e.status !== 'ok'">
+                                @if (e.status === 'ok') {
+                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                                  </svg>
+                                } @else {
+                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+                                  </svg>
+                                }
+                              </span>
+                              <div>
+                                <div class="sub-name">{{ e.grupo_nome }}</div>
+                                <div class="sub-email">{{ resumoDestinatarios(e.destinatarios) }}</div>
+                              </div>
+                              <div class="sub-actions">
+                                @if (e.status === 'ok') {
+                                  <button
+                                    type="button"
+                                    class="btn btn-ghost btn-sm"
+                                    (click)="$event.stopPropagation(); previewGrupo(s.id, e.grupo_id)"
+                                  >
+                                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+                                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+                                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" />
+                                    </svg>
+                                    Pré-visualizar
+                                  </button>
+                                }
+                                <button
+                                  type="button"
+                                  class="btn btn-sm"
+                                  [class.btn-primary]="e.status === 'erro'"
+                                  [class.btn-ghost]="e.status !== 'erro'"
+                                  (click)="$event.stopPropagation(); reenviarGrupo(s.id, e.grupo_id, e.grupo_nome)"
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+                                    <path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                    <path d="M20 9A8 8 0 005.5 7.5M4 15a8 8 0 0014.5 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                  </svg>
+                                  Reenviar
+                                </button>
+                              </div>
+                            </div>
+                          }
+                        }
                       </div>
-                    } @else {
-                      @for (e of enviosExpandidos(s.id); track e.id) {
-                        <div class="env">
-                          <div class="g">
-                            @if (e.status === 'ok') {
-                              <span class="tick ok">✓</span>
-                            } @else {
-                              <span class="tick err">✕</span>
-                            }
-                            {{ e.grupo_nome }}
-                            @if (e.status === 'erro') {
-                              <span class="fail-msg">— falha no envio</span>
-                            }
-                          </div>
-                          <div class="r">
-                            <span class="chip">{{ resumoDestinatarios(e.destinatarios) }}</span>
-                            @if (e.status === 'ok') {
-                              <button
-                                type="button"
-                                class="btn btn-ghost btn-sm"
-                                (click)="previewGrupo(s.id, e.grupo_id)"
-                              >
-                                Pré-visualizar
-                              </button>
-                            }
-                            <button
-                              type="button"
-                              class="btn"
-                              [class.btn-primary]="e.status === 'erro'"
-                              [class.btn-ghost]="e.status !== 'erro'"
-                              [class.btn-sm]="true"
-                              (click)="reenviarGrupo(s.id, e.grupo_id, e.grupo_nome)"
-                            >
-                              Reenviar
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    }
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        </div>
-      }
-    </section>
-
-  </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </section>
 </div>
+
+<!-- Modal: criar/editar grupo -->
+<app-admin-modal
+  [open]="modalGrupoAberto()"
+  size="wide"
+  [title]="tituloModalGrupo()"
+  [salvando]="salvandoGrupo()"
+  saveLabel="Salvar grupo"
+  (save)="salvarGrupo()"
+  (cancel)="fecharModalGrupo()"
+>
+  <div class="modal-grupo-form">
+    <div class="modal-toggle-row">
+      <div>
+        <div class="modal-toggle-label">Grupo ativo</div>
+        <div class="modal-toggle-hint">Grupos inativos não recebem e-mails</div>
+      </div>
+      <button
+        type="button"
+        class="toggle"
+        [class.off]="!grupoAtivo()"
+        [attr.aria-pressed]="grupoAtivo()"
+        aria-label="Grupo ativo"
+        (click)="grupoAtivo.set(!grupoAtivo())"
+      ></button>
+    </div>
+
+    <div class="field">
+      <label for="grupo-nome">Nome do grupo</label>
+      <input
+        id="grupo-nome"
+        type="text"
+        [ngModel]="grupoNome()"
+        (ngModelChange)="grupoNome.set($event)"
+        placeholder="Ex.: TI, Credenciamento…"
+      />
+    </div>
+
+    <div class="field">
+      <label>Destinatários (somente domínios internos)</label>
+      <div class="dest-busca">
+        <input
+          type="search"
+          placeholder="Buscar no AD por nome ou e-mail…"
+          [ngModel]="buscaDestinatariosTexto()"
+          (ngModelChange)="onBuscaDestinatario($event)"
+        />
+        @if (resultadosDestinatarios().length) {
+          <ul class="busca-resultados">
+            @for (c of resultadosDestinatarios(); track c.id) {
+              <li>
+                <button type="button" (click)="adicionarDestinatarioDoAd(c)">
+                  {{ c.nome }} — {{ c.email || '—' }}
+                  @if (c.departamento) {
+                    <span class="busca-meta">· {{ c.departamento }}</span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+      <div class="chips">
+        @for (email of grupoDestinatarios(); track email) {
+          <button type="button" class="chip chip-dest" (click)="removerEmailGrupo(email)">
+            {{ email }}
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        }
+        <span class="chip add">
+          <input
+            type="email"
+            placeholder="+ adicionar e-mail"
+            [ngModel]="grupoEmailNovo()"
+            (ngModelChange)="grupoEmailNovo.set($event)"
+            (keydown)="onEmailGrupoKeydown($event)"
+            (blur)="adicionarEmailGrupo()"
+          />
+        </span>
+      </div>
+    </div>
+
+    <div class="field-label">Campos que este grupo recebe</div>
+    <div class="catalog">
+      @for (c of camposDisponiveis(); track c.chave) {
+        <label class="cat" [class.on]="grupoCamposSel().includes(c.chave)">
+          <input
+            type="checkbox"
+            [checked]="grupoCamposSel().includes(c.chave)"
+            (change)="toggleCampoGrupo(c.chave)"
+          />
+          {{ c.label }}
+          @if (c.tipo === 'file') {
+            <span class="file">arquivo</span>
+          }
+        </label>
+      }
+    </div>
+  </div>
+</app-admin-modal>
 
 @if (previewAberto()) {
   <div class="preview-backdrop" (click)="fecharPreview()"></div>
   <aside class="preview-panel">
     <header>
       <h3>Pré-visualização do e-mail</h3>
-      <button type="button" class="x" (click)="fecharPreview()">✕</button>
+      <button type="button" class="x" (click)="fecharPreview()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </button>
     </header>
     <div class="preview-frame" [innerHTML]="previewHtml()"></div>
   </aside>

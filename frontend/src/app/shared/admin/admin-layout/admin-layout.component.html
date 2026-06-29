@@ -63,7 +63,7 @@
       </nav>
     }
 
-    @if (auth.hasModulo('tenants') || auth.isAdmin()) {
+    @if (auth.hasModulo('tenants') || auth.hasModulo('colaboradores') || auth.isAdmin()) {
       <div class="nav-group-label">Acessos</div>
       <nav class="sidebar-nav">
         @if (auth.hasModulo('tenants')) {
@@ -73,6 +73,16 @@
               <path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
             Tenants Azure
+          </a>
+        }
+        @if (auth.hasModulo('colaboradores')) {
+          <a routerLink="/admin/colaboradores" routerLinkActive="active" (click)="closeSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" />
+              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Gestão de Usuários
           </a>
         }
         @if (auth.isAdmin()) {

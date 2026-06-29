@@ -6,6 +6,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap, of, Observable 
 import { AdminDrawerComponent } from '../../../shared/admin/admin-drawer/admin-drawer.component';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AlertasService } from '../../../services/alertas.service';
+import { ColaboradoresService } from '../../../services/colaboradores.service';
 import { PerfisAcessoService } from '../../../services/perfis-acesso.service';
 import {
   ColaboradorBusca,
@@ -25,6 +26,7 @@ type AbaAcessos = 'colaboradores' | 'perfis';
 })
 export class AcessosAdminComponent implements OnInit {
   private readonly api = inject(PerfisAcessoService);
+  private readonly colaboradoresService = inject(ColaboradoresService);
   private readonly alertas = inject(AlertasService);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
@@ -100,6 +102,56 @@ export class AcessosAdminComponent implements OnInit {
         next: (list) => this.resultadosBusca.set(list),
         error: () => this.erro.set('Erro na busca de colaboradores.'),
       });
+
+    this.processarDeepLink();
+  }
+
+  private processarDeepLink(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    const usuarioId = Number(qp.get('usuario_id'));
+    const colaboradorId = Number(qp.get('colaborador_id'));
+    const provisionar = qp.get('provisionar') === '1';
+
+    if (usuarioId) {
+      this.api.obterUsuario(usuarioId).subscribe({
+        next: (u) => this.abrirDrawer(u),
+        error: (err: HttpErrorResponse) =>
+          this.erro.set(err.error?.mensagem || 'Erro ao carregar usuário.'),
+      });
+      return;
+    }
+
+    if (!colaboradorId) return;
+
+    this.colaboradoresService.obterAdmin(colaboradorId).subscribe({
+      next: (c) => {
+        const busca: ColaboradorBusca = {
+          id: c.id,
+          ad_id: c.ad_id,
+          nome: c.nome,
+          email: c.email,
+          departamento: c.departamento,
+          empresa: c.empresa,
+          ja_cadastrado: c.intranet.cadastrado,
+          usuario_id: c.intranet.usuario_id,
+        };
+
+        if (provisionar || !c.intranet.cadastrado) {
+          this.abrirColaborador(busca);
+          return;
+        }
+
+        if (c.intranet.usuario_id) {
+          this.api.obterUsuario(c.intranet.usuario_id).subscribe({
+            next: (u) => this.abrirDrawer(u),
+            error: (err: HttpErrorResponse) =>
+              this.erro.set(err.error?.mensagem || 'Erro ao carregar usuário.'),
+          });
+        }
+      },
+      error: (err: HttpErrorResponse) =>
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar colaborador.'),
+    });
   }
 
   selecionarAba(aba: AbaAcessos): void {

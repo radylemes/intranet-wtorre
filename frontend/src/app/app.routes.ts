@@ -145,6 +145,15 @@ export const routes: Routes = [
         data: { adminTitle: 'Tenants Azure' },
       },
       {
+        path: 'colaboradores',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/colaboradores/colaboradores-admin.component').then(
+            (m) => m.ColaboradoresAdminComponent
+          ),
+        data: { adminTitle: 'Gestão de Usuários' },
+      },
+      {
         path: 'treinamentos',
         loadComponent: () =>
           import('./pages/admin/admin-aba-redirect/admin-aba-redirect.component').then(

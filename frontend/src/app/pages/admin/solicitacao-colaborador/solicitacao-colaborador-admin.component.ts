@@ -14,11 +14,14 @@ import {
   SolicitacaoVisualizador,
   UsuarioAdBusca,
 } from '../../../models/solicitacao-colaborador.model';
+import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
+
+type AbaSolicitacao = 'grupos' | 'acesso' | 'historico';
 
 @Component({
   selector: 'app-solicitacao-colaborador-admin',
   standalone: true,
-  imports: [FormsModule, DatePipe, NgClass],
+  imports: [FormsModule, DatePipe, NgClass, AdminModalComponent],
   templateUrl: './solicitacao-colaborador-admin.component.html',
   styleUrl: './solicitacao-colaborador-admin.component.scss',
 })
@@ -62,9 +65,15 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
   readonly previewHtml = signal<SafeHtml | ''>('');
   readonly previewAberto = signal(false);
 
+  readonly abaAtiva = signal<AbaSolicitacao>('grupos');
+
   readonly camposDisponiveis = computed(() => this.campos());
   readonly editorAberto = computed(() => this.editandoGrupoId() !== null);
   readonly editandoNovo = computed(() => this.editandoGrupoId() === -1);
+  readonly modalGrupoAberto = computed(() => this.editandoGrupoId() !== null);
+  readonly tituloModalGrupo = computed(() =>
+    this.editandoNovo() ? 'Novo grupo' : 'Editar grupo'
+  );
 
   constructor() {
     effect(() => {
@@ -122,6 +131,18 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
         this.erro.set(e.error?.mensagem || 'Erro ao carregar histórico.');
       },
     });
+  }
+
+  selecionarAba(id: AbaSolicitacao): void {
+    this.abaAtiva.set(id);
+  }
+
+  fecharModalGrupo(): void {
+    this.cancelarEditor();
+  }
+
+  isExpandido(id: number): boolean {
+    return this.expandedSolicitacaoId() === id;
   }
 
   labelCampo(chave: string): string {
