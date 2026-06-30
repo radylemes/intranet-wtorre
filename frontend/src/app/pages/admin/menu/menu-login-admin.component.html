@@ -19,6 +19,58 @@
   } @else {
     <form class="card-body" [formGroup]="form" (ngSubmit)="salvar()">
       <fieldset class="form-section">
+        <legend>Favicon do site</legend>
+        <p class="field-hint">
+          Ícone exibido na aba do navegador em todo o site. Recomendado PNG ou SVG quadrado (32×32 ou 64×64).
+        </p>
+        <div class="favicon-row">
+          <div class="favicon-media">
+            <div class="media-label">Favicon <span class="opt">(opcional)</span></div>
+            @if (form.controls.favicon_url.value) {
+              <div class="favicon-preview">
+                <img
+                  [src]="form.controls.favicon_url.value + '?t=' + faviconPreviewStamp()"
+                  alt="Prévia do favicon"
+                  width="32"
+                  height="32"
+                />
+              </div>
+            }
+            <app-admin-dropzone
+              #faviconDropzone
+              [compact]="true"
+              [disabled]="estaUploadandoFavicon()"
+              hint=" ou arraste"
+              hintLink="Clique"
+              subhint="PNG/SVG/JPG"
+              (fileSelected)="onFaviconFile($event)"
+            />
+            @if (estaUploadandoFavicon()) {
+              <p class="upload-status">Enviando favicon...</p>
+            }
+            <div class="media-acts">
+              <button
+                type="button"
+                class="btn-soft"
+                [disabled]="estaUploadandoFavicon()"
+                (click)="trocarFavicon(faviconDropzone)"
+              >
+                Trocar
+              </button>
+              <button
+                type="button"
+                class="btn-soft danger"
+                [disabled]="estaUploadandoFavicon() || !form.controls.favicon_url.value"
+                (click)="removerFavicon()"
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
         <legend>Marca no topo</legend>
         <div class="fields-row">
           <div class="field">

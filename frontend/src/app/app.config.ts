@@ -15,6 +15,10 @@ import {
   authMsalRedirectInitializer,
   authSessionInitializer,
 } from './services/auth.service';
+import {
+  SiteBrandingService,
+  siteBrandingInitializer,
+} from './services/site-branding.service';
 
 export function msalInstanceFactory(msalConfig: MsalConfigService) {
   const instance = msalConfig.getInstance();
@@ -54,6 +58,12 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: authSessionInitializer,
       deps: [AuthService],
+      multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: siteBrandingInitializer,
+      deps: [SiteBrandingService],
       multi: true,
     },
     {

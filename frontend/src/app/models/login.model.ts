@@ -28,6 +28,7 @@ export interface LoginEmpresaChip {
 }
 
 export interface LoginConfig {
+  favicon_url: string | null;
   marca_topo: { titulo: string; subtitulo: string };
   hero: {
     titulo_linha1: string;
@@ -51,6 +52,7 @@ export function estiloDeVariante(variante: LoginEmpresaVariante): LoginEmpresaEs
 }
 
 export const LOGIN_DEFAULTS: LoginConfig = {
+  favicon_url: null,
   marca_topo: {
     titulo: 'GRUPO WTORRE',
     subtitulo: 'INTRANET CORPORATIVA',

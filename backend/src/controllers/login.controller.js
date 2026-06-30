@@ -12,6 +12,27 @@ function validarLinkUrl(url) {
   return trimmed;
 }
 
+function validarFaviconUrl(url) {
+  if (!url?.trim()) return null;
+  const trimmed = url.trim();
+  if (/^javascript:/i.test(trimmed)) {
+    const err = new Error('URL do favicon inválida.');
+    err.status = 400;
+    throw err;
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    const err = new Error('Favicon deve ser um arquivo enviado pelo sistema (URL interna).');
+    err.status = 400;
+    throw err;
+  }
+  if (!trimmed.startsWith('/')) {
+    const err = new Error('URL do favicon deve ser um caminho relativo interno.');
+    err.status = 400;
+    throw err;
+  }
+  return trimmed;
+}
+
 function validarLoginConfig(body) {
   if (!body?.marca_topo?.titulo?.trim()) {
     const err = new Error('Título da marca no topo é obrigatório.');
@@ -95,6 +116,12 @@ function validarLoginConfig(body) {
     } else {
       empresa.link_url = null;
     }
+  }
+
+  if (body.favicon_url?.trim()) {
+    body.favicon_url = validarFaviconUrl(body.favicon_url);
+  } else {
+    body.favicon_url = null;
   }
 
   return body;

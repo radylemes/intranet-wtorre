@@ -22,6 +22,7 @@ const LOGIN_VARIANTE_ESTILOS = {
 };
 
 const LOGIN_DEFAULTS = {
+  favicon_url: null,
   marca_topo: {
     titulo: 'GRUPO WTORRE',
     subtitulo: 'INTRANET CORPORATIVA',
@@ -504,6 +505,11 @@ function normalizeLoginEmpresa(empresa, index) {
 
 function normalizeLoginConfig(raw) {
   const base = structuredClone(LOGIN_DEFAULTS);
+
+  if (raw?.favicon_url != null) {
+    const favicon = String(raw.favicon_url).trim();
+    base.favicon_url = favicon || null;
+  }
 
   if (raw?.marca_topo) {
     base.marca_topo.titulo =

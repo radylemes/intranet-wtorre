@@ -154,15 +154,25 @@ async function uploadLogoImagem(req, res) {
     const filename = path.basename(outputPath);
     const imagem_url = `/api/v1/grupo-logos/${filename}`;
 
-    const config = await siteConfigRepo.getTopbar();
-    const logo = config.logos.find((l) => l.id === logoId);
-    if (logo) {
-      if (isStoredLogoUrl(logo.imagem_url)) {
-        deleteStoredLogoFile(logo.imagem_url);
+    if (logoId === 'site-favicon') {
+      const loginConfig = await siteConfigRepo.getLogin();
+      if (isStoredLogoUrl(loginConfig.favicon_url)) {
+        deleteStoredLogoFile(loginConfig.favicon_url);
       }
-      logo.imagem_url = imagem_url;
-      await siteConfigRepo.setTopbar(config);
-      await contentVersionService.bump('topbar');
+      loginConfig.favicon_url = imagem_url;
+      await siteConfigRepo.setLogin(loginConfig);
+      await contentVersionService.bump('login');
+    } else {
+      const config = await siteConfigRepo.getTopbar();
+      const logo = config.logos.find((l) => l.id === logoId);
+      if (logo) {
+        if (isStoredLogoUrl(logo.imagem_url)) {
+          deleteStoredLogoFile(logo.imagem_url);
+        }
+        logo.imagem_url = imagem_url;
+        await siteConfigRepo.setTopbar(config);
+        await contentVersionService.bump('topbar');
+      }
     }
 
     return res.json({

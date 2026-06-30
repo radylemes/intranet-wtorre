@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { MsalConfigService } from '../../services/msal-config.service';
 import { MenuService } from '../../services/menu.service';
+import { SiteBrandingService } from '../../services/site-branding.service';
 import { LoginConfig, LOGIN_DEFAULTS } from '../../models/login.model';
 
 @Component({
@@ -21,6 +22,7 @@ export class LoginComponent implements OnInit {
   readonly msalConfig = inject(MsalConfigService);
   private readonly route = inject(ActivatedRoute);
   private readonly menuService = inject(MenuService);
+  private readonly siteBranding = inject(SiteBrandingService);
 
   readonly config = signal<LoginConfig>(structuredClone(LOGIN_DEFAULTS));
   readonly empresas = computed(() =>
@@ -51,7 +53,10 @@ export class LoginComponent implements OnInit {
     }
 
     this.menuService.getLoginPublic().subscribe({
-      next: (cfg) => this.config.set(cfg),
+      next: (cfg) => {
+        this.config.set(cfg);
+        this.siteBranding.applyFavicon(cfg.favicon_url);
+      },
     });
 
     this.route.queryParams.subscribe((params) => {

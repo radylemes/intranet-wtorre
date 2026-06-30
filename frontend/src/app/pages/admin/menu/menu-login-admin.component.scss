@@ -13,6 +13,29 @@
   margin: 4px 0 0;
 }
 
+.favicon-row {
+  margin-top: 8px;
+}
+
+.favicon-media {
+  max-width: 280px;
+}
+
+.favicon-preview {
+  margin-bottom: 8px;
+  padding: 10px;
+  border: 1px dashed var(--line, #e4e8f0);
+  border-radius: 10px;
+  text-align: center;
+  background: #f6f8fc;
+}
+
+.favicon-preview img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
 .form-section {
   border: none;
   margin: 0 0 22px;

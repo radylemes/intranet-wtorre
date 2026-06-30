@@ -12,6 +12,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MenuService } from '../../../services/menu.service';
 import { AuthService } from '../../../services/auth.service';
 import { AlertasService } from '../../../services/alertas.service';
+import { SiteBrandingService } from '../../../services/site-branding.service';
 import { AdminDropzoneComponent } from '../../../shared/admin/admin-dropzone/admin-dropzone.component';
 import {
   LoginConfig,
@@ -65,6 +66,7 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly alertas = inject(AlertasService);
+  private readonly siteBranding = inject(SiteBrandingService);
 
   readonly variantes = VARIANTES;
   readonly estilos = ESTILOS;
@@ -73,8 +75,11 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
   readonly salvando = signal(false);
   readonly carregando = signal(true);
   readonly uploadando = signal<string | null>(null);
+  readonly faviconPreviewStamp = signal(0);
+  readonly FAVICON_LOGO_ID = 'site-favicon';
 
   readonly form = this.fb.nonNullable.group({
+    favicon_url: [''],
     marca_titulo: ['', Validators.required],
     marca_subtitulo: ['', Validators.required],
     hero_linha1: ['', Validators.required],
@@ -147,6 +152,7 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
 
   private patchForm(config: LoginConfig): void {
     this.form.patchValue({
+      favicon_url: config.favicon_url ?? '',
       marca_titulo: config.marca_topo.titulo,
       marca_subtitulo: config.marca_topo.subtitulo,
       hero_linha1: config.hero.titulo_linha1,
@@ -222,6 +228,43 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
     dropzone.openFilePicker();
   }
 
+  trocarFavicon(dropzone: AdminDropzoneComponent): void {
+    dropzone.openFilePicker();
+  }
+
+  removerFavicon(): void {
+    this.form.patchValue({ favicon_url: '' });
+    this.faviconPreviewStamp.update((v) => v + 1);
+    this.siteBranding.applyFavicon(null);
+  }
+
+  onFaviconFile(file: File): void {
+    this.uploadando.set(this.FAVICON_LOGO_ID);
+    this.erro.set('');
+
+    this.menuService.uploadLogoImagem(this.FAVICON_LOGO_ID, file).subscribe({
+      next: (res) => {
+        this.form.patchValue({ favicon_url: res.imagem_url });
+        this.faviconPreviewStamp.update((v) => v + 1);
+        this.siteBranding.applyFavicon(res.imagem_url);
+        if (res.compactado) {
+          this.alertas.sucesso('Favicon salvo e otimizado automaticamente.');
+        } else {
+          this.mensagem.set('Favicon salvo.');
+        }
+        this.uploadando.set(null);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao enviar favicon.');
+        this.uploadando.set(null);
+      },
+    });
+  }
+
+  estaUploadandoFavicon(): boolean {
+    return this.uploadando() === this.FAVICON_LOGO_ID;
+  }
+
   removerEmpresaImagem(index: number): void {
     this.empresasArray().at(index).patchValue({ imagem_url: '' });
   }
@@ -267,6 +310,7 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
 
     const raw = this.form.getRawValue();
     const config: LoginConfig = {
+      favicon_url: raw.favicon_url?.trim() || null,
       marca_topo: {
         titulo: raw.marca_titulo.trim(),
         subtitulo: raw.marca_subtitulo.trim(),
@@ -306,6 +350,7 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
 
     this.menuService.salvarLogin(config).subscribe({
       next: () => {
+        this.siteBranding.applyFavicon(config.favicon_url);
         this.mensagem.set('Página de login salva.');
         this.salvando.set(false);
       },
