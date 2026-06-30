@@ -87,6 +87,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'dashboards',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/dashboards/dashboards-index.component').then(
+        (m) => m.DashboardsIndexComponent
+      ),
+  },
+  {
+    path: 'dashboards/:reportId',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/dashboards/dashboards-view.component').then(
+        (m) => m.DashboardsViewComponent
+      ),
+  },
+  {
     path: 'solicitacao-colaborador',
     canActivate: [authGuard, solicitacaoViewerGuard],
     loadComponent: () =>

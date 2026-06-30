@@ -1,0 +1,26 @@
+<div class="pagina">
+  <app-public-chrome>
+    <section class="dash-view pagebg">
+      <div class="wrap page">
+        <nav class="crumb" aria-label="Navegação">
+          <a routerLink="/inicio">Início</a>
+          <span class="sep">›</span>
+          <a routerLink="/dashboards">Dashboards</a>
+          <span class="sep">›</span>
+          <span class="cur">Visualizar</span>
+        </nav>
+
+        @if (erro()) {
+          <div class="alert err">{{ erro() }}</div>
+        }
+
+        @if (carregando()) {
+          <p class="loading">Carregando dashboard...</p>
+        }
+
+        <div #embedHost class="embed-host" [class.hidden]="carregando() || erro()"></div>
+      </div>
+    </section>
+  </app-public-chrome>
+  <app-footer />
+</div>

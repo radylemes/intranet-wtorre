@@ -8,6 +8,7 @@ function mapUser(row) {
     nome_completo: row.nome_completo,
     email: row.email,
     departamento: row.departamento,
+    setor_id: row.setor_id != null ? row.setor_id : null,
     perfil: row.perfil,
     microsoft_id: row.microsoft_id,
     is_ad_user: !!row.is_ad_user,
@@ -67,6 +68,15 @@ async function updateProfile(id, nome, departamento) {
     'UPDATE usuarios SET nome_completo = ?, departamento = ?, atualizado_em = NOW() WHERE id = ?',
     [nome, departamento, id]
   );
+  return findById(id);
+}
+
+async function setSetorId(id, setorId) {
+  const pool = getPool();
+  await pool.execute('UPDATE usuarios SET setor_id = ?, atualizado_em = NOW() WHERE id = ?', [
+    setorId,
+    id,
+  ]);
   return findById(id);
 }
 
@@ -139,6 +149,7 @@ module.exports = {
   linkMicrosoft,
   createMicrosoftUser,
   updateProfile,
+  setSetorId,
   setAtivo,
   setPerfil,
   countAdminsAtivos,

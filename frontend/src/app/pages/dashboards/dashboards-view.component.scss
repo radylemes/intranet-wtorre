@@ -1,0 +1,51 @@
+.dash-view {
+  min-height: 70vh;
+  padding-bottom: 2rem;
+}
+
+.wrap.page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 1.5rem;
+}
+
+.crumb {
+  font-size: 0.875rem;
+  color: var(--ink-dim, #8a93a8);
+  margin-bottom: 1rem;
+}
+
+.crumb a {
+  color: var(--accent, #1d54e6);
+  text-decoration: none;
+}
+
+.crumb .sep {
+  margin: 0 0.35rem;
+}
+
+.embed-host {
+  width: 100%;
+  min-height: calc(100vh - 220px);
+  border: 1px solid var(--line, #e2e6ee);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel, #fff);
+}
+
+.embed-host.hidden {
+  display: none;
+}
+
+.alert.err,
+.loading {
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.alert.err {
+  background: #fff5f5;
+  border: 1px solid #f5c2c7;
+  color: #842029;
+}

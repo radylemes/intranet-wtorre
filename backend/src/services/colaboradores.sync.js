@@ -1,6 +1,9 @@
 const tenantsRepo = require('../repositories/tenants.repository');
 const colaboradoresRepo = require('../repositories/colaboradores.repository');
 const empresaDominiosRepo = require('../repositories/empresa-dominios.repository');
+const usersRepo = require('../repositories/users.repository');
+const departamentoSetorRepo = require('../repositories/departamento-setor.repository');
+const setorUsuarioRepo = require('../repositories/setor-usuario.repository');
 const graphService = require('./graph.service');
 const { filterAndMapUsers } = require('../utils/colaboradores.mapper');
 const { env } = require('../config/env');
@@ -17,7 +20,7 @@ async function sincronizarColaboradores() {
 
   syncEmAndamento = true;
   const inicio = Date.now();
-  const resumo = { tenants: [], total: 0, erros: [] };
+  const resumo = { tenants: [], total: 0, erros: [], departamentos_sem_mapa: [] };
 
   try {
     const tenants = (await tenantsRepo.findAll()).filter(
@@ -41,6 +44,13 @@ async function sincronizarColaboradores() {
 
         if (mapped.length) {
           tenantResumo.sincronizados = await colaboradoresRepo.upsertBatch(mapped);
+          const { atualizados, semMapa } = await propagarSetorIdUsuarios(mapped);
+          tenantResumo.usuarios_setor_atualizados = atualizados;
+          for (const dept of semMapa) {
+            if (!resumo.departamentos_sem_mapa.includes(dept)) {
+              resumo.departamentos_sem_mapa.push(dept);
+            }
+          }
         }
 
         const adIds = mapped.map((m) => m.ad_id);
@@ -97,6 +107,33 @@ function agendarSincronizacaoColaboradores() {
 
 function isSyncEmAndamento() {
   return syncEmAndamento;
+}
+
+async function propagarSetorIdUsuarios(mapped) {
+  let atualizados = 0;
+  const semMapa = [];
+
+  for (const row of mapped) {
+    const adId = row.ad_id;
+    const departamento = row.departamento ? String(row.departamento).trim() : '';
+    if (!adId || !departamento) continue;
+
+    const mapa = await departamentoSetorRepo.findByDepartamento(departamento);
+    if (!mapa?.setor_id) {
+      if (!semMapa.includes(departamento)) semMapa.push(departamento);
+      continue;
+    }
+
+    const user = await usersRepo.findByMicrosoftId(adId);
+    if (!user) continue;
+
+    if (user.setor_id !== mapa.setor_id) {
+      await setorUsuarioRepo.updateSetorId(user.id, mapa.setor_id);
+      atualizados += 1;
+    }
+  }
+
+  return { atualizados, semMapa };
 }
 
 module.exports = {

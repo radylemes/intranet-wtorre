@@ -96,12 +96,33 @@ const env = {
   eventosCacheTtlMin: Number(process.env.EVENTOS_CACHE_TTL_MIN) || 60,
   eventosLimite: Number(process.env.EVENTOS_LIMITE) || 6,
   eventosAgendaLimite: Number(process.env.EVENTOS_AGENDA_LIMITE) || 60,
+  pbiEnabled:
+    process.env.PBI_ENABLED === '1' || process.env.PBI_ENABLED === 'true',
+  pbiTenantId: process.env.PBI_TENANT_ID || '',
+  pbiClientId: process.env.PBI_CLIENT_ID || '',
+  pbiClientSecret: process.env.PBI_CLIENT_SECRET || '',
+  pbiWorkspaceId: process.env.PBI_WORKSPACE_ID || '',
+  pbiRlsMode: process.env.PBI_RLS_MODE === 'dynamic' ? 'dynamic' : 'static',
+  pbiRlsDynamicRole: process.env.PBI_RLS_DYNAMIC_ROLE || '',
+  pbiSpTokenCacheMin: Number(process.env.PBI_SP_TOKEN_CACHE_MIN) || 50,
+  pbiEmbedTokenCacheMin: Number(process.env.PBI_EMBED_TOKEN_CACHE_MIN) || 55,
+  pbiEmbedRateLimitMax: Number(process.env.PBI_EMBED_RATE_LIMIT_MAX) || 30,
+  pbiEmbedRateLimitWindowMs: Number(process.env.PBI_EMBED_RATE_LIMIT_WINDOW_MS) || 900000,
 };
 
 function validateEnv() {
   requireEnv('JWT_SECRET', 32);
   requireEnv('ENCRYPTION_KEY', 64);
   requireEnv('AZURE_STORAGE_ACCOUNT');
+  if (env.pbiEnabled) {
+    requireEnv('PBI_TENANT_ID');
+    requireEnv('PBI_CLIENT_ID');
+    requireEnv('PBI_CLIENT_SECRET');
+    requireEnv('PBI_WORKSPACE_ID');
+    if (env.pbiRlsMode === 'dynamic') {
+      requireEnv('PBI_RLS_DYNAMIC_ROLE');
+    }
+  }
 }
 
 module.exports = { env, validateEnv, requireEnv };

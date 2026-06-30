@@ -7,6 +7,7 @@ const colaboradoresRepo = require('../repositories/colaboradores.repository');
 const jwtService = require('./jwt.service');
 const graphService = require('./graph.service');
 const permissoesService = require('./permissoes.service');
+const setorUsuarioService = require('./setor-usuario.service');
 
 const ERRO_SEM_DEPARTAMENTO =
   'Acesso negado: é necessário ter departamento cadastrado no Azure AD para usar a intranet. ' +
@@ -170,6 +171,8 @@ async function loginMicrosoft(azureUser, meta) {
     err.status = 403;
     throw err;
   }
+
+  await setorUsuarioService.resolverSetor(user);
 
   await auditRepo.log({
     userId: user.id,
