@@ -118,6 +118,25 @@ async function coletarEventosDasFontes() {
   };
 }
 
+function filtrarPorIntervalo(eventos, de, ate) {
+  return ordenarEventos(
+    eventos.filter((ev) => ev.dataIso && ev.dataIso >= de && ev.dataIso <= ate)
+  );
+}
+
+function filtrarPorMes(eventos, ano, mes) {
+  const prefix = `${ano}-${String(mes).padStart(2, '0')}`;
+  return ordenarEventos(eventos.filter((ev) => ev.dataIso && ev.dataIso.startsWith(prefix)));
+}
+
+function resolverLimiteAgenda(limite, comFiltro) {
+  const teto = comFiltro ? 200 : 100;
+  const padrao = comFiltro ? 200 : env.eventosAgendaLimite;
+  if (limite != null && Number.isFinite(Number(limite))) {
+    return Math.min(Math.max(1, Math.floor(Number(limite))), teto);
+  }
+  return padrao;
+}
 async function listarProximos() {
   const { eventos, fontes } = await coletarEventosDasFontes();
   const ordenados = ordenarEventos(eventos).slice(0, env.eventosLimite);
@@ -130,18 +149,27 @@ async function listarProximos() {
   };
 }
 
-async function listarAgenda({ limite } = {}) {
-  const max =
-    limite != null && Number.isFinite(Number(limite))
-      ? Math.min(Math.max(1, Math.floor(Number(limite))), 100)
-      : env.eventosAgendaLimite;
+async function listarAgenda({ limite, de, ate, ano, mes } = {}) {
+  const temIntervalo = Boolean(de && ate);
+  const temMes = ano != null && mes != null;
+  const comFiltro = temIntervalo || temMes;
+  const max = resolverLimiteAgenda(limite, comFiltro);
 
   const { eventos, fontes } = await coletarEventosDasFontes();
-  const futuros = filtrarFuturos(eventos).slice(0, max);
+  let filtrados;
+
+  if (temIntervalo) {
+    filtrados = filtrarPorIntervalo(eventos, de, ate);
+  } else if (temMes) {
+    filtrados = filtrarPorMes(eventos, Number(ano), Number(mes));
+  } else {
+    filtrados = filtrarFuturos(eventos);
+  }
+
   const atualizadoEm = new Date().toISOString();
 
   return {
-    eventos: futuros,
+    eventos: filtrados.slice(0, max),
     atualizadoEm,
     fontes,
   };

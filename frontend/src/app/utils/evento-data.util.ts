@@ -65,3 +65,34 @@ export function parseIso(dataIso: string): { year: number; month: number; day: n
   const [y, m, d] = dataIso.split('-').map(Number);
   return { year: y, month: m - 1, day: d };
 }
+
+/** Hoje + n dias (inclusive hoje quando n=0). */
+export function isoDaquiNDias(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Janela dos próximos 30 dias: hoje até hoje+29. */
+export function intervaloProximos30Dias(): { de: string; ate: string } {
+  return { de: hojeIso(), ate: isoDaquiNDias(29) };
+}
+
+const MESES_CURTOS_LABEL = [
+  'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+  'jul', 'ago', 'set', 'out', 'nov', 'dez',
+];
+
+export function formatarIntervaloCurto(de: string, ate: string): string {
+  const p1 = parseIso(de);
+  const p2 = parseIso(ate);
+  const m1 = MESES_CURTOS_LABEL[p1.month] || '';
+  const m2 = MESES_CURTOS_LABEL[p2.month] || '';
+  if (p1.month === p2.month && p1.year === p2.year) {
+    return `${p1.day} – ${p2.day} de ${m2}`;
+  }
+  return `${p1.day} de ${m1} – ${p2.day} de ${m2}`;
+}

@@ -46,6 +46,81 @@ function validarCodigo(codigo) {
   return value;
 }
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function validarLimiteAgenda(limite, comFiltro = false) {
+  if (limite === null || limite === undefined || limite === '') return null;
+  const n = Number(limite);
+  const teto = comFiltro ? 200 : 100;
+  if (!Number.isFinite(n) || n < 1 || n > teto) {
+    const err = new Error(`Limite deve ser entre 1 e ${teto} ou vazio.`);
+    err.status = 400;
+    throw err;
+  }
+  return Math.floor(n);
+}
+
+function validarIsoData(valor, nome) {
+  const value = String(valor || '').trim();
+  if (!ISO_DATE_RE.test(value)) {
+    const err = new Error(`${nome} inválida. Use YYYY-MM-DD.`);
+    err.status = 400;
+    throw err;
+  }
+  return value;
+}
+
+function parseAgendaQuery(query) {
+  const de = query.de != null && query.de !== '' ? validarIsoData(query.de, 'Data inicial') : null;
+  const ate = query.ate != null && query.ate !== '' ? validarIsoData(query.ate, 'Data final') : null;
+  const anoRaw = query.ano;
+  const mesRaw = query.mes;
+  const temIntervalo = Boolean(de || ate);
+  const temMes = anoRaw != null && anoRaw !== '' && mesRaw != null && mesRaw !== '';
+
+  if (temIntervalo && (!de || !ate)) {
+    const err = new Error('Informe de e ate para filtrar por intervalo.');
+    err.status = 400;
+    throw err;
+  }
+  if (temIntervalo && temMes) {
+    const err = new Error('Use de/ate ou ano/mes, não ambos.');
+    err.status = 400;
+    throw err;
+  }
+  if (de && ate && de > ate) {
+    const err = new Error('Data inicial não pode ser posterior à final.');
+    err.status = 400;
+    throw err;
+  }
+
+  let ano = null;
+  let mes = null;
+  if (temMes) {
+    ano = Number(anoRaw);
+    mes = Number(mesRaw);
+    if (!Number.isInteger(ano) || ano < 2000 || ano > 2100) {
+      const err = new Error('Ano inválido.');
+      err.status = 400;
+      throw err;
+    }
+    if (!Number.isInteger(mes) || mes < 1 || mes > 12) {
+      const err = new Error('Mês inválido (1–12).');
+      err.status = 400;
+      throw err;
+    }
+  }
+
+  const comFiltro = temIntervalo || temMes;
+  const limiteRaw = query.limite;
+  const limite =
+    limiteRaw != null && limiteRaw !== ''
+      ? validarLimiteAgenda(limiteRaw, comFiltro)
+      : undefined;
+
+  return { limite, de, ate, ano, mes };
+}
+
 function validarLimite(limite) {
   if (limite === null || limite === undefined || limite === '') return null;
   const n = Number(limite);
@@ -125,12 +200,8 @@ async function listarProximos(req, res) {
 
 async function listarAgenda(req, res) {
   try {
-    const limiteRaw = req.query.limite;
-    const limite =
-      limiteRaw != null && limiteRaw !== ''
-        ? validarLimite(limiteRaw) ?? Number(limiteRaw)
-        : undefined;
-    const resultado = await eventosService.listarAgenda({ limite });
+    const params = parseAgendaQuery(req.query);
+    const resultado = await eventosService.listarAgenda(params);
     res.json(resultado);
   } catch (err) {
     handleError(res, err);

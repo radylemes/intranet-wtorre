@@ -2,18 +2,23 @@
   <app-public-chrome>
     <div class="agendas-wrap">
       <header class="page-head">
-        <h1>Eventos</h1>
-        <p>Destaques, agenda e calendário das empresas do grupo.</p>
+        <div>
+          <h1>Eventos</h1>
+          <p>Destaques, agenda e calendário das empresas do grupo.</p>
+        </div>
+        @if (atualizadoEm()) {
+          <span class="sync-hint">Atualizado há {{ tempoDesdeSync() }}</span>
+        }
       </header>
 
       @if (carregando()) {
         <p class="state-msg">Carregando eventos…</p>
-      } @else if (erro()) {
+      } @else if (erro() && !miniaturas30d().length && !eventosMes().length) {
         <div class="state-msg state-erro">
           <p>{{ erro() }}</p>
-          <button type="button" class="btn-retry" (click)="carregar()">Tentar novamente</button>
+          <button type="button" class="btn-retry" (click)="carregarTudo()">Tentar novamente</button>
         </div>
-      } @else if (!eventos().length) {
+      } @else if (!miniaturas30d().length && !eventosMes().length) {
         <p class="state-msg">Nenhum evento disponível no momento.</p>
       } @else {
         <div class="cols">
@@ -104,56 +109,120 @@
                   </div>
                 }
               </div>
-
-              <div class="thumbs">
-                @for (ev of destaques(); track trackEvento($index, ev); let i = $index) {
-                  <button
-                    type="button"
-                    class="thumb"
-                    [class.on]="slideAtivoFlag(i)"
-                    (click)="setSlide(i)"
-                  >
-                    <div class="tcap" [class]="'tcap ' + gradienteClasse(i)">
-                      @if (mostrarImagem(ev)) {
-                        <img
-                          [src]="ev.imagemUrl!"
-                          [alt]="ev.titulo"
-                          loading="lazy"
-                          (error)="onImagemErro(ev)"
-                        />
-                      }
-                      <div class="tbadge">
-                        <div class="d">{{ badge(ev).dia }}</div>
-                        <div class="m">{{ badge(ev).mes }}</div>
-                      </div>
-                    </div>
-                    <div class="tbody">
-                      <div class="tt">{{ ev.titulo }}</div>
-                      <div class="ts">{{ thumbSub(ev) }}</div>
-                    </div>
-                  </button>
-                }
-              </div>
             }
+
+            <div class="thumbs-section">
+              <h2 class="thumbs-title">Próximos 30 dias</h2>
+              @if (carregandoMiniaturas()) {
+                <p class="thumbs-loading">Carregando…</p>
+              } @else if (!miniaturas30d().length) {
+                <p class="thumbs-empty">Nenhum evento nos próximos 30 dias.</p>
+              } @else {
+                <div class="thumbs">
+                  @for (ev of miniaturas30d(); track trackEvento($index, ev); let i = $index) {
+                    @if (ev.url) {
+                      <a
+                        class="thumb thumb-link"
+                        [href]="ev.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <div class="tcap" [class]="'tcap ' + gradienteClasse(i)">
+                          @if (mostrarImagem(ev)) {
+                            <img
+                              [src]="ev.imagemUrl!"
+                              [alt]="ev.titulo"
+                              loading="lazy"
+                              (error)="onImagemErro(ev)"
+                            />
+                          }
+                          <div class="tbadge">
+                            <div class="d">{{ badge(ev).dia }}</div>
+                            <div class="m">{{ badge(ev).mes }}</div>
+                          </div>
+                        </div>
+                        <div class="tbody">
+                          <div class="tt">{{ ev.titulo }}</div>
+                          <div class="ts">{{ thumbSub(ev) }}</div>
+                        </div>
+                      </a>
+                    } @else {
+                      <button type="button" class="thumb" (click)="onThumbClick(ev, $event)">
+                        <div class="tcap" [class]="'tcap ' + gradienteClasse(i)">
+                          @if (mostrarImagem(ev)) {
+                            <img
+                              [src]="ev.imagemUrl!"
+                              [alt]="ev.titulo"
+                              loading="lazy"
+                              (error)="onImagemErro(ev)"
+                            />
+                          }
+                          <div class="tbadge">
+                            <div class="d">{{ badge(ev).dia }}</div>
+                            <div class="m">{{ badge(ev).mes }}</div>
+                          </div>
+                        </div>
+                        <div class="tbody">
+                          <div class="tt">{{ ev.titulo }}</div>
+                          <div class="ts">{{ thumbSub(ev) }}</div>
+                        </div>
+                      </button>
+                    }
+                  }
+                </div>
+              }
+            </div>
           </div>
 
-          <aside class="cal">
-            <div class="cal-head">
-              <div class="mname">{{ tituloMes() }}</div>
-              <div class="cal-nav">
-                <button type="button" (click)="mesAnterior()" aria-label="Mês anterior">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </button>
-                <button type="button" (click)="mesProximo()" aria-label="Próximo mês">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </button>
-              </div>
+          <aside class="cal" [class.loading]="carregandoMes() && !modoProximos30()">
+            <div class="cal-mode">
+              <button
+                type="button"
+                class="cal-mode-btn"
+                [class.on]="!modoProximos30()"
+                (click)="setModoCalendario('mes')"
+              >
+                Mês
+              </button>
+              <button
+                type="button"
+                class="cal-mode-btn"
+                [class.on]="modoProximos30()"
+                (click)="setModoCalendario('proximos30')"
+              >
+                Próximos 30 dias
+              </button>
             </div>
 
+            <div class="cal-head">
+              <div class="mname">
+                @if (modoProximos30()) {
+                  Próximos 30 dias
+                  <span class="cal-range">{{ subtituloIntervalo30d() }}</span>
+                } @else {
+                  {{ tituloMes() }}
+                  @if (carregandoMes()) {
+                    <span class="cal-loading">…</span>
+                  }
+                }
+              </div>
+              @if (!modoProximos30()) {
+                <div class="cal-nav">
+                  <button type="button" (click)="mesAnterior()" [disabled]="carregandoMes()" aria-label="Mês anterior">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                  <button type="button" (click)="mesProximo()" [disabled]="carregandoMes()" aria-label="Próximo mês">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+              }
+            </div>
+
+            @if (!modoProximos30()) {
             <div class="cal-grid">
               <div class="cal-dow">D</div>
               <div class="cal-dow">S</div>
@@ -178,7 +247,7 @@
                   @if (cell.marcas.length) {
                     <div class="evdots">
                       @for (m of cell.marcas; track m) {
-                        <i [class]="'ed-' + (m === 'novo' ? 'an' : m === 'wtorre' ? 'wt' : m === 'nubank' ? 'nb' : m === 'base' ? 'bs' : 'wt')"></i>
+                        <i [class]="marcaEdClass(m)"></i>
                       }
                     </div>
                   }
@@ -192,25 +261,71 @@
               <span class="lg"><i class="ed-bs"></i> Base</span>
               <span class="lg"><i class="ed-an"></i> Anhangabaú</span>
             </div>
+            }
 
-            <div class="cal-day">
+            <div class="cal-day" [class.cal-day--30d]="modoProximos30()">
+              @if (modoProximos30()) {
+                @if (carregandoMiniaturas()) {
+                  <p class="cal-empty">Carregando eventos…</p>
+                } @else if (!grupos30d().length) {
+                  <p class="cal-empty">Nenhum evento nos próximos 30 dias.</p>
+                } @else {
+                  @for (grupo of grupos30d(); track grupo.iso) {
+                    <div class="cal-day-group">
+                      <div class="cd-h">{{ grupo.titulo }}</div>
+                      @for (ev of grupo.eventos; track trackEvento($index, ev)) {
+                        <button
+                          type="button"
+                          [class]="'cal-ev ' + marcaClass(ev)"
+                          (click)="abrirEventoModal(ev)"
+                        >
+                          <span class="cal-ev-thumb">
+                            @if (mostrarImagem(ev)) {
+                              <img
+                                [src]="ev.imagemUrl!"
+                                [alt]="ev.titulo"
+                                loading="lazy"
+                                (error)="onImagemErro(ev)"
+                              />
+                            } @else {
+                              <span class="cal-ev-emoji">{{ ev.emoji }}</span>
+                            }
+                          </span>
+                          <span class="h">{{ hora(ev) || '—' }}</span>
+                          <span class="n">{{ ev.titulo }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                }
+              } @else {
               <div class="cd-h">{{ tituloDiaSelecionado() }}</div>
               @if (!eventosDoDia().length) {
                 <p class="cal-empty">Nenhum evento neste dia.</p>
               } @else {
                 @for (ev of eventosDoDia(); track trackEvento($index, ev)) {
-                  @if (ev.url) {
-                    <a class="cal-ev" [class]="marcaClass(ev)" [href]="ev.url" target="_blank" rel="noopener noreferrer">
-                      <span class="h">{{ hora(ev) || '—' }}</span>
-                      <span class="n">{{ ev.titulo }}</span>
-                    </a>
-                  } @else {
-                    <div class="cal-ev" [class]="marcaClass(ev)">
-                      <span class="h">{{ hora(ev) || '—' }}</span>
-                      <span class="n">{{ ev.titulo }}</span>
-                    </div>
-                  }
+                  <button
+                    type="button"
+                    [class]="'cal-ev ' + marcaClass(ev)"
+                    (click)="abrirEventoModal(ev)"
+                  >
+                    <span class="cal-ev-thumb">
+                      @if (mostrarImagem(ev)) {
+                        <img
+                          [src]="ev.imagemUrl!"
+                          [alt]="ev.titulo"
+                          loading="lazy"
+                          (error)="onImagemErro(ev)"
+                        />
+                      } @else {
+                        <span class="cal-ev-emoji">{{ ev.emoji }}</span>
+                      }
+                    </span>
+                    <span class="h">{{ hora(ev) || '—' }}</span>
+                    <span class="n">{{ ev.titulo }}</span>
+                  </button>
                 }
+              }
               }
             </div>
           </aside>
@@ -220,3 +335,61 @@
   </app-public-chrome>
   <app-footer />
 </div>
+
+@if (eventoModal(); as ev) {
+  <app-admin-modal
+    [open]="modalEventoAberto()"
+    [title]="tituloModal()"
+    [subtitle]="subtituloModal()"
+    icon="folder"
+    saveLabel="Fechar"
+    (save)="fecharEventoModal()"
+    (cancel)="fecharEventoModal()"
+  >
+    <div class="evento-modal">
+      <div class="evento-modal-hero" [class]="marcaClass(ev)">
+        @if (mostrarImagem(ev)) {
+          <img
+            [src]="ev.imagemUrl!"
+            [alt]="ev.titulo"
+            class="evento-modal-img"
+            (error)="onImagemErro(ev)"
+          />
+        } @else {
+          <div class="evento-modal-fallback">{{ ev.emoji }}</div>
+        }
+      </div>
+
+      <div class="evento-modal-meta">
+        <span class="evento-modal-tag">{{ tipoLabel(ev) }}</span>
+        <span class="evento-modal-tag marca">{{ marcaNome(ev) }}</span>
+      </div>
+
+      <dl class="evento-modal-dl">
+        <div class="evento-modal-row">
+          <dt>Data e hora</dt>
+          <dd>{{ ev.dataTexto }}</dd>
+        </div>
+        @if (ev.subtitulo) {
+          <div class="evento-modal-row">
+            <dt>Local</dt>
+            <dd>{{ ev.subtitulo }}</dd>
+          </div>
+        }
+        <div class="evento-modal-row">
+          <dt>Fonte</dt>
+          <dd>{{ fonte(ev) }}</dd>
+        </div>
+      </dl>
+
+      @if (ev.url) {
+        <button type="button" class="evento-modal-link" (click)="abrirEventoExterno(ev)">
+          Ver página do evento
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 17L17 7M17 7H9M17 7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      }
+    </div>
+  </app-admin-modal>
+}

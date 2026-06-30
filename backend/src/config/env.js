@@ -93,7 +93,7 @@ const env = {
   emailProvider: process.env.EMAIL_PROVIDER === 'acs' ? 'acs' : 'smtp',
   emailOcultarPara: process.env.EMAIL_OCULTAR_PARA === '1' || process.env.EMAIL_OCULTAR_PARA === 'true',
   eventGridWebhookSecret: process.env.EVENT_GRID_WEBHOOK_SECRET || '',
-  eventosCacheTtlMin: Number(process.env.EVENTOS_CACHE_TTL_MIN) || 360,
+  eventosCacheTtlMin: Number(process.env.EVENTOS_CACHE_TTL_MIN) || 60,
   eventosLimite: Number(process.env.EVENTOS_LIMITE) || 6,
   eventosAgendaLimite: Number(process.env.EVENTOS_AGENDA_LIMITE) || 60,
 };
