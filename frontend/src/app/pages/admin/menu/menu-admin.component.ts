@@ -12,11 +12,13 @@ import {
   MenuAdminNodeComponent,
 } from './menu-admin-node.component';
 import { MenuTopbarAdminComponent } from './menu-topbar-admin.component';
+import { MenuLoginAdminComponent } from './menu-login-admin.component';
 import { MenuCarrosselAdminComponent } from './menu-carrossel-admin.component';
 import { MenuSistemasAdminComponent } from './menu-sistemas-admin.component';
 import { MenuHeaderChamadoAdminComponent } from './menu-header-chamado-admin.component';
 import { RodapeAdminComponent } from '../rodape/rodape-admin.component';
 import { ComunicadosAdminComponent } from '../comunicados/comunicados-admin.component';
+import { EventosFontesAdminComponent } from '../eventos-fontes/eventos-fontes-admin.component';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AlertasService } from '../../../services/alertas.service';
 import { AuthService } from '../../../services/auth.service';
@@ -43,11 +45,13 @@ interface PaiOption {
 type MenuAdminAba =
   | 'estrutura'
   | 'topbar'
+  | 'login'
   | 'header'
   | 'carrossel'
   | 'sistemas'
   | 'rodape'
-  | 'comunicados';
+  | 'comunicados'
+  | 'eventos';
 
 @Component({
   selector: 'app-menu-admin',
@@ -59,11 +63,13 @@ type MenuAdminAba =
     DocCatIconePickerComponent,
     DocCatIconeComponent,
     MenuTopbarAdminComponent,
+    MenuLoginAdminComponent,
     MenuCarrosselAdminComponent,
     MenuSistemasAdminComponent,
     MenuHeaderChamadoAdminComponent,
     RodapeAdminComponent,
     ComunicadosAdminComponent,
+    EventosFontesAdminComponent,
   ],
   templateUrl: './menu-admin.component.html',
   styleUrl: './menu-admin.component.scss',
@@ -173,6 +179,10 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
     return this.auth.hasModulo('comunicados');
   }
 
+  mostrarAbaEventos(): boolean {
+    return this.auth.hasModulo('eventos');
+  }
+
   private abaInicial(): MenuAdminAba {
     const qp = this.route.snapshot.queryParamMap.get('aba');
     if (qp && this.abaPermitida(qp as MenuAdminAba)) {
@@ -181,6 +191,7 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
     if (this.mostrarAbaEstrutura()) return 'estrutura';
     if (this.mostrarAbaRodape()) return 'rodape';
     if (this.mostrarAbaComunicados()) return 'comunicados';
+    if (this.mostrarAbaEventos()) return 'eventos';
     return 'estrutura';
   }
 
@@ -188,6 +199,7 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
     switch (aba) {
       case 'estrutura':
       case 'topbar':
+      case 'login':
       case 'header':
       case 'carrossel':
       case 'sistemas':
@@ -196,6 +208,8 @@ export class MenuAdminComponent implements OnInit, OnDestroy {
         return this.mostrarAbaRodape();
       case 'comunicados':
         return this.mostrarAbaComunicados();
+      case 'eventos':
+        return this.mostrarAbaEventos();
       default:
         return false;
     }

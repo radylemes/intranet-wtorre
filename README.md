@@ -36,11 +36,12 @@ intranet-wtorre/
 4. Permissões de **aplicação** (consentimento de administrador em cada tenant):
    - `User.Read.All` — leitura do diretório (sync de colaboradores)
    - `User.ReadWrite.All` — **obrigatória** para edição/importação em Gestão de Usuários (PATCH Graph, inclusive directory extensions para ramal e aniversário)
+   - `Application.Read.All` + `Application.ReadWrite.All` — registrar directory extensions (`ramal`, `dataNascimento`) na app de cada tenant
 5. O `tid` (tenant ID) de cada empresa deve ser cadastrado em `azure_tenants` com `ativo=1`.
 
 ### Directory extensions (ramal e aniversário)
 
-Ramal e data de nascimento passam a ser gravados em **schema extensions** do Entra ID (`IntranetWtColaborador`: propriedades `ramal` e `dataNascimento`), graváveis via Graph com `User.ReadWrite.All`.
+Ramal e data de nascimento são gravados em **directory extensions** do Entra ID (propriedades `ramal` e `dataNascimento` na app de cada tenant), graváveis via Graph com `User.ReadWrite.All`.
 
 - **Leitura na sync:** prioridade na directory extension; se vazia, fallback para `extensionAttribute5` / `extensionAttribute6` do AD on-premises.
 - **Valores novos** ficam na nuvem (não replicam para o AD local).
@@ -54,7 +55,14 @@ npm run colaboradores:migrate-extensions                # aplica
 
 Ou via API autenticada: `POST /api/v1/colaboradores/admin/migrate-extensions?dry_run=1`
 
-Variável opcional: `GRAPH_SCHEMA_EXTENSION_ID` (padrão: `IntranetWtColaborador`).
+**Erro `extension properties are not available`:** após registrar novas properties na app, o Graph pode levar ~10–15 s para propagar. O backend aguarda automaticamente e faz retry. Se a migração falhou antes dessa correção, rode novamente — só migra quem ainda não tem dados na extension.
+
+Variáveis opcionais:
+
+| Variável | Descrição |
+|----------|-----------|
+| `GRAPH_SCHEMA_EXTENSION_ID` | Nome da extension (padrão: `IntranetWtColaborador`) |
+| `GRAPH_SCHEMA_EXTENSION_SKIP_REGISTER` | `1` — não chama API de registro; assume extension já publicada |
 
 ## 2. Backend
 

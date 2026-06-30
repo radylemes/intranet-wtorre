@@ -1,4 +1,4 @@
-import { HttpClient, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, firstValueFrom, map, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -124,10 +124,46 @@ export class ColaboradoresService {
   }
 
   exportarAdmin(filtros: ColaboradoresAdminFiltros = {}): Observable<Blob> {
-    return this.http.get(this.api('/colaboradores/admin/export'), {
-      params: this.adminFiltrosParams(filtros),
-      responseType: 'blob',
-    });
+    return this.http
+      .get(this.api('/colaboradores/admin/export'), {
+        params: this.adminFiltrosParams(filtros),
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((res: HttpResponse<Blob>) => {
+          const body = res.body;
+          const contentType = (res.headers.get('Content-Type') || '').toLowerCase();
+          if (
+            !body?.size ||
+            contentType.includes('application/json') ||
+            contentType.includes('text/html')
+          ) {
+            throw new HttpErrorResponse({
+              error: body,
+              status: res.status,
+              statusText: res.statusText,
+              url: res.url || undefined,
+            });
+          }
+          return body;
+        })
+      );
+  }
+
+  async mensagemErroHttp(err: HttpErrorResponse, fallback: string): Promise<string> {
+    if (err.error instanceof Blob) {
+      try {
+        const text = await err.error.text();
+        const parsed = JSON.parse(text) as { mensagem?: string };
+        if (parsed.mensagem?.trim()) return parsed.mensagem;
+      } catch {
+        /* ignora */
+      }
+    } else if (typeof err.error?.mensagem === 'string' && err.error.mensagem.trim()) {
+      return err.error.mensagem;
+    }
+    return fallback;
   }
 
   previewImport(arquivo: File): Observable<ColaboradoresImportPreviewResposta> {

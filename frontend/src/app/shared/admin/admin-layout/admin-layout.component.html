@@ -9,10 +9,10 @@
     </div>
 
     <div class="sidebar-body">
-    @if (auth.isAdmin() || auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('documentos') || auth.hasModulo('treinamentos') || auth.hasModulo('comunicados') || auth.hasModulo('containers') || auth.hasModulo('paginas')) {
+    @if (auth.isAdmin() || auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('documentos') || auth.hasModulo('treinamentos') || auth.hasModulo('comunicados') || auth.hasModulo('eventos') || auth.hasModulo('containers') || auth.hasModulo('paginas')) {
       <div class="nav-group-label">Gestão de conteúdo</div>
       <nav class="sidebar-nav">
-        @if (auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('comunicados')) {
+        @if (auth.hasModulo('menu') || auth.hasModulo('rodape') || auth.hasModulo('comunicados') || auth.hasModulo('eventos')) {
           <a routerLink="/admin/menu" routerLinkActive="active" (click)="closeSidebar()">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path

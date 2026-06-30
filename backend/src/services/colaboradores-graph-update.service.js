@@ -1,9 +1,8 @@
 const colaboradoresRepo = require('../repositories/colaboradores.repository');
 const tenantsRepo = require('../repositories/tenants.repository');
-const graphService = require('./graph.service');
 const syncService = require('./colaboradores.sync');
 const { diffEditableFields } = require('../utils/colaboradores.graph-patch');
-const { ensureRegistered } = require('./colaboradores-schema-extension.service');
+const { ensureRegistered, updateUserExtensionWithRetry } = require('./colaboradores-schema-extension.service');
 
 function graphErrorHint(status) {
   if (status === 403) {
@@ -47,7 +46,7 @@ async function updateColaboradorGraph(colaboradorId, campos, auditMeta, options 
   }
 
   try {
-    await graphService.updateUser(tenant, colaborador.ad_id, patch);
+    await updateUserExtensionWithRetry(tenant, colaborador.ad_id, patch);
   } catch (graphErr) {
     const hint = graphErrorHint(graphErr.status);
     const err = new Error(`${graphErr.message || 'Erro ao atualizar no Graph.'}${hint}`);

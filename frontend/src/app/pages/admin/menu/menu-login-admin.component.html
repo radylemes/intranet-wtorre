@@ -1,0 +1,358 @@
+<section class="card login-card admin-page">
+  <div class="pane-head">
+    <div>
+      <h2>Página de login</h2>
+      <p class="hint">Textos, marcas e avisos exibidos na tela de entrada da intranet</p>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" (click)="adicionarEmpresa()">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+        </svg>
+        Adicionar empresa
+      </button>
+    </div>
+  </div>
+
+  @if (carregando()) {
+    <p class="loading-hint">Carregando...</p>
+  } @else {
+    <form class="card-body" [formGroup]="form" (ngSubmit)="salvar()">
+      <fieldset class="form-section">
+        <legend>Marca no topo</legend>
+        <div class="fields-row">
+          <div class="field">
+            <label for="login-marca-titulo">Título</label>
+            <input
+              id="login-marca-titulo"
+              formControlName="marca_titulo"
+              type="text"
+              [class.field-invalid]="campoInvalido(form.controls.marca_titulo)"
+            />
+            @if (campoInvalido(form.controls.marca_titulo)) {
+              <div class="field-error">{{ erroCampo(form.controls.marca_titulo) }}</div>
+            }
+          </div>
+          <div class="field">
+            <label for="login-marca-sub">Subtítulo</label>
+            <input
+              id="login-marca-sub"
+              formControlName="marca_subtitulo"
+              type="text"
+              [class.field-invalid]="campoInvalido(form.controls.marca_subtitulo)"
+            />
+            @if (campoInvalido(form.controls.marca_subtitulo)) {
+              <div class="field-error">{{ erroCampo(form.controls.marca_subtitulo) }}</div>
+            }
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Hero (card)</legend>
+        <div class="fields-row">
+          <div class="field">
+            <label for="login-hero-l1">Linha 1</label>
+            <input
+              id="login-hero-l1"
+              formControlName="hero_linha1"
+              type="text"
+              [class.field-invalid]="campoInvalido(form.controls.hero_linha1)"
+            />
+          </div>
+          <div class="field">
+            <label for="login-hero-dest">Destaque (gradiente)</label>
+            <input
+              id="login-hero-dest"
+              formControlName="hero_destaque"
+              type="text"
+              [class.field-invalid]="campoInvalido(form.controls.hero_destaque)"
+            />
+          </div>
+        </div>
+        <div class="field">
+          <label for="login-hero-lead">Texto de apoio</label>
+          <textarea
+            id="login-hero-lead"
+            formControlName="hero_lead"
+            rows="2"
+            [class.field-invalid]="campoInvalido(form.controls.hero_lead)"
+          ></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Selo e autenticação</legend>
+        <div class="field">
+          <label for="login-pill">Selo restrito</label>
+          <input
+            id="login-pill"
+            formControlName="pill_texto"
+            type="text"
+            [class.field-invalid]="campoInvalido(form.controls.pill_texto)"
+          />
+        </div>
+        <div class="fields-row">
+          <div class="field">
+            <label for="login-auth-t">Título</label>
+            <input id="login-auth-t" formControlName="auth_titulo" type="text" />
+          </div>
+          <div class="field">
+            <label for="login-auth-s">Subtítulo</label>
+            <input id="login-auth-s" formControlName="auth_subtitulo" type="text" />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Rodapé da página</legend>
+        <div class="field">
+          <label for="login-rodape-copy">Copyright</label>
+          <input id="login-rodape-copy" formControlName="rodape_copyright" type="text" />
+        </div>
+        <div class="field">
+          <label for="login-rodape-contato">Contato / CCO</label>
+          <input id="login-rodape-contato" formControlName="rodape_contato" type="text" />
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Aviso de segurança</legend>
+        <div class="field">
+          <label for="login-aviso">Texto completo</label>
+          <textarea
+            id="login-aviso"
+            formControlName="aviso_seguranca"
+            rows="4"
+            [class.field-invalid]="campoInvalido(form.controls.aviso_seguranca)"
+          ></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Empresas do grupo</legend>
+        <div class="field">
+          <label for="login-empresas-titulo">Título da seção</label>
+          <input id="login-empresas-titulo" formControlName="empresas_titulo" type="text" />
+        </div>
+
+        <div class="empresas-list" formArrayName="empresas">
+          @for (empresaGroup of empresasArray().controls; track $index; let ei = $index) {
+            <div class="empresa-row" [formGroupName]="ei">
+              <div class="empresa-row-head">
+                <span class="empresa-title">
+                  <span class="empresa-badge">{{ ei + 1 }}</span>
+                  Empresa {{ ei + 1 }}
+                </span>
+                <div class="empresa-row-actions">
+                  <button
+                    type="button"
+                    class="btn-icon"
+                    title="Mover para cima"
+                    [disabled]="ei === 0"
+                    (click)="moverEmpresa(ei, -1)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 19V5M5 12l7-7 7 7"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-icon"
+                    title="Mover para baixo"
+                    [disabled]="ei === empresasArray().length - 1"
+                    (click)="moverEmpresa(ei, 1)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 5v14M5 12l7 7 7-7"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-icon danger"
+                    title="Remover empresa"
+                    (click)="removerEmpresa(ei)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M6 6l12 12M18 6L6 18"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="empresa-row-body">
+                <div class="empresa-fields">
+                  <div class="fields-row">
+                    <div class="field">
+                      <label [for]="'emp-id-' + ei">ID</label>
+                      <input [id]="'emp-id-' + ei" formControlName="id" type="text" />
+                    </div>
+                    <div class="field">
+                      <label [for]="'emp-nome-' + ei">Nome exibido</label>
+                      <input [id]="'emp-nome-' + ei" formControlName="nome" type="text" />
+                    </div>
+                    <div class="field">
+                      <label [for]="'emp-var-' + ei">Preset de marca</label>
+                      <select
+                        [id]="'emp-var-' + ei"
+                        formControlName="variante"
+                        (change)="aplicarPresetCor(ei)"
+                      >
+                        @for (v of variantes; track v.value) {
+                          <option [value]="v.value">{{ v.label }}</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+                  <div class="fields-row">
+                    <div class="field">
+                      <label [for]="'emp-cor-' + ei">Cor base</label>
+                      <div class="cor-input-row">
+                        <input
+                          type="color"
+                          class="cor-picker"
+                          [value]="corParaPicker(empresaGroup.get('cor')?.value)"
+                          (input)="onCorPickerChange(ei, $event)"
+                          aria-label="Seletor de cor"
+                        />
+                        <input
+                          [id]="'emp-cor-' + ei"
+                          formControlName="cor"
+                          type="text"
+                          placeholder="#1d54e6"
+                          spellcheck="false"
+                          [class.field-invalid]="campoInvalido(empresaGroup.get('cor'))"
+                        />
+                      </div>
+                      @if (campoInvalido(empresaGroup.get('cor'))) {
+                        <div class="field-error">{{ erroCampo(empresaGroup.get('cor')) }}</div>
+                      }
+                    </div>
+                    <div class="field">
+                      <label [for]="'emp-estilo-' + ei">Estilo do chip</label>
+                      <select [id]="'emp-estilo-' + ei" formControlName="estilo">
+                        @for (e of estilos; track e.value) {
+                          <option [value]="e.value">{{ e.label }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="field chip-preview-field">
+                      <label>Prévia</label>
+                      <div
+                        class="chip-preview"
+                        [class.chip-preview-wlogo]="empresaGroup.get('estilo')?.value === 'wlogo'"
+                        [class.chip-preview-led]="empresaGroup.get('estilo')?.value === 'led'"
+                        [style.--chip-cor]="corParaPicker(empresaGroup.get('cor')?.value)"
+                      >
+                        @if (empresaGroup.get('estilo')?.value === 'wlogo') {
+                          <span class="wlogo">{{ empresaGroup.get('nome')?.value || 'Nome' }}</span>
+                        } @else {
+                          <span class="led"></span>
+                          {{ empresaGroup.get('nome')?.value || 'Nome' }}
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fields-row">
+                    <div class="field">
+                      <label [for]="'emp-url-' + ei">
+                        URL <span class="opt">(opcional)</span>
+                      </label>
+                      <input
+                        [id]="'emp-url-' + ei"
+                        formControlName="link_url"
+                        type="text"
+                        placeholder="https://..."
+                        [class.field-invalid]="campoInvalido(empresaGroup.get('link_url'))"
+                      />
+                      @if (campoInvalido(empresaGroup.get('link_url'))) {
+                        <div class="field-error">{{ erroCampo(empresaGroup.get('link_url')) }}</div>
+                      }
+                    </div>
+                    <div class="field inline-toggle-field">
+                      <label class="switch">
+                        <input type="checkbox" formControlName="nova_aba" />
+                        <span class="slider"></span>
+                      </label>
+                      <span class="inline-toggle-label">Abrir link em nova aba</span>
+                    </div>
+                  </div>
+                  <p class="field-hint">
+                    Sem imagem: exibe chip de texto. Com imagem: substitui o texto pelo logo.
+                  </p>
+                </div>
+
+                <div class="empresa-media">
+                  <div class="media-label">Imagem <span class="opt">(opcional)</span></div>
+                  @if (empresaGroup.get('imagem_url')?.value) {
+                    <div class="empresa-preview">
+                      <img
+                        [src]="empresaGroup.get('imagem_url')?.value"
+                        [alt]="empresaGroup.get('nome')?.value || 'Preview'"
+                      />
+                    </div>
+                  }
+                  <app-admin-dropzone
+                    #empDropzone
+                    [compact]="true"
+                    [disabled]="estaUploadando(empresaGroup.get('id')?.value)"
+                    hint=" ou arraste"
+                    hintLink="Clique"
+                    subhint="PNG/SVG/JPG"
+                    (fileSelected)="onEmpresaFile(ei, $event)"
+                  />
+                  @if (estaUploadando(empresaGroup.get('id')?.value)) {
+                    <p class="upload-status">Enviando imagem...</p>
+                  }
+                  <div class="media-acts">
+                    <button
+                      type="button"
+                      class="btn-soft"
+                      [disabled]="estaUploadando(empresaGroup.get('id')?.value)"
+                      (click)="trocarEmpresaImagem(empDropzone)"
+                    >
+                      Trocar
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-soft danger"
+                      [disabled]="estaUploadando(empresaGroup.get('id')?.value) || !empresaGroup.get('imagem_url')?.value"
+                      (click)="removerEmpresaImagem(ei)"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <p class="empty-hint">Nenhuma empresa cadastrada.</p>
+          }
+        </div>
+      </fieldset>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="salvando()">
+          {{ salvando() ? 'Salvando...' : 'Salvar página de login' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

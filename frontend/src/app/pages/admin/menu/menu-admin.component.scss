@@ -123,7 +123,8 @@
 
 /* Achatamento dos cards filhos dentro do card unificado */
 :host ::ng-deep .menu-unified-card .tabpane section.card,
-:host ::ng-deep .menu-unified-card .tabpane .comunicados-card {
+:host ::ng-deep .menu-unified-card .tabpane .comunicados-card,
+:host ::ng-deep .menu-unified-card .tabpane .eventos-card {
   padding: 0;
 }
 
@@ -139,6 +140,7 @@
 
 :host ::ng-deep .menu-unified-card .tabpane .admin-page .secao-comunicados,
 :host ::ng-deep .menu-unified-card .tabpane .admin-page .secao-categorias,
+:host ::ng-deep .menu-unified-card .tabpane .admin-page .secao-eventos,
 :host ::ng-deep .menu-unified-card .tabpane .admin-page .rodape-form {
   padding: 0 22px 22px;
 }

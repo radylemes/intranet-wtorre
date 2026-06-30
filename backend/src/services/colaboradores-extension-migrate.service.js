@@ -1,7 +1,7 @@
 const tenantsRepo = require('../repositories/tenants.repository');
 const graphService = require('./graph.service');
 const syncService = require('./colaboradores.sync');
-const { ensureRegistered } = require('./colaboradores-schema-extension.service');
+const { ensureRegistered, updateUserExtensionWithRetry } = require('./colaboradores-schema-extension.service');
 const {
   extractDirectoryExtension,
   extractOnPremLegacy,
@@ -21,9 +21,28 @@ async function migrateExtensionAttributes({ dryRun = false } = {}) {
   let migrados = 0;
   let ignorados = 0;
 
+  const registeredClientIds = new Set();
   for (const tenant of tenants) {
+    const clientId = tenant.client_id;
+    if (!clientId || registeredClientIds.has(clientId)) continue;
     try {
       await ensureRegistered(tenant);
+      registeredClientIds.add(clientId);
+    } catch (err) {
+      erros.push({
+        tenant: tenant.nome,
+        ad_id: null,
+        email: null,
+        mensagem: err.message || 'Erro ao registrar schema extension.',
+        operacao: err.operation || 'ensureRegistered',
+      });
+    }
+  }
+
+  for (const tenant of tenants) {
+    if (!registeredClientIds.has(tenant.client_id)) continue;
+
+    try {
       const users = await graphService.listAllUsers(tenant);
 
       for (const user of users) {
@@ -50,11 +69,10 @@ async function migrateExtensionAttributes({ dryRun = false } = {}) {
 
         try {
           const patch = buildExtensionPatch(tenant.client_id, patchPayload);
-          await graphService.updateUser(tenant, user.id, patch);
+          await updateUserExtensionWithRetry(tenant, user.id, patch);
           migrados += 1;
           await sleep(150);
         } catch (err) {
-          ignorados += 1;
           erros.push({
             tenant: tenant.nome,
             ad_id: user.id,

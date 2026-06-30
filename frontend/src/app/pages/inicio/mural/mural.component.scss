@@ -38,6 +38,29 @@
   margin-bottom: 14px;
 }
 
+.col-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+
+  .col-title {
+    margin-bottom: 0;
+  }
+}
+
+.ver-todos {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wtorre);
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .titulo-menor {
   font-family: 'Archivo Expanded', 'Archivo', sans-serif;
   font-weight: 700;
@@ -167,6 +190,31 @@
   padding: 4px 9px;
   border-radius: 20px;
 }
+
+.event .ev-ic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+
+.event-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.event-link:hover .ev-t {
+  color: var(--wtorre);
+}
+
+.empty-hint {
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 0;
+  padding: 4px 0;
+}
+
 
 @media (max-width: 900px) {
   .mural-grid {

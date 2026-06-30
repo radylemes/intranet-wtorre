@@ -40,6 +40,9 @@ const env = {
   maxUploadMb: Number(process.env.MAX_UPLOAD_MB) || 50,
   ramalAdField: process.env.RAMAL_AD_FIELD || 'businessPhones',
   graphSchemaExtensionId: process.env.GRAPH_SCHEMA_EXTENSION_ID || 'IntranetWtColaborador',
+  graphSchemaExtensionSkipRegister:
+    process.env.GRAPH_SCHEMA_EXTENSION_SKIP_REGISTER === '1' ||
+    process.env.GRAPH_SCHEMA_EXTENSION_SKIP_REGISTER === 'true',
   syncColaboradoresMin: Number(process.env.SYNC_COLABORADORES_MIN) || 60,
   colaboradoresFotosDir:
     process.env.COLABORADORES_FOTOS_DIR ||
@@ -90,6 +93,9 @@ const env = {
   emailProvider: process.env.EMAIL_PROVIDER === 'acs' ? 'acs' : 'smtp',
   emailOcultarPara: process.env.EMAIL_OCULTAR_PARA === '1' || process.env.EMAIL_OCULTAR_PARA === 'true',
   eventGridWebhookSecret: process.env.EVENT_GRID_WEBHOOK_SECRET || '',
+  eventosCacheTtlMin: Number(process.env.EVENTOS_CACHE_TTL_MIN) || 360,
+  eventosLimite: Number(process.env.EVENTOS_LIMITE) || 6,
+  eventosAgendaLimite: Number(process.env.EVENTOS_AGENDA_LIMITE) || 60,
 };
 
 function validateEnv() {

@@ -21,7 +21,8 @@ export const menuHubGuard: CanActivateFn = () => {
       if (
         auth.hasModulo('menu') ||
         auth.hasModulo('rodape') ||
-        auth.hasModulo('comunicados')
+        auth.hasModulo('comunicados') ||
+        auth.hasModulo('eventos')
       ) {
         return true;
       }

@@ -25,17 +25,59 @@
     </div>
 
     <div class="mural-col">
-      <h2 class="titulo-menor col-title">Próximos eventos</h2>
+      <div class="col-head">
+        <h2 class="titulo-menor col-title">Próximos eventos</h2>
+        <a class="ver-todos" routerLink="/agendas">Ver todos</a>
+      </div>
       <div class="panel-card">
-        @for (ev of eventos; track ev.titulo) {
-          <div class="event">
-            <span class="ev-ic">{{ ev.emoji }}</span>
-            <div>
-              <div class="ev-t">{{ ev.titulo }}</div>
-              <div class="ev-s">{{ ev.subtitulo }}</div>
-            </div>
-            <span class="ev-tag">{{ ev.tag }}</span>
-          </div>
+        @if (carregandoEventos()) {
+          <p class="empty-hint">Carregando eventos…</p>
+        } @else if (!eventos().length) {
+          <p class="empty-hint">Nenhum evento disponível no momento.</p>
+        } @else {
+          @for (ev of eventos(); track ev.titulo + ev.dataTexto) {
+            @if (ev.url) {
+              <a class="event event-link" [href]="ev.url" target="_blank" rel="noopener noreferrer">
+                <span class="ev-ic">
+                  @if (mostrarImagem(ev)) {
+                    <img
+                      [src]="ev.imagemUrl!"
+                      [alt]="ev.titulo"
+                      loading="lazy"
+                      (error)="onImagemErro(ev)"
+                    />
+                  } @else {
+                    {{ ev.emoji }}
+                  }
+                </span>
+                <div>
+                  <div class="ev-t">{{ tituloEvento(ev) }}</div>
+                  <div class="ev-s">{{ subtituloEvento(ev) }}</div>
+                </div>
+                <span class="ev-tag">{{ ev.tipo }}</span>
+              </a>
+            } @else {
+              <div class="event">
+                <span class="ev-ic">
+                  @if (mostrarImagem(ev)) {
+                    <img
+                      [src]="ev.imagemUrl!"
+                      [alt]="ev.titulo"
+                      loading="lazy"
+                      (error)="onImagemErro(ev)"
+                    />
+                  } @else {
+                    {{ ev.emoji }}
+                  }
+                </span>
+                <div>
+                  <div class="ev-t">{{ tituloEvento(ev) }}</div>
+                  <div class="ev-s">{{ subtituloEvento(ev) }}</div>
+                </div>
+                <span class="ev-tag">{{ ev.tipo }}</span>
+              </div>
+            }
+          }
         }
       </div>
     </div>

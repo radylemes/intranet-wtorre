@@ -1,0 +1,240 @@
+<div class="admin-page eventos-fontes-admin">
+  <div class="pane-head">
+    <div>
+      <h2>Eventos</h2>
+      <p class="hint">Gerencie fontes externas exibidas em “Próximos eventos” na home.</p>
+    </div>
+  </div>
+
+  <section class="card eventos-card secao-eventos">
+    <div class="pane-head pane-head--section">
+      <div>
+        <h2>Fontes de eventos</h2>
+      </div>
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" />
+            <path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <input
+            type="search"
+            placeholder="Buscar por nome, URL ou código…"
+            (input)="onBuscaInput($any($event.target).value)"
+            aria-label="Buscar fontes"
+          />
+        </div>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="novo()"
+          [disabled]="carregandoParsers() || !parsers().length"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+          Nova fonte
+        </button>
+      </div>
+    </div>
+
+    @if (carregando()) {
+      <p class="empty">Carregando…</p>
+    } @else if (!fontesFiltradas().length) {
+      <p class="empty">
+        @if (busca()) {
+          Nenhuma fonte encontrada para esta busca.
+        } @else {
+          Nenhuma fonte cadastrada ainda.
+        }
+      </p>
+    } @else {
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>URL</th>
+              <th>Parser</th>
+              <th>Ordem</th>
+              <th>Status</th>
+              <th class="right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of fontesFiltradas(); track f.id) {
+              <tr class="row-click" (click)="editar(f)">
+                <td class="c-nome">{{ f.nome }}</td>
+                <td class="c-url" (click)="$event.stopPropagation()">
+                  <a [href]="f.url" target="_blank" rel="noopener noreferrer">{{ f.url }}</a>
+                </td>
+                <td>{{ parserLabel(f.parserTipo) }}</td>
+                <td>{{ f.ordem }}</td>
+                <td>
+                  <span class="badge-status" [class.off]="!f.ativo">
+                    {{ f.ativo ? 'Ativo' : 'Inativo' }}
+                  </span>
+                </td>
+                <td (click)="$event.stopPropagation()">
+                  <div class="acts">
+                    <button type="button" class="iact txt" (click)="editar(f)">Editar</button>
+                    <button
+                      type="button"
+                      class="iact"
+                      title="Testar fonte"
+                      (click)="testar(f)"
+                      [disabled]="testando()"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M5 12h14M12 5l7 7-7 7"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <button type="button" class="iact del" title="Excluir" (click)="excluir(f)">
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M3 6h18"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                        <path
+                          d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M10 11v6M14 11v6"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>
+
+<app-admin-modal
+  [open]="modalAberto()"
+  [title]="tituloModal()"
+  [subtitle]="subtituloModal()"
+  icon="folder"
+  [salvando]="salvando()"
+  [saveLabel]="salvando() ? 'Salvando…' : 'Salvar'"
+  (save)="salvar()"
+  (cancel)="fecharModal()"
+>
+  <form [formGroup]="form">
+    <div class="field mono">
+      <label for="ef-codigo">Código</label>
+      <input
+        id="ef-codigo"
+        type="text"
+        formControlName="codigo"
+        placeholder="ex.: nubankparque-agenda"
+        [readonly]="codigoSomenteLeitura()"
+      />
+      @if (codigoSomenteLeitura()) {
+        <div class="help">O código não pode ser alterado após a criação.</div>
+      } @else if (form.controls.codigo.touched && form.controls.codigo.invalid) {
+        <div class="help warn">Use letras minúsculas, números e hífens.</div>
+      }
+    </div>
+
+    <div class="field">
+      <label for="ef-nome">Nome *</label>
+      <input id="ef-nome" type="text" formControlName="nome" placeholder="Nome exibido internamente" />
+    </div>
+
+    <div class="field">
+      <label for="ef-url">URL da página *</label>
+      <input id="ef-url" type="url" formControlName="url" placeholder="https://…" />
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="ef-parser">Tipo de parser *</label>
+        <select id="ef-parser" formControlName="parserTipo">
+          @for (p of parsers(); track p.codigo) {
+            <option [value]="p.codigo">{{ p.nome }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="ef-ordem">Ordem</label>
+        <input id="ef-ordem" type="number" formControlName="ordem" min="0" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="ef-limite">Limite por fonte</label>
+      <input id="ef-limite" type="number" formControlName="limite" min="1" max="100" placeholder="Opcional" />
+      <div class="help">Quantidade máxima de eventos importados desta fonte (vazio = sem limite).</div>
+    </div>
+
+    <div class="toggle-field">
+      <div>
+        <div class="tt">Ativo</div>
+        <div class="ts">Fontes inativas não aparecem no mural</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" formControlName="ativo" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </form>
+</app-admin-modal>
+
+<app-admin-modal
+  [open]="previewAberto()"
+  title="Preview da fonte"
+  [subtitle]="previewTitulo()"
+  icon="folder"
+  saveLabel="Fechar"
+  (save)="fecharPreview()"
+  (cancel)="fecharPreview()"
+>
+  <p class="preview-meta">{{ previewTotal() }} evento(s) encontrado(s). Exibindo até 20.</p>
+  @if (!previewEventos().length) {
+    <p class="empty">Nenhum evento retornado pelo parser.</p>
+  } @else {
+    <ul class="preview-list">
+      @for (ev of previewEventos(); track ev.titulo + ev.dataTexto) {
+        <li class="preview-item">
+          <span class="preview-thumb">
+            @if (ev.imagemUrl) {
+              <img [src]="ev.imagemUrl" [alt]="ev.titulo" loading="lazy" />
+            } @else {
+              {{ ev.emoji }}
+            }
+          </span>
+          <div>
+            <div class="preview-titulo">{{ ev.tipo }} · {{ ev.titulo }}</div>
+            <div class="preview-sub">{{ ev.dataTexto }}@if (ev.subtitulo) { · {{ ev.subtitulo }} }</div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</app-admin-modal>

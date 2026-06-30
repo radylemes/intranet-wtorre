@@ -1,16 +1,17 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { LoginBrandPanelComponent } from './login-brand-panel.component';
 import { AuthService } from '../../services/auth.service';
 import { MsalConfigService } from '../../services/msal-config.service';
+import { MenuService } from '../../services/menu.service';
+import { LoginConfig, LOGIN_DEFAULTS } from '../../models/login.model';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, LoginBrandPanelComponent],
+  imports: [ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
@@ -19,6 +20,12 @@ export class LoginComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly msalConfig = inject(MsalConfigService);
   private readonly route = inject(ActivatedRoute);
+  private readonly menuService = inject(MenuService);
+
+  readonly config = signal<LoginConfig>(structuredClone(LOGIN_DEFAULTS));
+  readonly empresas = computed(() =>
+    [...this.config().empresas].sort((a, b) => a.ordem - b.ordem)
+  );
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -34,7 +41,6 @@ export class LoginComponent implements OnInit {
   sessaoExpirada = signal(false);
 
   ngOnInit(): void {
-    // Limpa estado de interação MSAL do localStorage e sessionStorage (MSAL v5 usa localStorage)
     if (typeof window !== 'undefined') {
       ['localStorage', 'sessionStorage'].forEach((s) => {
         const store = window[s as 'localStorage' | 'sessionStorage'];
@@ -43,6 +49,10 @@ export class LoginComponent implements OnInit {
           .forEach((k) => store.removeItem(k));
       });
     }
+
+    this.menuService.getLoginPublic().subscribe({
+      next: (cfg) => this.config.set(cfg),
+    });
 
     this.route.queryParams.subscribe((params) => {
       this.sessaoExpirada.set(params['reason'] === 'idle');
@@ -59,7 +69,11 @@ export class LoginComponent implements OnInit {
     }
 
     void firstValueFrom(this.auth.ensureSession()).then((ok) => {
-      if (ok) this.auth.completarLogin();
+      if (ok) {
+        this.auth.completarLogin();
+      } else if (this.auth.temSessao()) {
+        this.auth.limparSessaoJwt();
+      }
     });
   }
 

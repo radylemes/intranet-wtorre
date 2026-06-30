@@ -370,9 +370,11 @@ export class ColaboradoresAdminComponent implements OnInit {
         URL.revokeObjectURL(url);
         this.mensagem.set('Planilha exportada com sucesso.');
       },
-      error: (err: HttpErrorResponse) => {
+      error: async (err: HttpErrorResponse) => {
         this.exportando.set(false);
-        this.erro.set(err.error?.mensagem || 'Erro ao exportar planilha.');
+        this.erro.set(
+          await this.colaboradoresService.mensagemErroHttp(err, 'Erro ao exportar planilha.')
+        );
       },
     });
   }

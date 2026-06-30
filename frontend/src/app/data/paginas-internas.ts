@@ -20,6 +20,7 @@ export const PAGINAS_INTERNAS: PaginaInterna[] = [
   { path: '/assinaturas', label: 'Assinaturas de E-mail' },
   { path: '/solicitacao-colaborador', label: 'Solicitação de Colaborador' },
   { path: '/bi/camarotes', label: 'BI / Camarotes' },
+  { path: '/agendas', label: 'Agendas / Eventos' },
 ];
 
 export function paginasDocumentosFromPaginas(

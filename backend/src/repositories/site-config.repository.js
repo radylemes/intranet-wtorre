@@ -2,6 +2,57 @@ const { getPool } = require('../db/pool');
 
 const FOOTER_CONFIG_KEY = 'footer.config';
 const TOPBAR_CONFIG_KEY = 'topbar.config';
+const LOGIN_CONFIG_KEY = 'login.config';
+
+const LOGIN_VARIANTES = new Set(['wt', 'nb', 'bs', 'an']);
+const LOGIN_ESTILOS = new Set(['wlogo', 'led']);
+
+const LOGIN_VARIANTE_CORES = {
+  wt: '#1d54e6',
+  nb: '#8d0de3',
+  bs: '#0d9488',
+  an: '#c2410c',
+};
+
+const LOGIN_VARIANTE_ESTILOS = {
+  wt: 'wlogo',
+  nb: 'led',
+  bs: 'led',
+  an: 'led',
+};
+
+const LOGIN_DEFAULTS = {
+  marca_topo: {
+    titulo: 'GRUPO WTORRE',
+    subtitulo: 'INTRANET CORPORATIVA',
+  },
+  hero: {
+    titulo_linha1: 'Um só grupo.',
+    titulo_destaque: 'Quatro grandes destinos.',
+    lead:
+      'Acesse sistemas, documentos e serviços das empresas do grupo em uma única plataforma segura.',
+  },
+  pill: {
+    texto: 'PÁGINA CORPORATIVA · ACESSO RESTRITO',
+  },
+  auth: {
+    titulo: 'Entrar na intranet',
+    subtitulo: 'Use sua conta corporativa Microsoft para continuar.',
+  },
+  aviso_seguranca:
+    'Aviso de segurança. Este é um sistema de uso exclusivo do Grupo WTorre. O acesso é monitorado e registrado. O uso não autorizado é proibido e pode estar sujeito a medidas disciplinares e legais. Ao continuar, você concorda com a Política de Segurança da Informação.',
+  rodape: {
+    copyright: '© 2026 Grupo WTorre · Uso interno e confidencial',
+    contato: 'CCO: Ramal 6673 · TEL.: (11) 4800-6673',
+  },
+  empresas_titulo: 'Empresas do grupo',
+  empresas: [
+    { id: 'wtorre', nome: 'WTORRE', variante: 'wt', cor: '#1d54e6', estilo: 'wlogo', imagem_url: null, link_url: null, nova_aba: true, ordem: 0 },
+    { id: 'nubank', nome: 'Nubank Parque', variante: 'nb', cor: '#8d0de3', estilo: 'led', imagem_url: null, link_url: null, nova_aba: true, ordem: 1 },
+    { id: 'base', nome: 'base', variante: 'bs', cor: '#0d9488', estilo: 'led', imagem_url: null, link_url: null, nova_aba: true, ordem: 2 },
+    { id: 'anhangabau', nome: 'Anhangabaú', variante: 'an', cor: '#c2410c', estilo: 'led', imagem_url: null, link_url: null, nova_aba: true, ordem: 3 },
+  ],
+};
 const HOME_CARROSSEL_KEY = 'home.carrossel';
 const HOME_SISTEMAS_KEY = 'home.sistemas';
 
@@ -422,6 +473,109 @@ async function setHomeSistemas(config) {
   return normalized;
 }
 
+function normalizeHexCor(value, fallback) {
+  const raw = String(value ?? '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
+  if (/^[0-9a-fA-F]{6}$/.test(raw)) return `#${raw.toLowerCase()}`;
+  return fallback;
+}
+
+function normalizeLoginEmpresa(empresa, index) {
+  const varianteRaw = String(empresa?.variante ?? 'wt').trim().toLowerCase();
+  const variante = LOGIN_VARIANTES.has(varianteRaw) ? varianteRaw : 'wt';
+  const corPadrao = LOGIN_VARIANTE_CORES[variante] || LOGIN_VARIANTE_CORES.wt;
+  const estiloRaw = String(empresa?.estilo ?? '').trim().toLowerCase();
+  const estilo = LOGIN_ESTILOS.has(estiloRaw)
+    ? estiloRaw
+    : LOGIN_VARIANTE_ESTILOS[variante] || 'led';
+
+  return {
+    id: String(empresa?.id ?? '').trim(),
+    nome: String(empresa?.nome ?? '').trim(),
+    variante,
+    cor: normalizeHexCor(empresa?.cor, corPadrao),
+    estilo,
+    imagem_url: empresa?.imagem_url?.trim() || null,
+    link_url: empresa?.link_url?.trim() || null,
+    nova_aba: empresa?.nova_aba !== false,
+    ordem: Number.isFinite(Number(empresa?.ordem)) ? Number(empresa.ordem) : index,
+  };
+}
+
+function normalizeLoginConfig(raw) {
+  const base = structuredClone(LOGIN_DEFAULTS);
+
+  if (raw?.marca_topo) {
+    base.marca_topo.titulo =
+      String(raw.marca_topo.titulo ?? base.marca_topo.titulo).trim() || base.marca_topo.titulo;
+    base.marca_topo.subtitulo =
+      String(raw.marca_topo.subtitulo ?? base.marca_topo.subtitulo).trim() ||
+      base.marca_topo.subtitulo;
+  }
+
+  if (raw?.hero) {
+    base.hero.titulo_linha1 =
+      String(raw.hero.titulo_linha1 ?? base.hero.titulo_linha1).trim() || base.hero.titulo_linha1;
+    base.hero.titulo_destaque =
+      String(raw.hero.titulo_destaque ?? base.hero.titulo_destaque).trim() ||
+      base.hero.titulo_destaque;
+    base.hero.lead = String(raw.hero.lead ?? base.hero.lead).trim() || base.hero.lead;
+  }
+
+  if (raw?.pill) {
+    base.pill.texto = String(raw.pill.texto ?? base.pill.texto).trim() || base.pill.texto;
+  }
+
+  if (raw?.auth) {
+    base.auth.titulo = String(raw.auth.titulo ?? base.auth.titulo).trim() || base.auth.titulo;
+    base.auth.subtitulo =
+      String(raw.auth.subtitulo ?? base.auth.subtitulo).trim() || base.auth.subtitulo;
+  }
+
+  if (raw?.aviso_seguranca != null) {
+    base.aviso_seguranca =
+      String(raw.aviso_seguranca).trim() || base.aviso_seguranca;
+  }
+
+  if (raw?.rodape) {
+    base.rodape.copyright =
+      String(raw.rodape.copyright ?? base.rodape.copyright).trim() || base.rodape.copyright;
+    base.rodape.contato =
+      String(raw.rodape.contato ?? base.rodape.contato).trim() || base.rodape.contato;
+  }
+
+  if (raw?.empresas_titulo != null) {
+    base.empresas_titulo =
+      String(raw.empresas_titulo).trim() || base.empresas_titulo;
+  }
+
+  if (Array.isArray(raw?.empresas) && raw.empresas.length) {
+    base.empresas = raw.empresas
+      .map(normalizeLoginEmpresa)
+      .filter((e) => e.id && e.nome)
+      .sort((a, b) => a.ordem - b.ordem);
+  }
+
+  return base;
+}
+
+async function getLogin() {
+  const raw = await get(LOGIN_CONFIG_KEY);
+  if (!raw) return structuredClone(LOGIN_DEFAULTS);
+
+  try {
+    return normalizeLoginConfig(JSON.parse(raw));
+  } catch {
+    return structuredClone(LOGIN_DEFAULTS);
+  }
+}
+
+async function setLogin(config) {
+  const normalized = normalizeLoginConfig(config);
+  await set(LOGIN_CONFIG_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
 module.exports = {
   FOOTER_CONFIG_KEY,
   TOPBAR_CONFIG_KEY,
@@ -449,4 +603,9 @@ module.exports = {
   getHomeSistemas,
   setHomeSistemas,
   normalizeHomeSistemas,
+  LOGIN_CONFIG_KEY,
+  LOGIN_DEFAULTS,
+  getLogin,
+  setLogin,
+  normalizeLoginConfig,
 };

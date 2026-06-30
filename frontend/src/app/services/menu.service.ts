@@ -18,6 +18,7 @@ import {
   HOME_SISTEMAS_DEFAULTS,
 } from '../models/home-sistemas.model';
 import { HeaderChamadoConfig } from '../models/configuracoes.model';
+import { LoginConfig, LOGIN_DEFAULTS } from '../models/login.model';
 import { navDataToMenuTree } from '../data/nav.data';
 
 @Injectable({ providedIn: 'root' })
@@ -153,5 +154,21 @@ export class MenuService {
     tipo_destino: 'interna' | 'externa';
   }): Observable<HeaderChamadoConfig> {
     return this.http.put<HeaderChamadoConfig>(this.api('/menu/header-chamado'), body);
+  }
+
+  getLoginPublic(): Observable<LoginConfig> {
+    return this.http.get<LoginConfig>(`${environment.apiBaseUrl}/branding/login`).pipe(
+      catchError(() => of(structuredClone(LOGIN_DEFAULTS)))
+    );
+  }
+
+  getLogin(): Observable<LoginConfig> {
+    return this.http.get<LoginConfig>(this.api('/menu/login')).pipe(
+      catchError(() => of(structuredClone(LOGIN_DEFAULTS)))
+    );
+  }
+
+  salvarLogin(config: LoginConfig): Observable<LoginConfig> {
+    return this.http.put<LoginConfig>(this.api('/menu/login'), config);
   }
 }

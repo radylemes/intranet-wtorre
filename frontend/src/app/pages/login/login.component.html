@@ -1,105 +1,199 @@
-<div class="shell">
-  <app-login-brand-panel />
+<div class="bg" aria-hidden="true">
+  <span class="glow g1"></span>
+  <span class="glow g2"></span>
+  <span class="grid"></span>
+  <span class="spark">
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l1.6 6.4L20 10l-6.4 1.6L12 18l-1.6-6.4L4 10l6.4-1.6z" />
+    </svg>
+  </span>
+</div>
 
-  <main class="login-side">
-    <div class="login-box">
-      <div class="restricted">
+<div class="brand-top">
+  <div class="bn">{{ config().marca_topo.titulo }}</div>
+  <div class="bs">{{ config().marca_topo.subtitulo }}</div>
+</div>
+
+<div class="stack">
+  <div class="card">
+    <h1 class="hero-title">
+      {{ config().hero.titulo_linha1 }}<br />
+      <span class="grad">{{ config().hero.titulo_destaque }}</span>
+    </h1>
+    <p class="hero-lead">{{ config().hero.lead }}</p>
+
+    <span class="pill">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2" />
+        <path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" />
+      </svg>
+      {{ config().pill.texto }}
+    </span>
+
+    <div class="divider-soft"></div>
+
+    <h2 class="auth-h">{{ config().auth.titulo }}</h2>
+    <p class="auth-sub">{{ config().auth.subtitulo }}</p>
+
+    @if (sessaoExpirada()) {
+      <div class="alert warn-alert" role="status">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="2" />
-          <path d="M8 10V7a4 4 0 018 0v3" stroke="currentColor" stroke-width="2" />
+          <path
+            d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
-        Página corporativa · Acesso restrito
+        <div>Sua sessão expirou por inatividade. Entre novamente.</div>
       </div>
+    }
 
-      @if (sessaoExpirada()) {
-        <div class="warn show" role="status">Sua sessão expirou por inatividade. Entre novamente.</div>
-      }
+    @if (avisoMsal()) {
+      <div class="alert warn-alert" role="status">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <div>{{ avisoMsal() }}</div>
+      </div>
+    }
 
-      @if (avisoMsal()) {
-        <div class="warn show" role="status">{{ avisoMsal() }}</div>
-      }
+    @if (mensagemErro()) {
+      <div class="alert" role="alert">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <div>{{ mensagemErro() }}</div>
+      </div>
+    }
 
-      <h2>Entrar na intranet</h2>
-      <p class="hint">Use sua conta corporativa Microsoft para continuar.</p>
+    <button
+      class="ms-btn"
+      type="button"
+      (click)="entrarMicrosoft()"
+      [disabled]="autenticando() || auth.msalBusy() || !msalConfig.hasClientId()"
+    >
+      <span class="ms-logo" aria-hidden="true">
+        <i></i><i></i><i></i><i></i>
+      </span>
+      {{ autenticando() || auth.msalBusy() ? 'Redirecionando...' : 'Entrar com Microsoft' }}
+    </button>
 
-      @if (mensagemErro()) {
-        <div class="err show" role="alert">{{ mensagemErro() }}</div>
-      }
+    <button class="alt-link" type="button" (click)="toggleLoginLocal()">
+      {{ mostrarLoginLocal ? 'Ocultar login administrativo' : 'Login sem Microsoft (admin)' }}
+    </button>
 
-      <button
-        class="btn-ms"
-        type="button"
-        (click)="entrarMicrosoft()"
-        [disabled]="autenticando() || auth.msalBusy() || !msalConfig.hasClientId()"
-      >
-        <span class="ms-grid" aria-hidden="true">
-          <span></span><span></span><span></span><span></span>
-        </span>
-        {{ autenticando() || auth.msalBusy() ? 'Redirecionando...' : 'Entrar com Microsoft' }}
-      </button>
+    @if (mostrarLoginLocal) {
+      <form [formGroup]="form" (ngSubmit)="enviarLogin()" class="local-form">
+        <div class="field">
+          <label for="email">E-mail administrativo</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="admin@grupowtorre.com"
+            autocomplete="username"
+          />
+        </div>
 
-      <button class="link-local" type="button" (click)="toggleLoginLocal()">
-        {{ mostrarLoginLocal ? 'Ocultar login administrativo' : 'Login sem Microsoft (admin)' }}
-      </button>
+        <div class="field">
+          <label for="pass">Senha</label>
+          <div class="pass-wrap">
+            <input
+              id="pass"
+              [type]="mostrarSenha ? 'text' : 'password'"
+              formControlName="senha"
+              placeholder="••••••••••"
+              autocomplete="current-password"
+              (keydown.enter)="onSenhaEnter($event)"
+            />
+            <button class="toggle" type="button" (click)="alternarSenha()" aria-label="Mostrar senha">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
-      @if (mostrarLoginLocal) {
-        <form [formGroup]="form" (ngSubmit)="enviarLogin()" class="local-form">
-          <div class="field">
-            <label for="email">E-mail administrativo</label>
-            <div class="input">
-              <input
-                id="email"
-                type="email"
-                formControlName="email"
-                placeholder="admin@grupowtorre.com"
-                autocomplete="username"
-              />
+        <label class="remember">
+          <input type="checkbox" formControlName="manterConectado" />
+          Manter conectado
+        </label>
+
+        <button class="btn-login" type="submit" [disabled]="autenticando()">
+          {{ autenticando() ? 'Autenticando...' : 'Acessar (admin)' }}
+        </button>
+      </form>
+    }
+
+    <div class="brands-in">
+      <div class="brands-cap">{{ config().empresas_titulo }}</div>
+      <div class="brands-grid">
+        @for (empresa of empresas(); track empresa.id) {
+          @if (empresa.link_url) {
+            <a
+              class="bchip bchip-link"
+              [class.bchip-wlogo]="empresa.estilo === 'wlogo'"
+              [class.bchip-led]="empresa.estilo === 'led'"
+              [style.--chip-cor]="empresa.cor"
+              [href]="empresa.link_url"
+              [attr.target]="empresa.nova_aba ? '_blank' : null"
+              [attr.rel]="empresa.nova_aba ? 'noopener noreferrer' : null"
+              [title]="empresa.nome"
+            >
+              @if (empresa.imagem_url) {
+                <img class="chip-img" [src]="empresa.imagem_url" [alt]="empresa.nome" loading="lazy" />
+              } @else if (empresa.estilo === 'wlogo') {
+                <span class="wlogo">{{ empresa.nome }}</span>
+              } @else {
+                <span class="led"></span>
+                {{ empresa.nome }}
+              }
+            </a>
+          } @else {
+            <div
+              class="bchip"
+              [class.bchip-wlogo]="empresa.estilo === 'wlogo'"
+              [class.bchip-led]="empresa.estilo === 'led'"
+              [style.--chip-cor]="empresa.cor"
+            >
+              @if (empresa.imagem_url) {
+                <img class="chip-img" [src]="empresa.imagem_url" [alt]="empresa.nome" loading="lazy" />
+              } @else if (empresa.estilo === 'wlogo') {
+                <span class="wlogo">{{ empresa.nome }}</span>
+              } @else {
+                <span class="led"></span>
+                {{ empresa.nome }}
+              }
             </div>
-          </div>
-
-          <div class="field">
-            <label for="pass">Senha</label>
-            <div class="input">
-              <input
-                id="pass"
-                [type]="mostrarSenha ? 'text' : 'password'"
-                formControlName="senha"
-                placeholder="••••••••••"
-                autocomplete="current-password"
-                (keydown.enter)="onSenhaEnter($event)"
-              />
-              <button class="toggle" type="button" (click)="alternarSenha()" aria-label="Mostrar senha">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  />
-                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="row-between">
-            <label class="remember">
-              <input type="checkbox" formControlName="manterConectado" />
-              Manter conectado
-            </label>
-          </div>
-
-          <button class="btn-login" type="submit" [disabled]="autenticando()">
-            {{ autenticando() ? 'Autenticando...' : 'Acessar (admin)' }}
-          </button>
-        </form>
-      }
-
-      <p class="legal">
-        <b>Aviso de segurança.</b> Este é um sistema de uso exclusivo do Grupo WTorre. O acesso é
-        monitorado e registrado. O uso não autorizado é proibido e pode estar sujeito a medidas
-        disciplinares e legais. Ao continuar, você concorda com a Política de Segurança da
-        Informação.
-      </p>
+          }
+        }
+      </div>
     </div>
-  </main>
+
+    <p class="notice">{{ config().aviso_seguranca }}</p>
+  </div>
+</div>
+
+<div class="foot">
+  <div>{{ config().rodape.copyright }}</div>
+  <div><b>{{ config().rodape.contato }}</b></div>
 </div>

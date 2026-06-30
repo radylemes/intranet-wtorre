@@ -480,7 +480,12 @@ export function authMsalRedirectInitializer(auth: AuthService, msalConfig: MsalC
         })
         .catch((err) => {
           auth.salvarErroLoginMicrosoft(err);
-          auth.irParaLogin();
+          if (
+            typeof window !== 'undefined' &&
+            !window.location.pathname.startsWith('/login')
+          ) {
+            auth.irParaLogin();
+          }
           return null;
         })
     );

@@ -49,6 +49,12 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'agendas',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/agendas/agendas.component').then((m) => m.AgendasComponent),
+  },
+  {
     path: 'assinaturas',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -168,6 +174,14 @@ export const routes: Routes = [
             (m) => m.AdminAbaRedirectComponent
           ),
         data: { dest: 'menu', aba: 'comunicados' },
+      },
+      {
+        path: 'eventos',
+        loadComponent: () =>
+          import('./pages/admin/admin-aba-redirect/admin-aba-redirect.component').then(
+            (m) => m.AdminAbaRedirectComponent
+          ),
+        data: { dest: 'menu', aba: 'eventos' },
       },
       {
         path: 'containers',

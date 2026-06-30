@@ -7,6 +7,7 @@ export const ADMIN_MODULO_ROTAS: { codigo: string; rota: string }[] = [
   { codigo: 'documentos', rota: 'documentos' },
   { codigo: 'treinamentos', rota: 'treinamentos' },
   { codigo: 'comunicados', rota: 'comunicados' },
+  { codigo: 'eventos', rota: 'eventos' },
   { codigo: 'containers', rota: 'containers' },
   { codigo: 'paginas', rota: 'paginas' },
   { codigo: 'tenants', rota: 'tenants' },

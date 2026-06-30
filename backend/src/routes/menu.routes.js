@@ -4,6 +4,7 @@ const topbarController = require('../controllers/topbar.controller');
 const homeCarrosselController = require('../controllers/home-carrossel.controller');
 const homeSistemasController = require('../controllers/home-sistemas.controller');
 const headerChamadoController = require('../controllers/header-chamado.controller');
+const loginController = require('../controllers/login.controller');
 const requireJwt = require('../middleware/requireJwt.middleware');
 const requireModulo = require('../middleware/requireModulo.middleware');
 const { uploadLogo, handleMulterError } = require('../config/grupo-logos-upload');
@@ -35,6 +36,9 @@ router.put('/sistemas', requireJwt, requireModulo('menu'), homeSistemasControlle
 
 router.get('/header-chamado', requireJwt, headerChamadoController.getHeaderChamado);
 router.put('/header-chamado', requireJwt, requireModulo('menu'), headerChamadoController.putHeaderChamado);
+
+router.get('/login', requireJwt, loginController.getLogin);
+router.put('/login', requireJwt, requireModulo('menu'), loginController.putLogin);
 router.post(
   '/carrossel/upload',
   requireJwt,

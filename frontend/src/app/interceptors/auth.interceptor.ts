@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   '/auth/login-microsoft',
   '/auth/refresh',
   '/tenants/msal-config',
+  '/branding/',
   '/assinaturas/instalar-assinaturas.ps1',
   '/assinaturas/instalar-assinaturas-base.ps1',
   '/assinaturas/config/',
@@ -51,6 +52,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
+      const onLoginPage =
+        typeof window !== 'undefined' && window.location.pathname.startsWith('/login');
+
       return auth.refresh().pipe(
         switchMap((refreshed) => {
           const newToken = tokenRenovado(refreshed);
@@ -63,12 +67,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           if (auth.temAccessValido() || auth.temSessao()) {
             auth.limparSessao();
           }
-          void auth.irParaLogin();
+          if (!onLoginPage) {
+            void auth.irParaLogin();
+          }
           return throwError(() => err);
         }),
         catchError(() => {
           if (auth.temSessao()) auth.limparSessao();
-          void auth.irParaLogin();
+          if (!onLoginPage) {
+            void auth.irParaLogin();
+          }
           return throwError(() => err);
         })
       );

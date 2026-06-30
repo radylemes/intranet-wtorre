@@ -1,0 +1,305 @@
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
+import { FooterComponent } from '../../shared/footer/footer.component';
+import { EventosService } from '../../services/eventos.service';
+import { Evento } from '../../models/evento.model';
+import {
+  EventoMarca,
+  eventoMarca,
+  fonteExibicao,
+  marcaCssClass,
+} from '../../utils/evento-marca.util';
+import {
+  diaMesAbrev,
+  extrairHora,
+  formatarDiaSelecionado,
+  formatarMesAno,
+  hojeIso,
+  isoFromParts,
+  parseIso,
+} from '../../utils/evento-data.util';
+
+interface CalCell {
+  day: number;
+  iso: string | null;
+  out: boolean;
+  today: boolean;
+  selected: boolean;
+  marcas: EventoMarca[];
+}
+
+const GRADIENTES = ['g1', 'g2', 'g3'];
+
+@Component({
+  selector: 'app-agendas',
+  standalone: true,
+  imports: [PublicChromeComponent, FooterComponent],
+  templateUrl: './agendas.component.html',
+  styleUrl: './agendas.component.scss',
+})
+export class AgendasComponent implements OnInit, OnDestroy {
+  private readonly eventosService = inject(EventosService);
+
+  readonly eventos = signal<Evento[]>([]);
+  readonly carregando = signal(true);
+  readonly erro = signal('');
+  readonly slideAtivo = signal(0);
+  readonly imagemFalhou = signal<Set<string>>(new Set());
+
+  private readonly hoje = hojeIso();
+  private readonly hojeParts = parseIso(this.hoje);
+
+  readonly calAno = signal(this.hojeParts.year);
+  readonly calMes = signal(this.hojeParts.month);
+  readonly diaSelecionado = signal(this.hoje);
+
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private pausado = false;
+
+  readonly destaques = computed(() => this.selecionarDestaques(this.eventos()));
+
+  readonly eventosPorDia = computed(() => {
+    const map = new Map<string, Evento[]>();
+    for (const ev of this.eventos()) {
+      if (!ev.dataIso) continue;
+      const list = map.get(ev.dataIso) || [];
+      list.push(ev);
+      map.set(ev.dataIso, list);
+    }
+    return map;
+  });
+
+  readonly eventosDoDia = computed(() => {
+    const iso = this.diaSelecionado();
+    return this.eventosPorDia().get(iso) || [];
+  });
+
+  readonly tituloDiaSelecionado = computed(() => formatarDiaSelecionado(this.diaSelecionado()));
+
+  readonly tituloMes = computed(() => formatarMesAno(this.calAno(), this.calMes()));
+
+  readonly calCells = computed(() => this.gerarCalendario());
+
+  ngOnInit(): void {
+    this.carregar();
+    this.iniciarTimer();
+  }
+
+  ngOnDestroy(): void {
+    this.pararTimer();
+  }
+
+  carregar(): void {
+    this.carregando.set(true);
+    this.erro.set('');
+    this.eventosService.listarAgenda().subscribe({
+      next: (res) => {
+        this.eventos.set(res.eventos);
+        this.carregando.set(false);
+        if (res.eventos.length) {
+          const primeiro = res.eventos.find((e) => e.dataIso)?.dataIso;
+          if (primeiro) {
+            this.diaSelecionado.set(primeiro);
+            const p = parseIso(primeiro);
+            this.calAno.set(p.year);
+            this.calMes.set(p.month);
+          }
+        }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.erro.set(err.error?.mensagem || 'Erro ao carregar eventos.');
+        this.carregando.set(false);
+      },
+    });
+  }
+
+  private selecionarDestaques(lista: Evento[]): Evento[] {
+    if (!lista.length) return [];
+    const comImagem = lista.filter((e) => e.imagemUrl && !this.imagemFalhou().has(e.titulo + e.dataIso));
+    const destaques: Evento[] = [];
+    for (const ev of comImagem) {
+      if (destaques.length >= 3) break;
+      destaques.push(ev);
+    }
+    for (const ev of lista) {
+      if (destaques.length >= 3) break;
+      if (!destaques.includes(ev)) destaques.push(ev);
+    }
+    return destaques.slice(0, 3);
+  }
+
+  private gerarCalendario(): CalCell[] {
+    const year = this.calAno();
+    const month = this.calMes();
+    const first = new Date(year, month, 1);
+    const firstDow = first.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrev = new Date(year, month, 0).getDate();
+    const cells: CalCell[] = [];
+    const porDia = this.eventosPorDia();
+    const sel = this.diaSelecionado();
+
+    for (let i = 0; i < firstDow; i++) {
+      const day = daysInPrev - firstDow + 1 + i;
+      cells.push({
+        day,
+        iso: null,
+        out: true,
+        today: false,
+        selected: false,
+        marcas: [],
+      });
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = isoFromParts(year, month, d);
+      const evs = porDia.get(iso) || [];
+      const marcas = [...new Set(evs.map((e) => eventoMarca(e)))];
+      cells.push({
+        day: d,
+        iso,
+        out: false,
+        today: iso === this.hoje,
+        selected: iso === sel && iso !== this.hoje,
+        marcas,
+      });
+    }
+
+    const rest = (7 - (cells.length % 7)) % 7;
+    for (let i = 1; i <= rest; i++) {
+      cells.push({
+        day: i,
+        iso: null,
+        out: true,
+        today: false,
+        selected: false,
+        marcas: [],
+      });
+    }
+
+    return cells;
+  }
+
+  setSlide(i: number): void {
+    const total = this.destaques().length;
+    if (!total) return;
+    this.slideAtivo.set((i + total) % total);
+  }
+
+  goSlide(delta: number): void {
+    this.setSlide(this.slideAtivo() + delta);
+  }
+
+  onCarouselEnter(): void {
+    this.pausado = true;
+    this.pararTimer();
+  }
+
+  onCarouselLeave(): void {
+    this.pausado = false;
+    this.iniciarTimer();
+  }
+
+  private iniciarTimer(): void {
+    this.pararTimer();
+    if (this.pausado || this.destaques().length < 2) return;
+    this.timer = setInterval(() => this.goSlide(1), 5000);
+  }
+
+  private pararTimer(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  mesAnterior(): void {
+    let m = this.calMes() - 1;
+    let y = this.calAno();
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    }
+    this.calMes.set(m);
+    this.calAno.set(y);
+  }
+
+  mesProximo(): void {
+    let m = this.calMes() + 1;
+    let y = this.calAno();
+    if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+    this.calMes.set(m);
+    this.calAno.set(y);
+  }
+
+  selecionarDia(cell: CalCell): void {
+    if (!cell.iso || cell.out) return;
+    this.diaSelecionado.set(cell.iso);
+  }
+
+  gradienteClasse(i: number): string {
+    return GRADIENTES[i % GRADIENTES.length];
+  }
+
+  marca(ev: Evento): EventoMarca {
+    return eventoMarca(ev);
+  }
+
+  marcaClass(ev: Evento): string {
+    return marcaCssClass(eventoMarca(ev));
+  }
+
+  fonte(ev: Evento): string {
+    return fonteExibicao(ev);
+  }
+
+  hora(ev: Evento): string {
+    return extrairHora(ev.dataTexto) || '';
+  }
+
+  badge(ev: Evento): { dia: string; mes: string } {
+    return diaMesAbrev(ev.dataIso);
+  }
+
+  quando(ev: Evento): string {
+    const hora = extrairHora(ev.dataTexto);
+    const local = ev.subtitulo ? ` — ${ev.subtitulo}` : '';
+    return hora ? `${ev.dataTexto}${local}` : `${ev.dataTexto}${local}`;
+  }
+
+  thumbSub(ev: Evento): string {
+    const hora = extrairHora(ev.dataTexto);
+    return hora ? `${this.fonte(ev)} · ${hora}` : this.fonte(ev);
+  }
+
+  mostrarImagem(ev: Evento): boolean {
+    return Boolean(ev.imagemUrl) && !this.imagemFalhou().has(ev.titulo + ev.dataIso);
+  }
+
+  onImagemErro(ev: Evento): void {
+    this.imagemFalhou.update((set) => {
+      const next = new Set(set);
+      next.add(ev.titulo + ev.dataIso);
+      return next;
+    });
+  }
+
+  slideAtivoFlag(i: number): boolean {
+    return this.slideAtivo() === i;
+  }
+
+  trackEvento(_i: number, ev: Evento): string {
+    return (ev.url || '') + ev.titulo + (ev.dataIso || '');
+  }
+}
