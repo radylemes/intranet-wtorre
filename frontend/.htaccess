@@ -1,1 +1,4 @@
-# Please fill in the URLrewrite rules or custom Apache config here
+# MIME para módulos ES (.mjs) — fallback se servido como estático
+<IfModule mod_mime.c>
+  AddType application/javascript .mjs
+</IfModule>

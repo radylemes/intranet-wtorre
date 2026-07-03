@@ -18,6 +18,7 @@ export const PAGINAS_INTERNAS: PaginaInterna[] = [
   { path: '/aniversariantes', label: 'Aniversariantes' },
   { path: '/documentos/wtorre?cat=treinamentos', label: 'Treinamentos' },
   { path: '/assinaturas', label: 'Assinaturas de E-mail' },
+  { path: '/plaquinhas-camarote', label: 'Plaquinhas Camarote' },
   { path: '/solicitacao-colaborador', label: 'Solicitação de Colaborador' },
   { path: '/bi/camarotes', label: 'BI / Camarotes' },
   { path: '/dashboards', label: 'Dashboards' },

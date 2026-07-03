@@ -58,13 +58,17 @@ export class DocumentoFeaturedCardComponent implements OnChanges, OnDestroy {
     this.thumbFalhou.set(false);
     this.thumbCarregando.set(false);
 
-    const url = this.documento?.thumbnail_url;
-    if (!url && !this.documento?.tem_thumb) return;
-    if (!url) return;
+    const doc = this.documento;
+    if (!doc?.tem_thumb && !doc?.thumbnail_url) return;
 
     this.thumbCarregando.set(true);
-    this.documentosService.carregarThumbnail(url).subscribe({
+    this.documentosService.carregarThumbnailPorId(doc.id).subscribe({
       next: (blob) => {
+        if (!blob) {
+          this.thumbFalhou.set(true);
+          this.thumbCarregando.set(false);
+          return;
+        }
         this.objectUrl = URL.createObjectURL(blob);
         this.thumbUrl.set(this.objectUrl);
         this.thumbCarregando.set(false);

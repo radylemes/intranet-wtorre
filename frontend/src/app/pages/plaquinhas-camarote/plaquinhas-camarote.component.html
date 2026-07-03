@@ -1,0 +1,411 @@
+<div class="pagina-plaquinhas">
+  <app-public-chrome>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.6" />
+              <path d="M12 5v9M4 14h16" stroke="currentColor" stroke-width="1.6" />
+            </svg>
+          </div>
+          <div>
+            <h1>Plaquinhas Camarote</h1>
+            <p>Monte folhas A4, ajuste a arte e exporte o PDF com marcas de corte.</p>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <div class="sheet-chip">
+          <span class="dot"></span>
+          <span><b>3 plaquinhas</b> por folha · A4 retrato</span>
+        </div>
+        <button
+          type="button"
+          class="btn-primary"
+          [disabled]="exporting()"
+          (click)="exportPdf()"
+        >
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M6 9V4h12v5M6 18h12v-5H6v5zM6 13h12M8 4h8"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          {{ exporting() ? 'Gerando PDF…' : 'Gerar PDF para impressão' }}
+        </button>
+      </header>
+
+      <main class="workspace">
+        <!-- LEFT RAIL -->
+        <aside class="rail">
+          <section class="card">
+            <div class="card-head"><span class="eyebrow">Arte da plaquinha</span></div>
+            <div class="card-body">
+              <div class="tabs" role="tablist">
+                <button
+                  type="button"
+                  class="tab"
+                  role="tab"
+                  [class.ativo]="state().mode === 'single'"
+                  (click)="setMode('single')"
+                >
+                  Uma para todas
+                </button>
+                <button
+                  type="button"
+                  class="tab"
+                  role="tab"
+                  [class.ativo]="state().mode === 'multi'"
+                  (click)="setMode('multi')"
+                >
+                  Uma por plaquinha
+                </button>
+              </div>
+
+              @if (state().mode === 'single') {
+                <div
+                  class="dropzone"
+                  (dragover)="preventDragDefault($event)"
+                  (drop)="onSingleDrop($event)"
+                >
+                  <input
+                    type="file"
+                    [accept]="acceptFiles"
+                    (change)="onSingleFileSelected($event)"
+                    [attr.data-key]="singleInputKey()"
+                  />
+                  @if (singleUpload().loading) {
+                    <div class="dropzone-state">Carregando {{ singleUpload().fileName }}…</div>
+                  } @else if (singleUpload().error) {
+                    <div class="dropzone-state err">{{ singleUpload().error }}</div>
+                  } @else if (singleUpload().preview) {
+                    <img class="dropzone-preview" [src]="singleUpload().preview" alt="Prévia da arte" />
+                    <strong>{{ singleUpload().fileName }}</strong>
+                    <span>Clique para trocar</span>
+                  } @else {
+                    <div class="ic">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+                          stroke="currentColor"
+                          stroke-width="1.7"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </div>
+                    <strong>Clique ou arraste a arte</strong>
+                    <span>Vetor ou imagem em alta resolução</span>
+                    <div class="formats">
+                      <span class="fmt">AI</span>
+                      <span class="fmt">PDF</span>
+                      <span class="fmt">SVG</span>
+                      <span class="fmt alt">PNG</span>
+                      <span class="fmt alt">JPEG</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="multi-grid">
+                  @for (slot of cellUploads(); track $index) {
+                    <div
+                      class="dropzone dropzone-sm"
+                      (dragover)="preventDragDefault($event)"
+                      (drop)="onCellDrop($index, $event)"
+                    >
+                      <input
+                        type="file"
+                        [accept]="acceptFiles"
+                        (change)="onCellFileSelected($index, $event)"
+                        [attr.data-key]="cellInputKeys()[$index]"
+                      />
+                      @if (slot.loading) {
+                        <div class="dropzone-state">Carregando…</div>
+                      } @else if (slot.error) {
+                        <div class="dropzone-state err">{{ slot.error }}</div>
+                      } @else if (slot.preview) {
+                        <img class="dropzone-preview-sm" [src]="slot.preview" [alt]="labels[$index]" />
+                        <span class="multi-name">{{ slot.fileName }}</span>
+                      } @else {
+                        <strong>{{ labels[$index] }}</strong>
+                        <span>{{ $index < 2 ? 'Vertical' : 'Horizontal' }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><span class="eyebrow">Dimensões da folha</span></div>
+            <div class="card-body">
+              <div class="dim-row">
+                <div class="field">
+                  <label for="plaqW">Largura</label>
+                  <div class="input-cm">
+                    <input
+                      id="plaqW"
+                      type="number"
+                      min="5"
+                      max="28"
+                      step="0.1"
+                      [ngModel]="state().dimensions.width"
+                      (ngModelChange)="setDimension('width', $event)"
+                    />
+                    <span class="unit">cm</span>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="plaqH">Altura</label>
+                  <div class="input-cm">
+                    <input
+                      id="plaqH"
+                      type="number"
+                      min="3"
+                      max="20"
+                      step="0.1"
+                      [ngModel]="state().dimensions.height"
+                      (ngModelChange)="setDimension('height', $event)"
+                    />
+                    <span class="unit">cm</span>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label for="gap">Espaço entre placas</label>
+                <div class="input-cm">
+                  <input
+                    id="gap"
+                    type="number"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    [ngModel]="state().dimensions.gap"
+                    (ngModelChange)="setDimension('gap', $event)"
+                  />
+                  <span class="unit">cm</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card conv">
+            <div class="card-head"><span class="eyebrow">Conversor AI / PDF → PNG</span></div>
+            <div class="card-body">
+              <p class="hint">
+                Arraste um <b>.ai</b> ou <b>.pdf</b>, ou cole com
+                <span class="kbd">Ctrl</span> <span class="kbd">V</span>.
+              </p>
+              <div
+                class="dropzone"
+                (dragover)="preventDragDefault($event)"
+                (drop)="onConvDrop($event)"
+              >
+                <input
+                  type="file"
+                  accept=".ai,.pdf,.png,.jpg,.jpeg,.svg"
+                  (change)="onConvFileSelected($event)"
+                  [attr.data-key]="convInputKey()"
+                />
+                @if (converter().loading) {
+                  <div class="dropzone-state">Convertendo…</div>
+                } @else if (converter().error) {
+                  <div class="dropzone-state err">{{ converter().error }}</div>
+                } @else if (converter().done) {
+                  <div class="dropzone-state ok">Convertido! Clique para outro.</div>
+                } @else {
+                  <div class="ic">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M14 3v4a1 1 0 001 1h4M15 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-4-5z"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M9 13l2 2 4-4"
+                        stroke="currentColor"
+                        stroke-width="1.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <strong>Converter arquivo</strong>
+                  <span>Gera um PNG pronto para posicionar</span>
+                }
+              </div>
+
+              @if (converter().preview) {
+                <div class="conv-result">
+                  <img [src]="converter().preview!" alt="Prévia convertida" class="conv-preview" />
+                  <div class="conv-actions">
+                    <button type="button" class="btn-cv btn-cv-purple" (click)="downloadConvertedPng()">
+                      PNG
+                    </button>
+                    <button type="button" class="btn-cv btn-cv-green" (click)="useConvertedPng()">
+                      Usar
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        </aside>
+
+        <!-- CENTER STAGE -->
+        <section class="stage">
+          <div class="stage-top">
+            <span class="label">
+              <b>A4 retrato</b> — 21 × 29,7 cm · 2 verticais no topo, 1 horizontal embaixo
+            </span>
+            <label class="toggle">
+              <input
+                type="checkbox"
+                id="mover"
+                [checked]="state().syncAll"
+                (change)="setSyncAll($any($event.target).checked)"
+              />
+              <span class="track"></span>
+              <span>Mover todas juntas <span class="sub">(zoom incluso)</span></span>
+            </label>
+          </div>
+
+          <div class="proof">
+            <div class="corner"></div>
+            <div class="ruler-h"></div>
+            <div class="ruler-v"></div>
+            <div class="a4">
+              <div #sheet class="sheet"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT RAIL -->
+        <aside class="rail">
+          @for (label of labels; track $index) {
+            <section
+              class="card plaq-card"
+              [attr.data-target]="$index + 1"
+              (mouseenter)="setHighlightedCell($index)"
+              (mouseleave)="setHighlightedCell(null)"
+            >
+              <div class="head">
+                <span class="idx">{{ $index + 1 }}</span>
+                <span class="name">{{ label }}</span>
+                <span class="size">{{ placaSizeLabel($index) }}</span>
+              </div>
+
+              @if (!hasSrc($index)) {
+                <div class="status">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+                    <path
+                      d="M12 8v4m0 4h.01"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  Nenhuma arte enviada
+                </div>
+              } @else {
+                <div class="status status-ok">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+                    <path
+                      d="M8 12l2.5 2.5L16 9"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Arte carregada
+                </div>
+
+                <div class="row row-scale">
+                  <span class="k">Tamanho</span>
+                  <input
+                    type="range"
+                    min="10"
+                    max="200"
+                    step="1"
+                    [ngModel]="state().scales[$index]"
+                    (ngModelChange)="setScale($index, $event)"
+                  />
+                  <input
+                    type="number"
+                    class="scale-num"
+                    min="10"
+                    max="200"
+                    step="1"
+                    [ngModel]="state().scales[$index]"
+                    (ngModelChange)="setScale($index, $event)"
+                  />
+                </div>
+
+                <div class="row">
+                  <span class="k">Rotação</span>
+                  <button type="button" class="pill-select" (click)="rotateCell($index)">
+                    ↻ Girar
+                  </button>
+                  <span class="rot-val">{{ state().rotations[$index] }}°</span>
+                </div>
+
+                <div class="row">
+                  <span class="k">Posição</span>
+                  <button type="button" class="pill-select" (click)="centerCell($index)">
+                    ⌖ Central.
+                  </button>
+                </div>
+              }
+
+              <div class="row">
+                <span class="k">Fundo</span>
+                <div class="swatch-group">
+                  <input
+                    type="color"
+                    class="swatch-input"
+                    [value]="state().bgColors[$index]"
+                    (input)="setBgColor($index, $any($event.target).value)"
+                  />
+                  <button type="button" class="pill-select" (click)="setBgWhite($index)">
+                    Branco
+                  </button>
+                </div>
+              </div>
+
+              <div class="row card-pad-b">
+                <span class="k">Modo</span>
+                <div class="seg">
+                  <button
+                    type="button"
+                    [class.on]="state().logoModes[$index] === 'cover'"
+                    (click)="setLogoMode($index, 'cover')"
+                  >
+                    Preencher
+                  </button>
+                  <button
+                    type="button"
+                    [class.on]="state().logoModes[$index] === 'contain'"
+                    (click)="setLogoMode($index, 'contain')"
+                  >
+                    Centralizar
+                  </button>
+                </div>
+              </div>
+            </section>
+          }
+        </aside>
+      </main>
+    </div>
+
+    <app-footer />
+    <app-toast />
+  </app-public-chrome>
+</div>

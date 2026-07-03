@@ -9,7 +9,8 @@ const ICONE_LEGADO_MAP = {
 };
 
 const ICONE_LEGADO_VALUES = new Set(Object.keys(ICONE_LEGADO_MAP));
-const ICONE_REGEX = /^(lucide|brand):[a-z0-9-]+$/;
+const ICONE_REGEX =
+  /^(?:(?:lucide|brand):[a-z0-9-]+|material:(?:outlined|rounded|sharp):[a-z0-9_]+|custom:[a-f0-9-]{36})$/;
 
 function normalizarIconePersistido(icone) {
   if (icone == null || icone === '') return null;

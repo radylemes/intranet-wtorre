@@ -63,16 +63,60 @@
       >
         Marcas
       </button>
+      <button
+        type="button"
+        role="tab"
+        class="seg"
+        [class.active]="segmento() === 'material'"
+        [attr.aria-selected]="segmento() === 'material'"
+        (click)="setSegmento('material')"
+      >
+        Material
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="seg"
+        [class.active]="segmento() === 'custom'"
+        [attr.aria-selected]="segmento() === 'custom'"
+        (click)="setSegmento('custom')"
+      >
+        Personalizado
+      </button>
     </div>
 
     <p class="icone-picker__hint">{{ contador() }}</p>
 
-    @if (carregando()) {
+    @if (segmento() === 'custom' && !buscaGlobal()) {
+      <div class="icone-picker__custom">
+        @if (iconeCustomSelecionado()) {
+          <div class="icone-picker__custom-preview">
+            <app-doc-cat-icone [nome]="iconeCustomSelecionado()" [size]="48" />
+            <p class="icone-picker__custom-label">Ícone personalizado selecionado</p>
+          </div>
+        }
+        <app-admin-dropzone
+          accept="image/svg+xml,.svg"
+          [disabled]="uploadando()"
+          hint="Arraste um SVG aqui ou"
+          hintLink="clique para selecionar"
+          subhint="Somente SVG · até 256 KB"
+          (fileSelected)="onSvgFile($event)"
+        />
+        @if (uploadando()) {
+          <p class="icone-picker__loading">Enviando SVG…</p>
+        }
+      </div>
+    } @else if (carregando()) {
       <p class="icone-picker__loading">Carregando catálogo…</p>
     } @else if (!resultados().length) {
       <p class="icone-picker__empty">Nenhum ícone encontrado.</p>
     } @else {
-      <cdk-virtual-scroll-viewport class="icone-picker__grid" [itemSize]="itemSize">
+      <cdk-virtual-scroll-viewport
+        class="icone-picker__grid"
+        [itemSize]="itemSize"
+        (scrolledIndexChange)="onViewportScroll($event)"
+      >
         <div
           class="icone-picker__row"
           *cdkVirtualFor="let row of linhas(); trackBy: trackRow"
@@ -85,6 +129,9 @@
               [title]="item.label"
               (click)="selecionar(item.namespaced)"
             >
+              @if (buscaGlobal()) {
+                <span class="icone-picker__badge">{{ segmentoBadgeLabel(item.segmento) }}</span>
+              }
               <app-doc-cat-icone [nome]="item.namespaced" [size]="20" />
             </button>
           }

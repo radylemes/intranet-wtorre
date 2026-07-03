@@ -9,18 +9,22 @@
   </span>
 </div>
 
-<div class="brand-top">
-  <div class="bn">{{ config().marca_topo.titulo }}</div>
-  <div class="bs">{{ config().marca_topo.subtitulo }}</div>
-</div>
+@if (config().marca_topo.exibir !== false) {
+  <div class="brand-top">
+    <div class="bn">{{ config().marca_topo.titulo }}</div>
+    <div class="bs">{{ config().marca_topo.subtitulo }}</div>
+  </div>
+}
 
 <div class="stack">
   <div class="card">
-    <h1 class="hero-title">
-      {{ config().hero.titulo_linha1 }}<br />
-      <span class="grad">{{ config().hero.titulo_destaque }}</span>
-    </h1>
-    <p class="hero-lead">{{ config().hero.lead }}</p>
+    @if (config().hero.exibir !== false) {
+      <h1 class="hero-title">
+        {{ config().hero.titulo_linha1 }}<br />
+        <span class="grad">{{ config().hero.titulo_destaque }}</span>
+      </h1>
+      <p class="hero-lead">{{ config().hero.lead }}</p>
+    }
 
     <span class="pill">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">

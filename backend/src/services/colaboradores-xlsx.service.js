@@ -5,6 +5,10 @@ const syncService = require('./colaboradores.sync');
 const graphUpdateService = require('./colaboradores-graph-update.service');
 const { computePendencias } = require('../utils/colaboradores.pendencias');
 const { diffEditableFields } = require('../utils/colaboradores.graph-patch');
+const {
+  formatNascimentoForExtension,
+  parseAniversarioInput,
+} = require('../utils/colaboradores.directory-extension');
 
 const EXPORT_COLUMNS = [
   'ad_id',
@@ -60,6 +64,37 @@ function cellValue(value) {
   return String(value).trim();
 }
 
+function normalizeAniversarioCell(value) {
+  if (value == null || value === '') return '';
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const dc = XLSX.SSF.parse_date_code(value);
+    if (dc && dc.m >= 1 && dc.m <= 12 && dc.d >= 1 && dc.d <= 31) {
+      const ano = dc.y >= 1900 ? dc.y : null;
+      return formatNascimentoForExtension(dc.d, dc.m, ano);
+    }
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const parsed = parseAniversarioInput(
+      formatNascimentoForExtension(
+        value.getUTCDate(),
+        value.getUTCMonth() + 1,
+        value.getUTCFullYear()
+      )
+    );
+    return parsed.dataNascimento || '';
+  }
+
+  const parsed = parseAniversarioInput(value);
+  return parsed.dataNascimento ?? String(value).trim().split(/\s+/)[0];
+}
+
+function cellValueForColumn(column, value) {
+  if (column === 'aniversario') return normalizeAniversarioCell(value);
+  return cellValue(value);
+}
+
 function buildExportRows(colaboradores) {
   const rows = [EXPORT_COLUMNS, INSTRUCTIONS_ROW];
   for (const c of colaboradores) {
@@ -89,7 +124,7 @@ async function exportar(filtros) {
 }
 
 function parseWorksheet(buffer) {
-  const wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
+  const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) {
     const err = new Error('Planilha vazia.');
@@ -98,7 +133,7 @@ function parseWorksheet(buffer) {
   }
 
   const sheet = wb.Sheets[sheetName];
-  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
   if (!matrix.length) {
     const err = new Error('Planilha sem dados.');
     err.status = 400;
@@ -128,7 +163,7 @@ function parseWorksheet(buffer) {
     const row = {};
     for (const col of EXPORT_COLUMNS) {
       const idx = colIndex[col];
-      row[col] = idx != null ? cellValue(raw[idx]) : '';
+      row[col] = idx != null ? cellValueForColumn(col, raw[idx]) : '';
     }
 
     if (!row.ad_id && !row.email) continue;

@@ -115,6 +115,7 @@
                   <th>Tipo</th>
                   <th>Início</th>
                   <th>Término</th>
+                  <th class="r">Dias p/ vencer</th>
                   <th class="r">Valor anual</th>
                 </tr>
               </thead>
@@ -128,6 +129,7 @@
                     <td>{{ texto(u.tipo_cessionario) }}</td>
                     <td>{{ u.inicio_locacao ? (u.inicio_locacao | date:'dd/MM/yyyy') : '—' }}</td>
                     <td>{{ u.final_locacao ? (u.final_locacao | date:'dd/MM/yyyy') : '—' }}</td>
+                    <td class="r num">{{ formatDiasRestantes(u.dias_restantes) }}</td>
                     <td class="r num">{{ moeda(u.valor_anual) }}</td>
                   </tr>
                 }
@@ -138,6 +140,18 @@
       </div>
 
       <footer class="kpi-modal-foot">
+        @if (podeExportar() || exportando()) {
+          <button
+            type="button"
+            class="btn-exportar"
+            [disabled]="!podeExportar()"
+            (click)="exportarPdf()"
+          >
+            {{ exportando() ? 'Exportando…' : 'Exportar PDF' }}
+          </button>
+        } @else {
+          <span></span>
+        }
         <button type="button" class="btn-fechar" (click)="onCloseClick()">Fechar</button>
       </footer>
     </div>

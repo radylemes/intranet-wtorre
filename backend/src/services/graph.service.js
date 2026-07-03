@@ -106,6 +106,94 @@ async function listAllUsers(tenant) {
   return users;
 }
 
+const { normalizeMailboxUserPurpose } = require('../utils/colaboradores.mailbox-purpose');
+
+const BATCH_CHUNK_SIZE = 20;
+
+function parseMailboxPurposeResponse(body, status) {
+  if (status === 200) {
+    return normalizeMailboxUserPurpose(body);
+  }
+  if (status === 404) {
+    return null;
+  }
+  return undefined;
+}
+
+async function fetchMailboxUserPurposes(token, userIds) {
+  const purposes = new Map();
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (!ids.length) {
+    return { purposes, disponivel: true };
+  }
+
+  const probeRes = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(ids[0])}/mailboxSettings/userPurpose`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (probeRes.status === 403) {
+    return { purposes, disponivel: false };
+  }
+
+  const probeBody = await probeRes.json().catch(() => ({}));
+  const probePurpose = parseMailboxPurposeResponse(probeBody, probeRes.status);
+  if (probePurpose !== undefined) {
+    purposes.set(ids[0], probePurpose);
+  } else if (probeRes.status !== 404) {
+    const msg = probeBody.error?.message || 'Falha ao consultar tipo de caixa no Graph.';
+    throw new Error(msg);
+  }
+
+  for (let offset = 1; offset < ids.length; offset += BATCH_CHUNK_SIZE) {
+    const chunk = ids.slice(offset, offset + BATCH_CHUNK_SIZE);
+    const batchBody = {
+      requests: chunk.map((id, index) => ({
+        id: String(index + 1),
+        method: 'GET',
+        url: `/users/${id}/mailboxSettings/userPurpose`,
+      })),
+    };
+
+    const batchRes = await fetch('https://graph.microsoft.com/v1.0/$batch', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(batchBody),
+    });
+
+    if (!batchRes.ok) {
+      const err = await batchRes.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'Falha no batch de mailboxSettings no Graph.');
+    }
+
+    const batchData = await batchRes.json();
+    for (const item of batchData.responses || []) {
+      const idx = Number(item.id) - 1;
+      const userId = chunk[idx];
+      if (!userId) continue;
+
+      let body = item.body;
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+        } catch {
+          body = {};
+        }
+      }
+
+      const purpose = parseMailboxPurposeResponse(body, item.status);
+      if (purpose !== undefined) {
+        purposes.set(userId, purpose);
+      }
+    }
+  }
+
+  return { purposes, disponivel: true };
+}
+
 function encodeDrivePath(path) {
   return String(path || '')
     .split('/')
@@ -214,6 +302,7 @@ module.exports = {
   getUserPhoto,
   testConnection,
   listAllUsers,
+  fetchMailboxUserPurposes,
   updateUser,
   normalizeShareUrl,
   encodeShareUrl,

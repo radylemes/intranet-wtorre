@@ -423,7 +423,7 @@
 <app-admin-modal
   [open]="modalCatAberto()"
   [title]="tituloModalCat()"
-  [headerIcon]="iconeSelecionado()"
+  [headerIcon]="iconeHeaderCat()"
   [salvando]="salvando()"
   [saveLabel]="'Salvar categoria'"
   (save)="salvarCategoria()"
@@ -447,11 +447,27 @@
     </div>
 
     <div class="field">
-      <label>Ícone</label>
-      <app-doc-cat-icone-picker
-        [value]="iconeSelecionado()"
-        (valueChange)="selecionarIcone($event)"
-      />
+      <div class="sec-label-row">
+        <label class="sec-label">Ícone <span class="label-hint">· opcional</span></label>
+        @if (temIconeCat()) {
+          <button type="button" class="linkbtn-sm" (click)="limparIconeCat()">Remover</button>
+        }
+      </div>
+      <div class="menu-icone-compact">
+        <span class="menu-icone-compact__preview" aria-hidden="true">
+          @if (temIconeCat()) {
+            <app-doc-cat-icone [nome]="iconeSelecionado()" [size]="28" />
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" class="menu-icone-compact__placeholder">
+              <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.8" />
+              <path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          }
+        </span>
+        <button type="button" class="menu-icone-compact__toggle" (click)="abrirModalIcone()">
+          {{ temIconeCat() ? 'Trocar ícone' : 'Escolher ícone' }}
+        </button>
+      </div>
     </div>
 
     <div class="row2">
@@ -483,6 +499,24 @@
       </div>
     </div>
   </form>
+</app-admin-modal>
+
+<app-admin-modal
+  [open]="modalIconeAberto()"
+  [size]="'xlarge'"
+  title="Escolher ícone"
+  subtitle="Busque em todos os tipos ou envie um SVG personalizado"
+  [headerIcon]="iconTemp() || null"
+  saveLabel="Confirmar"
+  (save)="confirmarIcone()"
+  (cancel)="fecharModalIcone()"
+>
+  <div class="icone-modal-body">
+    <app-doc-cat-icone-picker
+      [value]="iconTemp()"
+      (valueChange)="selecionarIconTemp($event)"
+    />
+  </div>
 </app-admin-modal>
 
 <app-admin-modal
@@ -565,9 +599,9 @@
       <aside class="preview-col">
         <p class="sec-label">Pré-visualização</p>
         <div class="doc-card-preview">
-          @if (thumbPreviewUrl) {
+          @if (thumbPreviewUrl()) {
             <div class="cover cover-img">
-              <img [src]="thumbPreviewUrl" alt="" />
+              <img [src]="thumbPreviewUrl()" alt="" />
             </div>
           } @else {
             <div class="cover">
@@ -607,7 +641,7 @@
                   stroke-linejoin="round"
                 />
               </svg>
-              {{ thumbPreviewUrl ? 'Trocar imagem' : 'Escolher imagem' }}
+              {{ thumbPreviewUrl() ? 'Trocar imagem' : 'Escolher imagem' }}
             </label>
             <input
               id="doc-thumb"
@@ -616,7 +650,7 @@
               accept="image/jpeg,image/png,image/webp"
               (change)="onThumbSelected($event)"
             />
-            @if (thumbPreviewUrl) {
+            @if (thumbPreviewUrl()) {
               <button type="button" class="link-danger" (click)="marcarRemoverThumb()">
                 Remover thumbnail
               </button>

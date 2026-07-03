@@ -50,14 +50,18 @@ function parseAniversarioInput(value) {
     return { dia: null, mes: null, ano: null, dataNascimento: null };
   }
 
-  const trimmed = String(value).trim();
+  const trimmed = String(value).trim().split(/\s+/)[0];
   const m = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?$/);
   if (!m) {
     return { error: 'Aniversário inválido. Use DD/MM ou DD/MM/AAAA.' };
   }
 
-  const dia = Number(m[1]);
-  const mes = Number(m[2]);
+  let dia = Number(m[1]);
+  let mes = Number(m[2]);
+  // Excel costuma exportar MM/DD/AAAA; se o "mês" passar de 12, interpretar como formato US.
+  if (mes > 12 && dia <= 12) {
+    [dia, mes] = [mes, dia];
+  }
   if (dia < 1 || dia > 31 || mes < 1 || mes > 12) {
     return { error: 'Aniversário inválido. Dia ou mês fora do intervalo.' };
   }
@@ -99,7 +103,7 @@ function extractOnPremLegacy(user) {
 
 function buildUserSelect(clientId) {
   const base =
-    'id,displayName,jobTitle,department,mail,userPrincipalName,mobilePhone,businessPhones,companyName,accountEnabled,userType,onPremisesExtensionAttributes';
+    'id,displayName,givenName,surname,employeeId,jobTitle,department,mail,userPrincipalName,mobilePhone,businessPhones,companyName,accountEnabled,userType,onPremisesExtensionAttributes';
   const extFields = getExtensionSelectFields(clientId);
   if (!extFields.length) return base;
   return `${base},${extFields.join(',')}`;

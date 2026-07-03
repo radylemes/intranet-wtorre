@@ -56,6 +56,18 @@
   background: var(--panel-2, #f6f8fc);
   margin-bottom: 9px;
   transition: 0.15s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.entidades-editor--vrow .vrow:not(.on):hover {
+  border-color: var(--ink-dim, #8a93a8);
+  background: #eef1f6;
+}
+
+.entidades-editor--vrow .vrow:focus-visible {
+  outline: 2px solid var(--accent, #1d54e6);
+  outline-offset: 2px;
 }
 
 .entidades-editor--vrow .vrow:last-of-type {
@@ -71,15 +83,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  cursor: pointer;
-  user-select: none;
   flex: 0 0 auto;
   min-width: 150px;
-  border: none;
-  background: transparent;
-  padding: 0;
   font-family: inherit;
   text-align: left;
+  pointer-events: none;
 }
 
 .entidades-editor--vrow .vbox {
@@ -133,6 +141,7 @@
   margin-left: auto;
   flex: 1;
   max-width: 220px;
+  cursor: default;
 }
 
 .entidades-editor--vrow .vcat select {

@@ -61,6 +61,10 @@ const env = {
     path.join(__dirname, '..', '..', 'storage', 'documentos-paginas-logos'),
   documentosPaginasLogoUploadMaxMb:
     Number(process.env.DOCUMENTOS_PAGINAS_LOGO_UPLOAD_MAX_MB) || 2,
+  iconesCustomDir:
+    process.env.ICONES_CUSTOM_DIR ||
+    path.join(__dirname, '..', '..', 'storage', 'icones-custom'),
+  iconesCustomUploadMaxKb: Number(process.env.ICONES_CUSTOM_UPLOAD_MAX_KB) || 256,
   documentosThumbsDir:
     process.env.DOCUMENTOS_THUMBS_DIR ||
     path.join(__dirname, '..', '..', 'storage', 'documentos-thumbs'),

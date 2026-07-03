@@ -1,6 +1,9 @@
+@use '../../../styles/breakpoints' as bp;
+
 .agendas-page {
   --anhanga: #c2410c;
   background: #eef1f6;
+  overflow-x: clip;
 }
 
 .agendas-wrap {
@@ -8,6 +11,8 @@
   max-width: 1080px;
   margin: 0 auto;
   padding: 28px 22px 60px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .page-head {
@@ -42,6 +47,7 @@
 
 .thumbs-section {
   margin-top: 18px;
+  min-width: 0;
 }
 
 .thumbs-title {
@@ -85,11 +91,38 @@
   grid-template-columns: 1fr 312px;
   gap: 20px;
   align-items: start;
+  min-width: 0;
 }
 
-@media (max-width: 860px) {
+.col-main {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
   .cols {
     grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .cal-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .cal-dow {
+    font-size: 9px;
+    padding: 2px 0;
+  }
+
+  .cal-cell {
+    aspect-ratio: unset;
+    height: 36px;
+    min-height: 0;
+    font-size: 11px;
+  }
+
+  .evdots {
+    bottom: 2px;
   }
 }
 
@@ -273,9 +306,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
-  max-height: 420px;
-  overflow-y: auto;
-  padding-right: 4px;
 }
 
 .thumb {
@@ -386,6 +416,9 @@
   padding: 16px 16px 14px;
   box-shadow: 0 14px 40px -30px rgba(15, 23, 42, 0.4);
   transition: opacity 0.2s;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 
   &.loading {
     opacity: 0.85;
@@ -486,8 +519,10 @@
 
 .cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 3px;
+  width: 100%;
+  min-width: 0;
 }
 
 .cal-dow {
@@ -840,20 +875,134 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (min-width: 761px) and (max-width: 900px) {
   .thumbs {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    max-height: none;
-    padding-bottom: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
 
-    .thumb {
-      flex: 0 0 140px;
+@include bp.mobile {
+  .agendas-wrap {
+    padding: 20px 16px 48px;
+  }
+
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    h1 {
+      font-size: 22px;
     }
   }
 
-  .slide h2 {
-    font-size: 20px;
+  .sync-hint {
+    white-space: normal;
+    align-self: flex-start;
+  }
+
+  .carousel {
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+  }
+
+  .slide {
+    .ct {
+      padding: 16px 14px 20px;
+    }
+
+    h2 {
+      font-size: 18px;
+    }
+
+    .when {
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+  }
+
+  .nav {
+    width: 32px;
+    height: 32px;
+
+    &.prev {
+      left: 8px;
+    }
+
+    &.next {
+      right: 8px;
+    }
+  }
+
+  .dots {
+    bottom: 10px;
+    right: 12px;
+  }
+
+  .thumbs {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .cal {
+    padding: 14px 10px;
+    width: 100%;
+  }
+
+  .cal-mode-btn {
+    font-size: 10px;
+    padding: 7px 4px;
+  }
+
+  .cal-head .mname {
+    font-size: 14px;
+    min-width: 0;
+  }
+
+  .cal-grid {
+    gap: 2px;
+  }
+
+  .cal-dow {
+    font-size: 9px;
+    padding: 2px 0;
+  }
+
+  .cal-cell {
+    aspect-ratio: unset;
+    height: 34px;
+    min-height: 0;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+
+  .evdots {
+    bottom: 2px;
+  }
+
+  .cal-legend {
+    gap: 6px 10px;
+  }
+
+  .cal-day--30d {
+    max-height: min(480px, 50vh);
+  }
+
+  .cal-ev {
+    .cal-ev-thumb {
+      width: 32px;
+      height: 32px;
+    }
+
+    .h {
+      width: 28px;
+    }
+  }
+
+  .evento-modal-fallback {
+    font-size: 36px;
+  }
+
+  .evento-modal-link {
+    padding: 12px;
   }
 }

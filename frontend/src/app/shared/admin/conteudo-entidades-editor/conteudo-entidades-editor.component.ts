@@ -1,4 +1,4 @@
-import { Component, effect, inject, input, output, signal } from '@angular/core';
+import { Component, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { catchError, forkJoin, of } from 'rxjs';
 import {
@@ -52,7 +52,7 @@ export class ConteudoEntidadesEditorComponent {
       const paginas =
         paginasIn.length > 0
           ? paginasIn.filter((p) => p.ativo !== false)
-          : this.paginasInternas();
+          : untracked(() => this.paginasInternas());
       const value = this.value();
 
       if (!paginas.length) {
@@ -70,7 +70,6 @@ export class ConteudoEntidadesEditorComponent {
 
       this.rows.set(this.buildRows(paginas, value));
       this.carregando.set(false);
-      this.emitir();
     });
   }
 
@@ -93,15 +92,34 @@ export class ConteudoEntidadesEditorComponent {
         paginas.forEach((pagina, i) => {
           this.treesByPagina.set(pagina.id, trees[i] ?? []);
         });
-        this.rows.set(this.buildRows(paginas, value));
+        const built = this.buildRows(paginas, value);
+        const merged = this.mergeRowsState(built, untracked(() => this.rows()));
+        this.rows.set(merged);
         this.carregando.set(false);
-        this.emitir();
       },
       error: () => {
         if (seq !== this.initSeq) return;
         this.carregando.set(false);
         this.erro.set('Não foi possível carregar as categorias das entidades.');
       },
+    });
+  }
+
+  private mergeRowsState(built: EntidadeRow[], current: EntidadeRow[]): EntidadeRow[] {
+    if (!current.length) return built;
+    const currentMap = new Map(current.map((r) => [r.pagina.id, r]));
+    return built.map((row) => {
+      const prev = currentMap.get(row.pagina.id);
+      if (!prev) return row;
+      const ativo = prev.ativo;
+      let categoriaId = prev.categoriaId;
+      if (ativo && categoriaId != null && !row.flat.some((c) => c.id === categoriaId)) {
+        categoriaId = row.flat.length ? row.flat[0].id : null;
+      }
+      if (ativo && categoriaId == null && row.flat.length) {
+        categoriaId = row.flat[0].id;
+      }
+      return { ...row, ativo, categoriaId };
     });
   }
 
@@ -144,20 +162,27 @@ export class ConteudoEntidadesEditorComponent {
   }
 
   toggleEntidade(row: EntidadeRow, ativo: boolean): void {
-    row.ativo = ativo;
-    if (!ativo) {
-      row.categoriaId = null;
-    } else if (!row.categoriaId && row.flat.length) {
-      row.categoriaId = row.flat[0].id;
-    }
-    this.rows.set([...this.rows()]);
+    this.rows.update((rows) =>
+      rows.map((r) => {
+        if (r.pagina.id !== row.pagina.id) return r;
+        let categoriaId = r.categoriaId;
+        if (!ativo) {
+          categoriaId = null;
+        } else if (!categoriaId && r.flat.length) {
+          categoriaId = r.flat[0].id;
+        }
+        return { ...r, ativo, categoriaId };
+      })
+    );
     this.emitir();
   }
 
   alterarCategoria(row: EntidadeRow, raw: number | string | null): void {
     const id = raw == null || raw === '' ? null : Number(raw);
-    row.categoriaId = id != null && id > 0 ? id : null;
-    this.rows.set([...this.rows()]);
+    const categoriaId = id != null && id > 0 ? id : null;
+    this.rows.update((rows) =>
+      rows.map((r) => (r.pagina.id === row.pagina.id ? { ...r, categoriaId } : r))
+    );
     this.emitir();
   }
 

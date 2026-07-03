@@ -14,8 +14,13 @@
         [class.empty]="row.ativo && !row.categoriaId"
         [style.--accent]="cores.accent"
         [style.--accent-ring]="cores.ring"
+        role="button"
+        tabindex="0"
+        (click)="toggleEntidade(row, !row.ativo)"
+        (keydown.enter)="toggleEntidade(row, !row.ativo); $event.preventDefault()"
+        (keydown.space)="toggleEntidade(row, !row.ativo); $event.preventDefault()"
       >
-        <button type="button" class="vtoggle" (click)="toggleEntidade(row, !row.ativo)">
+        <span class="vtoggle">
           <span class="vbox" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none">
               <path
@@ -29,14 +34,13 @@
           </span>
           <span class="vdot" aria-hidden="true"></span>
           <span class="vnm">{{ row.pagina.nome }}</span>
-        </button>
+        </span>
         <span class="vmuted">Não exibida</span>
         @if (row.ativo) {
-          <span class="vcat">
+          <span class="vcat" (click)="$event.stopPropagation()">
             <select
               [ngModel]="row.categoriaId"
               (ngModelChange)="alterarCategoria(row, $event)"
-              (click)="$event.stopPropagation()"
             >
               <option [ngValue]="null">Selecione…</option>
               @for (c of row.flat; track c.id) {

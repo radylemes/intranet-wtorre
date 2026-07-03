@@ -72,6 +72,22 @@
 
       <fieldset class="form-section">
         <legend>Marca no topo</legend>
+        <div class="toggles">
+          <div class="toggle-field">
+            <div>
+              <div class="tt">Exibir marca no topo</div>
+              <div class="ts">Mostra o título e subtítulo acima do card</div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                formControlName="marca_exibir"
+                (change)="aplicarValidadoresExibicao()"
+              />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
         <div class="fields-row">
           <div class="field">
             <label for="login-marca-titulo">Título</label>
@@ -102,6 +118,22 @@
 
       <fieldset class="form-section">
         <legend>Hero (card)</legend>
+        <div class="toggles">
+          <div class="toggle-field">
+            <div>
+              <div class="tt">Exibir hero</div>
+              <div class="ts">Mostra o título principal e texto de apoio no card</div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                formControlName="hero_exibir"
+                (change)="aplicarValidadoresExibicao()"
+              />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
         <div class="fields-row">
           <div class="field">
             <label for="login-hero-l1">Linha 1</label>

@@ -161,6 +161,7 @@
 }
 
 .icone-picker__cell {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -172,6 +173,49 @@
   background: transparent;
   cursor: pointer;
   padding: 0;
+}
+
+.icone-picker__badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 4px;
+  background: var(--panel-2, #f6f8fc);
+  color: var(--ink-dim, #8a93a8);
+  border: 1px solid var(--line, #e4e8f0);
+  pointer-events: none;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icone-picker__custom {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.icone-picker__custom-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line, #e4e8f0);
+  border-radius: 12px;
+  background: var(--panel-2, #f6f8fc);
+}
+
+.icone-picker__custom-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft, #48536a);
 }
 
 .icone-picker__cell:hover {

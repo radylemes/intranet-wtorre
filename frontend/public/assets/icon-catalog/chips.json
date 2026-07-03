@@ -35,5 +35,20 @@
     "label": "Marcas",
     "query": "",
     "segment": "brand"
+  },
+  {
+    "label": "Outlined",
+    "query": "outlined",
+    "segment": "material"
+  },
+  {
+    "label": "Rounded",
+    "query": "rounded",
+    "segment": "material"
+  },
+  {
+    "label": "Sharp",
+    "query": "sharp",
+    "segment": "material"
   }
 ]

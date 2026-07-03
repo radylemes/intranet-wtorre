@@ -229,10 +229,10 @@ async function adminUpdateGraph(req, res) {
       return res.status(400).json({ mensagem: 'ID inválido.' });
     }
 
-    const { cargo, departamento, celular, telefone_fixo } = req.body || {};
+    const { cargo, departamento, celular, telefone_fixo, ramal, aniversario } = req.body || {};
     const result = await graphUpdateService.updateColaboradorGraph(
       id,
-      { cargo, departamento, celular, telefone_fixo },
+      { cargo, departamento, celular, telefone_fixo, ramal, aniversario },
       auditMeta(req)
     );
 

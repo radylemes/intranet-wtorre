@@ -111,7 +111,9 @@ async function processarGatilho(gatilho, config, { preview = false, forcar = fal
     return { gatilho_dias: gatilho.dias, processados: 0, enviados: 0, erros: [], ignorados: 0 };
   }
 
-  let unidades = await camarotesRepo.listUnidadesPorDiasRestantes(gatilho.dias);
+  let unidades = forcar
+    ? await camarotesRepo.listUnidadesPorLimiteGatilho(gatilho.dias)
+    : await camarotesRepo.listUnidadesPendentesGatilho(gatilho.dias);
   if (unidadeId != null) {
     unidades = unidades.filter((u) => u.id === Number(unidadeId));
   }
@@ -238,7 +240,7 @@ async function processarAlertas({ preview = false, forcar = false, gatilhoDias, 
   const listaGatilhos = gatilhos.length ? gatilhos : (config.gatilhos || []).filter((g) => g.ativo);
 
   for (const gatilho of listaGatilhos) {
-    const res = await processarGatilho(gatilho, config, { forcar: true, unidadeId });
+    const res = await processarGatilho(gatilho, config, { forcar, unidadeId });
     resultados.push(res);
     totalEnviados += res.enviados || 0;
     if (res.erros?.length) todosErros.push(...res.erros);
@@ -302,7 +304,7 @@ async function enviarAposSync() {
   if (!settings.envio_apos_sync) {
     return { enviado: false, motivo: 'Envio após sync desativado.' };
   }
-  return processarAlertas({ forcar: true });
+  return processarAlertas();
 }
 
 async function enviarTesteGatilho(dias, destinatario) {

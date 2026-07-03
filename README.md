@@ -35,9 +35,19 @@ intranet-wtorre/
 3. Permissões delegadas: `User.Read`, `openid`, `profile`.
 4. Permissões de **aplicação** (consentimento de administrador em cada tenant):
    - `User.Read.All` — leitura do diretório (sync de colaboradores)
+   - `MailboxSettings.Read` — **obrigatória** para excluir caixas compartilhadas (`SharedMailbox`), salas e equipamentos do sync AD (campo Graph `mailboxSettings.userPurpose`, equivalente ao tipo de caixa no Exchange)
    - `User.ReadWrite.All` — **obrigatória** para edição/importação em Gestão de Usuários (PATCH Graph, inclusive directory extensions para ramal e aniversário)
    - `Application.Read.All` + `Application.ReadWrite.All` — registrar directory extensions (`ramal`, `dataNascimento`) na app de cada tenant
 5. O `tid` (tenant ID) de cada empresa deve ser cadastrado em `azure_tenants` com `ativo=1`.
+
+### Sync AD — excluir caixas compartilhadas
+
+O tipo de caixa exibido no Exchange (`UserMailbox` / `SharedMailbox`) corresponde ao campo Graph `mailboxSettings.userPurpose` (`user`, `shared`, `room`, `equipment`). **Não há filtro em massa na listagem `/users`** — o backend consulta esse campo por usuário durante a sync.
+
+- Com `MailboxSettings.Read` concedida: caixas `shared`, `room` e `equipment` são ignoradas automaticamente.
+- Sem essa permissão: a sync continua com heurística (nome/matrícula) e registra aviso no resumo (`mailbox_purpose_disponivel: false`).
+
+**Como conceder:** Azure Portal → App registrations → sua app → API permissions → Add permission → Microsoft Graph → **Application permissions** → `MailboxSettings.Read` → **Grant admin consent** (repetir em cada tenant).
 
 ### Directory extensions (ramal e aniversário)
 

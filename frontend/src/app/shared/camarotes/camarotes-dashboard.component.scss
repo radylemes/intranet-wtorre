@@ -602,6 +602,9 @@ tbody tr:not(:last-child) td {
     grid-template-rows: auto 1fr;
     min-height: 100%;
     min-width: 0;
+    container-type: inline-size;
+    container-name: venc;
+    overflow: hidden;
   }
 
   > .rr-card {
@@ -619,11 +622,18 @@ tbody tr:not(:last-child) td {
   gap: 0;
 }
 
+.venc-card .card-head {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
 .venc-body {
   min-height: 0;
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
 }
 
 .venc-card .venc-wrap {
@@ -647,6 +657,7 @@ tbody tr:not(:last-child) td {
   align-items: stretch;
   gap: 12px;
   min-height: 0;
+  min-width: 0;
 }
 
 .tl-cap {
@@ -902,23 +913,102 @@ tbody tr:not(:last-child) td {
   color: var(--status-red);
 }
 
-@media (max-width: 860px) {
-  .novos-blocos.pair-row--equal {
-    grid-template-columns: 1fr;
+/* Calendário de vencimentos — adapta à largura real do card (ex.: 2 colunas estreitas) */
+@container venc (max-width: 680px) {
+  .tl-cap {
+    min-width: 44px;
+    padding: 4px;
   }
 
-  .venc-wrap {
-    flex-wrap: wrap;
+  .tl-cap-num {
+    font-size: 28px;
   }
 
   .tl {
-    order: 3;
-    width: 100%;
-    margin-top: 8px;
+    gap: 1px;
+  }
+
+  .tl-bar {
+    max-width: 18px;
+  }
+}
+
+@container venc (max-width: 560px) {
+  @media (min-width: 769px) {
+    .venc-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 12px;
+      align-items: end;
+    }
+
+    .tl-cap {
+      min-width: 0;
+    }
+
+    .tl {
+      grid-column: 1 / -1;
+      width: 100%;
+      min-width: 0;
+    }
+  }
+}
+
+@container venc (max-width: 420px) {
+  .tl-cap-num {
+    font-size: 24px;
+  }
+
+  .tl-cap-lbl {
+    font-size: 10px;
+  }
+
+  .tl {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 4px;
   }
 
   .tl-col {
-    grid-template-rows: auto 64px auto;
+    flex: 0 0 30px;
+    min-width: 30px;
+  }
+
+  .venc-legend {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .novos-blocos.pair-row--equal {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .venc-card .venc-wrap {
+    display: block;
+  }
+
+  .venc-card .tl-cap {
+    display: none;
+  }
+
+  .venc-card .tl {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    width: 100%;
+    grid-column: unset;
+  }
+
+  .venc-card .tl-col {
+    flex: 0 0 34px;
+    min-width: 34px;
   }
 }
 
@@ -939,22 +1029,6 @@ tbody tr:not(:last-child) td {
   .rr-q-val {
     grid-column: 1 / -1;
     justify-self: end;
-  }
-
-  .tl {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
-    padding-bottom: 4px;
-  }
-
-  .tl-col {
-    flex: 0 0 34px;
-    min-width: 34px;
-  }
-
-  .tl-cap-num {
-    font-size: 28px;
   }
 
   .rr-total-val {

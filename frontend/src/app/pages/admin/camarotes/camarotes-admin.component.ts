@@ -11,6 +11,7 @@ import { PerfisAcessoService } from '../../../services/perfis-acesso.service';
 import {
   CamarotesAba,
   CamarotesAlertaContrato,
+  CamarotesAlertasResumo,
   CamarotesAlertasEnvioLog,
   CamarotesAlertasEnvioDestinatario,
   CamarotesConfig,
@@ -79,6 +80,60 @@ const GATILHO_UI: GatilhoUiMeta[] = [
   },
 ];
 
+interface DestinatarioAlerta {
+  email: string;
+  nome: string;
+  tag: string;
+}
+
+const AVATAR_PALETTE = ['#820ad1', '#0f8a6d', '#c2410c', '#1d6fd6', '#b7256b', '#5b21b6'];
+
+function nomeFromEmail(email: string): string {
+  const local = email.split('@')[0] || email;
+  return local
+    .replace(/[._-]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function tagFromEmail(email: string): string {
+  const domain = (email.split('@')[1] || '').toLowerCase();
+  if (domain.includes('nubankparque')) return 'Nubank Parque';
+  if (domain.includes('wtorre')) return 'WTorre';
+  if (domain.includes('wtentretenimento')) return 'Entretenimento';
+  const part = domain.split('.')[0];
+  if (!part) return 'E-mail';
+  return part.charAt(0).toUpperCase() + part.slice(1);
+}
+
+function chipFromEmail(email: string): DestinatarioAlerta {
+  const normalized = email.trim().toLowerCase();
+  return { email: normalized, nome: nomeFromEmail(normalized), tag: tagFromEmail(normalized) };
+}
+
+function chipFromColab(c: ColaboradorBusca): DestinatarioAlerta {
+  const email = c.email!.trim().toLowerCase();
+  const tag = (c.empresa || c.departamento || tagFromEmail(email)).trim();
+  return { email, nome: c.nome.trim(), tag };
+}
+
+function iniciaisDestinatario(nome: string): string {
+  return nome
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+}
+
+function corAvatarDestinatario(seed: string): string {
+  const idx = [...seed].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % AVATAR_PALETTE.length;
+  return AVATAR_PALETTE[idx];
+}
+
 @Component({
   selector: 'app-camarotes-admin',
   standalone: true,
@@ -109,6 +164,7 @@ export class CamarotesAdminComponent implements OnInit {
   readonly filtroGatilhoDisparos = signal<'todos' | 90 | 30 | 0>('todos');
   readonly carregandoDisparos = signal(false);
   readonly contratosAlerta = signal<CamarotesAlertaContrato[]>([]);
+  readonly contratosResumo = signal<CamarotesAlertasResumo | null>(null);
   readonly contratosPendentes = signal(0);
   readonly filtroGatilhoContratos = signal<'todos' | 90 | 30 | 0>('todos');
   readonly filtroNotificadoContratos = signal<'todos' | 'sim' | 'nao'>('todos');
@@ -127,7 +183,7 @@ export class CamarotesAdminComponent implements OnInit {
   readonly mensagem = signal('');
   readonly erro = signal('');
 
-  readonly emailsTexto = signal('');
+  readonly destinatarios = signal<DestinatarioAlerta[]>([]);
   readonly cadencia = signal<'diaria' | 'semanal'>('diaria');
   readonly horarioEnvio = signal('08:00');
   readonly envioAtivo = signal(true);
@@ -157,6 +213,16 @@ export class CamarotesAdminComponent implements OnInit {
     const logs = this.alertasLogs();
     if (filtro === 'todos') return logs;
     return logs.filter((log) => log.gatilho_dias === filtro);
+  });
+
+  readonly destinatariosCountLabel = computed(() => {
+    const n = this.destinatarios().length;
+    return n === 1 ? '1 destinatário' : `${n} destinatários`;
+  });
+
+  readonly visualizadoresCountLabel = computed(() => {
+    const n = this.visualizadores().length;
+    return n === 1 ? '1 visualizador' : `${n} visualizadores`;
   });
 
   constructor() {
@@ -208,6 +274,39 @@ export class CamarotesAdminComponent implements OnInit {
     if (aba === 'contratos') {
       this.carregarContratosAlerta();
     }
+  }
+
+  metaSituacaoEnvio(situacao: CamarotesAlertaContrato['situacao_envio']): { label: string; badgeClass: string } {
+    switch (situacao) {
+      case 'notificado':
+        return { label: 'Enviado', badgeClass: 'sbadge-ok' };
+      case 'no_prazo':
+        return { label: 'No prazo', badgeClass: 'sbadge-info' };
+      case 'atrasado':
+        return { label: 'Atrasado', badgeClass: 'sbadge-warn' };
+      default:
+        return { label: 'Pendente', badgeClass: 'sbadge-pend' };
+    }
+  }
+
+  formatDiasRestantes(dias: number): string {
+    const n = Number(dias);
+    if (n > 1) return `${n} dias para o vencimento`;
+    if (n === 1) return '1 dia para o vencimento';
+    if (n === 0) return 'Vence hoje';
+    const abs = Math.abs(n);
+    return abs === 1 ? 'Vencido há 1 dia' : `Vencido há ${abs} dias`;
+  }
+
+  labelGatilhoContrato(c: CamarotesAlertaContrato): string {
+    if (c.dias_restantes === 0) return 'Vence hoje';
+    if (c.gatilho_dias === 0) return 'Vencido';
+    return this.labelGatilho(c.gatilho_dias);
+  }
+
+  labelGatilho(dias: 90 | 30 | 0): string {
+    if (dias === 0) return 'Hoje / vencidos';
+    return `${dias} dias`;
   }
 
   metaGatilho(dias: number): GatilhoUiMeta | undefined {
@@ -275,29 +374,31 @@ export class CamarotesAdminComponent implements OnInit {
     );
   }
 
+  private aplicarConfig(c: CamarotesConfig): void {
+    this.config.set(c);
+    this.destinatarios.set((c.emails_alerta || []).map(chipFromEmail));
+    this.cadencia.set(c.cadencia);
+    this.horarioEnvio.set(c.horario_envio || '08:00');
+    this.envioAtivo.set(c.envio_ativo);
+    this.syncAutomatica.set(c.sync_automatica ?? true);
+    this.syncFrequencia.set(c.sync_frequencia ?? '24h');
+    this.envioAposSync.set(c.envio_apos_sync ?? false);
+    this.sharepointUrl.set(c.sharepoint_url || '');
+    this.sharepointSheet.set(c.sharepoint_sheet || 'Camarotes');
+    if (c.gatilhos?.length) {
+      this.gatilhos.set(
+        GATILHOS_DEFAULT.map((def) => {
+          const found = c.gatilhos!.find((g) => g.dias === def.dias);
+          return found ? { ...def, ...found } : def;
+        })
+      );
+    }
+  }
+
   carregarTudo(): void {
     this.carregando.set(true);
     this.camarotesService.obterConfig().subscribe({
-      next: (c) => {
-        this.config.set(c);
-        this.emailsTexto.set((c.emails_alerta || []).join('\n'));
-        this.cadencia.set(c.cadencia);
-        this.horarioEnvio.set(c.horario_envio || '08:00');
-        this.envioAtivo.set(c.envio_ativo);
-        this.syncAutomatica.set(c.sync_automatica ?? true);
-        this.syncFrequencia.set(c.sync_frequencia ?? '24h');
-        this.envioAposSync.set(c.envio_apos_sync ?? false);
-        this.sharepointUrl.set(c.sharepoint_url || '');
-        this.sharepointSheet.set(c.sharepoint_sheet || 'Camarotes');
-        if (c.gatilhos?.length) {
-          this.gatilhos.set(
-            GATILHOS_DEFAULT.map((def) => {
-              const found = c.gatilhos!.find((g) => g.dias === def.dias);
-              return found ? { ...def, ...found } : def;
-            })
-          );
-        }
-      },
+      next: (c) => this.aplicarConfig(c),
       error: (err: HttpErrorResponse) =>
         this.erro.set(err.error?.mensagem || 'Erro ao carregar configuração.'),
     });
@@ -343,6 +444,7 @@ export class CamarotesAdminComponent implements OnInit {
         next: (res) => {
           this.contratosAlerta.set(res.itens);
           this.contratosPendentes.set(res.pendentes);
+          if (res.resumo) this.contratosResumo.set(res.resumo);
           this.carregandoContratosAlerta.set(false);
         },
         error: (err: HttpErrorResponse) => {
@@ -356,6 +458,11 @@ export class CamarotesAdminComponent implements OnInit {
     this.carregarContratosAlerta();
   }
 
+  filtrarContratosPorGatilho(gatilho: 'todos' | 90 | 30 | 0): void {
+    this.filtroGatilhoContratos.set(gatilho);
+    this.carregarContratosAlerta();
+  }
+
   contratoDisparoKey(c: CamarotesAlertaContrato): string {
     return `${c.unidade_id}-${c.gatilho_dias}`;
   }
@@ -364,7 +471,7 @@ export class CamarotesAdminComponent implements OnInit {
     const key = this.contratoDisparoKey(c);
     this.disparandoContratoKey.set(key);
     this.camarotesService
-      .enviarAlertas(false, { gatilho_dias: c.gatilho_dias, unidade_id: c.unidade_id })
+      .enviarAlertas(false, { gatilho_dias: c.gatilho_dias, unidade_id: c.unidade_id }, c.notificado)
       .subscribe({
         next: (res) => {
           this.disparandoContratoKey.set(null);
@@ -393,23 +500,56 @@ export class CamarotesAdminComponent implements OnInit {
     this.buscaEmail$.next(valor);
   }
 
+  onBuscaEmailKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const valor = this.buscaEmailTexto().trim();
+    if (!valor.includes('@')) return;
+    this.adicionarEmailManual(valor);
+  }
+
+  iniciaisDestinatario = iniciaisDestinatario;
+  corAvatarDestinatario = corAvatarDestinatario;
+
+  tagVisualizador(v: CamarotesVisualizador): string {
+    const dept = v.departamento?.trim();
+    if (dept) return dept;
+    return tagFromEmail(v.email);
+  }
+
   adicionarEmailDestino(colab: ColaboradorBusca): void {
     if (!colab.email) {
       this.erro.set('Colaborador sem e-mail cadastrado.');
       return;
     }
-    const emailsAtuais = this.emailsTexto()
-      .split(/[\n,;]+/)
-      .map((e) => e.trim())
-      .filter(Boolean);
-    const emailNovo = colab.email.trim().toLowerCase();
-    if (emailsAtuais.some((e) => e.toLowerCase() === emailNovo)) {
+    const chip = chipFromColab(colab);
+    if (this.destinatarios().some((d) => d.email === chip.email)) {
       this.erro.set('Este e-mail já está na lista.');
       return;
     }
-    this.emailsTexto.set([...emailsAtuais, emailNovo].join('\n'));
+    this.destinatarios.update((lista) => [...lista, chip]);
     this.buscaEmailTexto.set('');
     this.resultadosBuscaEmail.set([]);
+  }
+
+  adicionarEmailManual(email: string): void {
+    const chip = chipFromEmail(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(chip.email)) {
+      this.erro.set('Informe um e-mail válido.');
+      return;
+    }
+    if (this.destinatarios().some((d) => d.email === chip.email)) {
+      this.erro.set('Este e-mail já está na lista.');
+      return;
+    }
+    this.destinatarios.update((lista) => [...lista, chip]);
+    this.buscaEmailTexto.set('');
+    this.resultadosBuscaEmail.set([]);
+  }
+
+  removerDestinatario(email: string): void {
+    const normalized = email.trim().toLowerCase();
+    this.destinatarios.update((lista) => lista.filter((d) => d.email !== normalized));
   }
 
   adicionarVisualizador(colab: ColaboradorBusca): void {
@@ -485,10 +625,7 @@ export class CamarotesAdminComponent implements OnInit {
   }
 
   salvarConfig(): void {
-    const emails = this.emailsTexto()
-      .split(/[\n,;]+/)
-      .map((e) => e.trim())
-      .filter(Boolean);
+    const emails = this.destinatarios().map((d) => d.email);
 
     this.salvandoConfig.set(true);
     this.camarotesService
@@ -505,7 +642,7 @@ export class CamarotesAdminComponent implements OnInit {
       })
       .subscribe({
         next: (c) => {
-          this.config.set(c);
+          this.aplicarConfig(c);
           this.mensagem.set('Configuração salva.');
           this.salvandoConfig.set(false);
         },
@@ -564,9 +701,7 @@ export class CamarotesAdminComponent implements OnInit {
       })
       .subscribe({
         next: (c) => {
-          this.config.set(c);
-          this.sharepointUrl.set(c.sharepoint_url || '');
-          this.sharepointSheet.set(c.sharepoint_sheet || 'Camarotes');
+          this.aplicarConfig(c);
           this.mensagem.set('Configuração do SharePoint salva.');
           this.salvandoSharepoint.set(false);
         },

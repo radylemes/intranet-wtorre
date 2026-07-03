@@ -1,4 +1,4 @@
-export type IconeSegmento = 'lucide' | 'brand';
+export type IconeSegmento = 'lucide' | 'brand' | 'material' | 'custom';
 
 export interface IconeResolvido {
   segmento: IconeSegmento;
@@ -8,7 +8,8 @@ export interface IconeResolvido {
 
 export const ICONE_PADRAO = 'lucide:folder';
 
-export const ICONE_REGEX = /^(lucide|brand):[a-z0-9-]+$/;
+export const ICONE_REGEX =
+  /^(?:(?:lucide|brand):[a-z0-9-]+|material:(?:outlined|rounded|sharp):[a-z0-9_]+|custom:[a-f0-9-]{36})$/;
 
 export const ICONE_LEGADO_MAP: Record<string, string> = {
   folder: 'lucide:folder',
@@ -34,6 +35,13 @@ export interface BrandIndexEntry {
     dup?: { title: string }[];
     old?: string[];
   };
+}
+
+export type MaterialIconStyle = 'outlined' | 'rounded' | 'sharp';
+
+export interface MaterialIndexEntry {
+  name: string;
+  style: MaterialIconStyle;
 }
 
 export interface IconChip {

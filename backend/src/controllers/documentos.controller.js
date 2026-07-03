@@ -209,6 +209,10 @@ async function update(req, res) {
       data.thumbnail_path = thumbFile.filename;
     }
 
+    if (req.body.setor_id !== undefined) {
+      data.setor_id = await validateSetorId(req.body.setor_id);
+    }
+
     if (req.body.categoria_id !== undefined || req.body.visibilidades !== undefined) {
       let visibilidades;
       try {
@@ -233,9 +237,7 @@ async function update(req, res) {
       return res.json({ ...doc, visibilidades: vis });
     }
 
-    if (req.body.setor_id !== undefined) {
-      data.setor_id = await validateSetorId(req.body.setor_id);
-    } else if (existing.setor_id == null && Object.keys(data).length === 0) {
+    if (existing.setor_id == null && Object.keys(data).length === 0) {
       return res.status(400).json({ mensagem: 'setor_id é obrigatório.' });
     }
 
@@ -325,6 +327,17 @@ async function serveThumb(req, res) {
   stream.pipe(res);
 }
 
+async function thumbStream(req, res) {
+  const id = Number(req.params.id);
+  const doc = await docRepo.findById(id);
+  if (!doc?.thumbnail_path) {
+    return res.status(404).json({ mensagem: 'Thumbnail não encontrada.' });
+  }
+
+  req.params.filename = doc.thumbnail_path;
+  return serveThumb(req, res);
+}
+
 async function view(req, res) {
   const id = Number(req.params.id);
   const doc = await docRepo.findById(id);
@@ -345,4 +358,4 @@ async function download(req, res) {
   return streamFile(req, res, doc, 'attachment');
 }
 
-module.exports = { list, upload, update, remove, view, download, serveThumb };
+module.exports = { list, upload, update, remove, view, download, serveThumb, thumbStream };

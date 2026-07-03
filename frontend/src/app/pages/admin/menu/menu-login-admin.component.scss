@@ -266,6 +266,84 @@
   background: var(--chip-cor, #1d54e6);
 }
 
+.toggles {
+  margin-bottom: 12px;
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1.5px solid var(--line, #e4e8f0);
+  border-radius: 11px;
+  background: var(--panel-2, #f6f8fc);
+}
+
+.toggle-field > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.toggle-field .tt {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.toggle-field .ts {
+  font-size: 11px;
+  color: var(--ink-dim, #8a93a8);
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+.toggle-field .switch {
+  position: relative;
+  width: 40px;
+  height: 23px;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: block;
+}
+
+.toggle-field .switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  margin: 0;
+}
+
+.toggle-field .switch .slider {
+  position: absolute;
+  inset: 0;
+  background: #cfd6e4;
+  border-radius: 30px;
+  transition: 0.18s;
+}
+
+.toggle-field .switch .slider::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #fff;
+  transition: 0.18s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-field .switch input:checked + .slider {
+  background: var(--wtorre, #1d54e6);
+}
+
+.toggle-field .switch input:checked + .slider::before {
+  transform: translateX(17px);
+}
+
 .inline-toggle-field {
   display: flex;
   align-items: flex-end;

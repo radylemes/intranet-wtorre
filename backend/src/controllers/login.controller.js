@@ -34,30 +34,38 @@ function validarFaviconUrl(url) {
 }
 
 function validarLoginConfig(body) {
-  if (!body?.marca_topo?.titulo?.trim()) {
-    const err = new Error('Título da marca no topo é obrigatório.');
-    err.status = 400;
-    throw err;
+  const marcaExibir = body?.marca_topo?.exibir !== false;
+  const heroExibir = body?.hero?.exibir !== false;
+
+  if (marcaExibir) {
+    if (!body?.marca_topo?.titulo?.trim()) {
+      const err = new Error('Título da marca no topo é obrigatório.');
+      err.status = 400;
+      throw err;
+    }
+    if (!body?.marca_topo?.subtitulo?.trim()) {
+      const err = new Error('Subtítulo da marca no topo é obrigatório.');
+      err.status = 400;
+      throw err;
+    }
   }
-  if (!body?.marca_topo?.subtitulo?.trim()) {
-    const err = new Error('Subtítulo da marca no topo é obrigatório.');
-    err.status = 400;
-    throw err;
-  }
-  if (!body?.hero?.titulo_linha1?.trim()) {
-    const err = new Error('Título do hero (linha 1) é obrigatório.');
-    err.status = 400;
-    throw err;
-  }
-  if (!body?.hero?.titulo_destaque?.trim()) {
-    const err = new Error('Título do hero (destaque) é obrigatório.');
-    err.status = 400;
-    throw err;
-  }
-  if (!body?.hero?.lead?.trim()) {
-    const err = new Error('Texto de apoio do hero é obrigatório.');
-    err.status = 400;
-    throw err;
+
+  if (heroExibir) {
+    if (!body?.hero?.titulo_linha1?.trim()) {
+      const err = new Error('Título do hero (linha 1) é obrigatório.');
+      err.status = 400;
+      throw err;
+    }
+    if (!body?.hero?.titulo_destaque?.trim()) {
+      const err = new Error('Título do hero (destaque) é obrigatório.');
+      err.status = 400;
+      throw err;
+    }
+    if (!body?.hero?.lead?.trim()) {
+      const err = new Error('Texto de apoio do hero é obrigatório.');
+      err.status = 400;
+      throw err;
+    }
   }
   if (!body?.pill?.texto?.trim()) {
     const err = new Error('Texto do selo restrito é obrigatório.');

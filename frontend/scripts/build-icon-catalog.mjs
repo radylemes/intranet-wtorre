@@ -15,6 +15,8 @@ const OUT = path.join(ROOT, 'public', 'assets', 'icon-catalog');
 const SRC_ASSETS = path.join(ROOT, 'src', 'assets', 'icon-catalog');
 const LUCIDE_ICONS_DIR = path.join(ROOT, 'node_modules', 'lucide-static', 'icons');
 const LUCIDE_TAGS = path.join(ROOT, 'node_modules', 'lucide-static', 'tags.json');
+const MATERIAL_PKG_DIR = path.join(ROOT, 'node_modules', '@material-symbols', 'svg-400');
+const MATERIAL_STYLES = ['outlined', 'rounded', 'sharp'];
 const BACKEND_SCRIPTS = path.resolve(ROOT, '..', 'backend', 'scripts');
 
 const BASE_SYNONYMS = {
@@ -127,6 +129,41 @@ async function buildBrands() {
   return { sprite, index, maxLen, count };
 }
 
+async function buildMaterial() {
+  const symbols = [];
+  const index = [];
+  let maxLen = 0;
+  let count = 0;
+
+  for (const style of MATERIAL_STYLES) {
+    const dir = path.join(MATERIAL_PKG_DIR, style);
+    const files = (await fs.readdir(dir))
+      .filter((f) => f.endsWith('.svg') && !f.endsWith('-fill.svg'))
+      .sort();
+
+    for (const file of files) {
+      const name = file.replace(/\.svg$/, '');
+      const symbolId = `${style}_${name}`;
+      const raw = await fs.readFile(path.join(dir, file), 'utf8');
+      const { viewBox, inner } = extractSvgParts(raw);
+      const attrs = 'fill="currentColor"';
+      symbols.push(
+        `  <symbol id="${symbolId}" viewBox="${viewBox}" ${attrs}>${sanitizeSvgContent(inner, `material:${style}:${name}`)}</symbol>`
+      );
+      index.push({ name, style });
+      maxLen = Math.max(maxLen, `material:${style}:${name}`.length);
+      count++;
+    }
+  }
+
+  const sprite =
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n` +
+    symbols.join('\n') +
+    '\n</svg>';
+
+  return { sprite, index, maxLen, count };
+}
+
 async function loadSynonyms() {
   const sourcePath = path.join(SRC_ASSETS, 'synonyms-pt.source.json');
   let manual = {};
@@ -165,21 +202,25 @@ async function main() {
 
   const lucide = await buildLucide();
   const brands = await buildBrands();
+  const material = await buildMaterial();
   const synonyms = await loadSynonyms();
   const chips = await loadChips();
 
   await Promise.all([
     fs.writeFile(path.join(OUT, 'lucide-sprite.svg'), lucide.sprite, 'utf8'),
     fs.writeFile(path.join(OUT, 'brand-sprite.svg'), brands.sprite, 'utf8'),
+    fs.writeFile(path.join(OUT, 'material-sprite.svg'), material.sprite, 'utf8'),
     fs.writeFile(path.join(OUT, 'lucide-index.json'), JSON.stringify(lucide.index), 'utf8'),
     fs.writeFile(path.join(OUT, 'brand-index.json'), JSON.stringify(brands.index), 'utf8'),
+    fs.writeFile(path.join(OUT, 'material-index.json'), JSON.stringify(material.index), 'utf8'),
     fs.writeFile(path.join(OUT, 'synonyms-pt.json'), JSON.stringify(synonyms, null, 2), 'utf8'),
     fs.writeFile(path.join(OUT, 'chips.json'), JSON.stringify(chips, null, 2), 'utf8'),
   ]);
 
-  const globalMax = Math.max(lucide.maxLen, brands.maxLen);
+  const globalMax = Math.max(lucide.maxLen, brands.maxLen, material.maxLen);
   console.log(`Lucide: ${lucide.count} ícones (max lucide:name = ${lucide.maxLen})`);
   console.log(`Marcas: ${brands.count} ícones (max brand:slug = ${brands.maxLen})`);
+  console.log(`Material: ${material.count} ícones (max material:style:name = ${material.maxLen})`);
   console.log(`MAX global prefix:slug = ${globalMax}`);
 
   if (globalMax > 50) {

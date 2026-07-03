@@ -38,8 +38,35 @@ async function sincronizarColaboradores() {
       };
 
       try {
+        const token = await graphService.getAppToken(tenant);
         const users = await graphService.listAllUsers(tenant);
-        const { mapped, ignorados } = filterAndMapUsers(users, tenant, dominioMap);
+        const candidatos = users
+          .filter((user) => {
+            if (!user?.id || user.accountEnabled !== true || user.userType === 'Guest') return false;
+            const nome = user.displayName && String(user.displayName).trim();
+            const mail = user.mail && String(user.mail).trim();
+            const upn = user.userPrincipalName && String(user.userPrincipalName).trim();
+            const dept = user.department && String(user.department).trim();
+            return !!(nome && dept && (mail || upn));
+          })
+          .map((user) => user.id);
+
+        const { purposes, disponivel } = await graphService.fetchMailboxUserPurposes(
+          token,
+          candidatos
+        );
+        tenantResumo.mailbox_purpose_disponivel = disponivel;
+        if (!disponivel) {
+          tenantResumo.aviso =
+            'Permissão MailboxSettings.Read ausente no tenant. Sync usando apenas heurística de nome/matrícula.';
+          console.warn(
+            `[colaboradores.sync] Tenant ${tenant.nome}: MailboxSettings.Read ausente; fallback heurístico.`
+          );
+        }
+
+        const { mapped, ignorados } = filterAndMapUsers(users, tenant, dominioMap, {
+          mailboxPurposes: purposes,
+        });
         tenantResumo.ignorados = ignorados;
 
         if (mapped.length) {

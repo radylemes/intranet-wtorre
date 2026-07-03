@@ -13,7 +13,12 @@ function sqlSituacaoExpr(tableAlias = '') {
 
 function diasRestantes(finalLocacao) {
   if (!finalLocacao) return null;
-  const s = String(finalLocacao).slice(0, 10);
+  let s;
+  if (finalLocacao instanceof Date) {
+    s = finalLocacao.toISOString().slice(0, 10);
+  } else {
+    s = String(finalLocacao).slice(0, 10);
+  }
   const parts = s.split('-').map(Number);
   if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
   const [y, m, d] = parts;

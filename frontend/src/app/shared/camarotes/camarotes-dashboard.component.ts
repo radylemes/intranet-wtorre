@@ -29,7 +29,13 @@ interface ModalDrilldownConfig {
   titulo: string;
   subtitulo: string;
   modo: KpiModalModo;
-  fetch: { tipo: 'camarote'; situacao?: SituacaoUnidade; setor?: string; dias_max?: number };
+  fetch: {
+    tipo: 'camarote';
+    situacao?: SituacaoUnidade;
+    setor?: string;
+    dias_restantes_min?: number;
+    dias_restantes_max?: number;
+  };
   filtro?: (u: CamaroteUnidade) => boolean;
   countEsperado?: number;
   vazioMsg?: string;
@@ -44,14 +50,14 @@ interface KpiConfig {
 
 const KPI_CONFIG: Record<SituacaoUnidade, KpiConfig> = {
   vencido: {
-    titulo: 'Contratos vencidos',
-    subtitulo: () => 'Unidades com contrato vencido — exigem renovação imediata',
+    titulo: 'Vence hoje / vencidos',
+    subtitulo: () => 'Contratos que vencem hoje ou já estão vencidos',
     modo: 'contrato',
     contagem: (d) => d.camarotes.alertas.vencidos,
   },
   vence_breve: {
-    titulo: 'Vencem em breve',
-    subtitulo: (dias) => `Contratos que vencem nos próximos ${dias} dias`,
+    titulo: 'Vencem em 90 dias',
+    subtitulo: () => 'Contratos que vencem entre 31 e 90 dias',
     modo: 'contrato',
     contagem: (d) => d.camarotes.alertas.vence_breve,
   },
@@ -118,7 +124,7 @@ export class CamarotesDashboardComponent {
 
   totalUnidades(): number {
     const a = this.dashboard.camarotes.alertas;
-    return a.ativos + a.vagos + a.vencidos + a.vence_breve;
+    return a.ativos + a.vagos + a.vencidos + a.vence_30d + a.vence_breve;
   }
 
   ocupacaoPct(): number {
@@ -133,6 +139,26 @@ export class CamarotesDashboardComponent {
 
   abrirKpi(situacao: SituacaoUnidade): void {
     const config = KPI_CONFIG[situacao];
+    if (situacao === 'vencido') {
+      this.abrirModal({
+        titulo: config.titulo,
+        subtitulo: config.subtitulo(this.dashboard.dias_vence_breve),
+        modo: config.modo,
+        fetch: { tipo: 'camarote', dias_restantes_max: 0 },
+        countEsperado: config.contagem(this.dashboard),
+      });
+      return;
+    }
+    if (situacao === 'vence_breve') {
+      this.abrirModal({
+        titulo: config.titulo,
+        subtitulo: config.subtitulo(this.dashboard.dias_vence_breve),
+        modo: config.modo,
+        fetch: { tipo: 'camarote', dias_restantes_min: 31, dias_restantes_max: 90 },
+        countEsperado: config.contagem(this.dashboard),
+      });
+      return;
+    }
     this.abrirModal({
       titulo: config.titulo,
       subtitulo: config.subtitulo(this.dashboard.dias_vence_breve),
@@ -147,13 +173,12 @@ export class CamarotesDashboardComponent {
   }
 
   abrirVence30d(): void {
-    const dias = this.dashboard.dias_vencimento_urgente ?? 30;
     const count = this.dashboard.camarotes.alertas.vence_30d ?? 0;
     this.abrirModal({
       titulo: 'Vencem em 30 dias',
-      subtitulo: `Contratos que vencem nos próximos ${dias} dias`,
+      subtitulo: 'Contratos que vencem entre 1 e 30 dias',
       modo: 'contrato',
-      fetch: { tipo: 'camarote', dias_max: dias },
+      fetch: { tipo: 'camarote', dias_restantes_min: 1, dias_restantes_max: 30 },
       countEsperado: count,
     });
   }

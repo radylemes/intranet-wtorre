@@ -186,10 +186,8 @@
   transform: translateX(0);
 }
 
-@media (max-width: 760px) {
-  :host {
-    display: block;
-  }
+@mixin drawer-menu-node-styles {
+  display: block;
 
   .bar-item {
     display: block;
@@ -231,5 +229,11 @@
 
   .menu-entry.expandido .flyout-arrow {
     transform: rotate(-90deg);
+  }
+}
+
+@media (max-width: 760px) {
+  :host {
+    @include drawer-menu-node-styles;
   }
 }

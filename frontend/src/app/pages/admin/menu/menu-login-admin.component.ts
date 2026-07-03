@@ -80,8 +80,10 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
 
   readonly form = this.fb.nonNullable.group({
     favicon_url: [''],
+    marca_exibir: [true],
     marca_titulo: ['', Validators.required],
     marca_subtitulo: ['', Validators.required],
+    hero_exibir: [true],
     hero_linha1: ['', Validators.required],
     hero_destaque: ['', Validators.required],
     hero_lead: ['', Validators.required],
@@ -153,8 +155,10 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
   private patchForm(config: LoginConfig): void {
     this.form.patchValue({
       favicon_url: config.favicon_url ?? '',
+      marca_exibir: config.marca_topo.exibir !== false,
       marca_titulo: config.marca_topo.titulo,
       marca_subtitulo: config.marca_topo.subtitulo,
+      hero_exibir: config.hero.exibir !== false,
       hero_linha1: config.hero.titulo_linha1,
       hero_destaque: config.hero.titulo_destaque,
       hero_lead: config.hero.lead,
@@ -170,6 +174,27 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
     for (const empresa of [...config.empresas].sort((a, b) => a.ordem - b.ordem)) {
       this.empresasArray().push(this.criarEmpresaGroup(empresa));
     }
+    this.aplicarValidadoresExibicao();
+  }
+
+  aplicarValidadoresExibicao(): void {
+    const marcaExibir = this.form.controls.marca_exibir.value;
+    const heroExibir = this.form.controls.hero_exibir.value;
+
+    this.setRequired(this.form.controls.marca_titulo, marcaExibir);
+    this.setRequired(this.form.controls.marca_subtitulo, marcaExibir);
+    this.setRequired(this.form.controls.hero_linha1, heroExibir);
+    this.setRequired(this.form.controls.hero_destaque, heroExibir);
+    this.setRequired(this.form.controls.hero_lead, heroExibir);
+  }
+
+  private setRequired(ctrl: AbstractControl, required: boolean): void {
+    if (required) {
+      ctrl.setValidators(Validators.required);
+    } else {
+      ctrl.clearValidators();
+    }
+    ctrl.updateValueAndValidity({ emitEvent: false });
   }
 
   private criarEmpresaGroup(empresa?: Partial<LoginConfig['empresas'][0]>): FormGroup {
@@ -314,11 +339,13 @@ export class MenuLoginAdminComponent implements OnInit, OnDestroy {
       marca_topo: {
         titulo: raw.marca_titulo.trim(),
         subtitulo: raw.marca_subtitulo.trim(),
+        exibir: raw.marca_exibir,
       },
       hero: {
         titulo_linha1: raw.hero_linha1.trim(),
         titulo_destaque: raw.hero_destaque.trim(),
         lead: raw.hero_lead.trim(),
+        exibir: raw.hero_exibir,
       },
       pill: { texto: raw.pill_texto.trim() },
       auth: {

@@ -8,16 +8,15 @@ import { ToastComponent } from '../../shared/toast/toast.component';
 import { ToastService } from '../../shared/toast/toast.service';
 import { ColaboradoresService } from '../../services/colaboradores.service';
 import { AuthService } from '../../services/auth.service';
+import { MenuService } from '../../services/menu.service';
 import { RamaisCardComponent } from './ramais-card/ramais-card.component';
-import { empresaParaClasse, empresasDistintas } from '../../utils/empresa-classe.util';
-
-const MARCA_CORES: Record<string, string> = {
-  wtorre: 'var(--wtorre)',
-  nubank: 'var(--nubank)',
-  base: 'var(--base)',
-  novo: 'var(--novo)',
-  neutro: 'var(--ink-dim)',
-};
+import {
+  buildLogoMapPorNome,
+  corMarcaEmpresa,
+  empresasDistintas,
+  fallbackLogoMapPorNome,
+  logoUrlEmpresa as resolveLogoUrlEmpresa,
+} from '../../utils/empresa-classe.util';
 
 @Component({
   selector: 'app-ramais',
@@ -35,6 +34,7 @@ const MARCA_CORES: Record<string, string> = {
 export class RamaisComponent implements OnInit, OnDestroy {
   private readonly colaboradoresService = inject(ColaboradoresService);
   private readonly auth = inject(AuthService);
+  private readonly menuService = inject(MenuService);
   private readonly toast = inject(ToastService);
   private readonly document = inject(DOCUMENT);
 
@@ -47,6 +47,7 @@ export class RamaisComponent implements OnInit, OnDestroy {
   readonly carregando = signal(false);
   readonly sincronizando = signal(false);
   readonly erro = signal('');
+  readonly logosPorEmpresa = signal<Record<string, string>>(fallbackLogoMapPorNome());
 
   readonly OUTROS_EMPRESA = '__outros__';
 
@@ -82,6 +83,13 @@ export class RamaisComponent implements OnInit, OnDestroy {
     this.colaboradoresService.getDepartamentos().subscribe({
       next: (deps) => this.departamentos.set(deps),
       error: () => {},
+    });
+    this.menuService.getTopbarPublic().subscribe({
+      next: (config) => {
+        if (config.logos?.length) {
+          this.logosPorEmpresa.set(buildLogoMapPorNome(config.logos));
+        }
+      },
     });
   }
 
@@ -138,13 +146,11 @@ export class RamaisComponent implements OnInit, OnDestroy {
     );
   }
 
-  chipClasse(empresa: string): string {
-    return `c-${empresaParaClasse(empresa)}`;
+  logoUrlEmpresa(empresa: string): string | null {
+    return resolveLogoUrlEmpresa(empresa, this.logosPorEmpresa());
   }
 
-  corMarca(empresa: string): string {
-    return MARCA_CORES[empresaParaClasse(empresa)] ?? MARCA_CORES['neutro'];
-  }
+  readonly corMarcaEmpresa = corMarcaEmpresa;
 
   tempoDesdeSync(): string {
     const iso = this.sincronizadoEm();

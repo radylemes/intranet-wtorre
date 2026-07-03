@@ -1,13 +1,16 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import {
   BrandIndexEntry,
   IconChip,
   ICONE_PADRAO,
   LucideIndexEntry,
+  MaterialIndexEntry,
 } from '../../models/documento.model';
 import {
+  materialSymbolId,
   normalizarIconeParaLeitura,
   normalizarIconeParaSalvar,
   resolveIconeRaw,
@@ -21,14 +24,17 @@ export class DocCatIconeService {
 
   private lucideSpriteReady: Promise<void> | null = null;
   private brandSpriteReady: Promise<void> | null = null;
+  private materialSpriteReady: Promise<void> | null = null;
   private lucideIndex: LucideIndexEntry[] | null = null;
   private brandIndex: BrandIndexEntry[] | null = null;
+  private materialIndex: MaterialIndexEntry[] | null = null;
   private synonyms: Record<string, string> | null = null;
   private chips: IconChip[] | null = null;
   private brandHex = new Map<string, string>();
 
   readonly lucideSpriteUrl = `${CATALOG_BASE}/lucide-sprite.svg`;
   readonly brandSpriteUrl = `${CATALOG_BASE}/brand-sprite.svg`;
+  readonly materialSpriteUrl = `${CATALOG_BASE}/material-sprite.svg`;
 
   normalizarParaLeitura(icone: string | null | undefined): string {
     return normalizarIconeParaLeitura(icone);
@@ -44,11 +50,24 @@ export class DocCatIconeService {
 
   spriteUrlFor(icone: string | null | undefined): string {
     const resolved = resolveIconeRaw(icone);
-    return resolved.segmento === 'brand' ? this.brandSpriteUrl : this.lucideSpriteUrl;
+    if (resolved.segmento === 'custom') return '';
+    if (resolved.segmento === 'brand') return this.brandSpriteUrl;
+    if (resolved.segmento === 'material') return this.materialSpriteUrl;
+    return this.lucideSpriteUrl;
   }
 
-  symbolId(icone: string | null | undefined): string {
-    return resolveIconeRaw(icone).id;
+  customIconUrl(icone: string | null | undefined): string {
+    const resolved = resolveIconeRaw(icone);
+    if (resolved.segmento !== 'custom') return '';
+    return `${environment.apiBaseUrl}/icones/custom/${resolved.id}.svg`;
+  }
+
+  symbolIdFor(icone: string | null | undefined): string {
+    const resolved = resolveIconeRaw(icone);
+    if (resolved.segmento === 'material') {
+      return materialSymbolId(resolved.id);
+    }
+    return resolved.id;
   }
 
   brandColor(icone: string | null | undefined): string | null {
@@ -71,11 +90,21 @@ export class DocCatIconeService {
     return this.brandSpriteReady;
   }
 
+  async ensureMaterialSprite(): Promise<void> {
+    if (!this.materialSpriteReady) {
+      this.materialSpriteReady = this.prefetchSprite(this.materialSpriteUrl);
+    }
+    return this.materialSpriteReady;
+  }
+
   async ensureSpriteFor(icone: string | null | undefined): Promise<void> {
     const resolved = resolveIconeRaw(icone);
+    if (resolved.segmento === 'custom') return;
     if (resolved.segmento === 'brand') {
       await Promise.all([this.ensureLucideSprite(), this.ensureBrandSprite()]);
       await this.loadBrandIndex();
+    } else if (resolved.segmento === 'material') {
+      await this.ensureMaterialSprite();
     } else {
       await this.ensureLucideSprite();
     }
@@ -102,6 +131,15 @@ export class DocCatIconeService {
     return this.brandIndex;
   }
 
+  async loadMaterialIndex(): Promise<MaterialIndexEntry[]> {
+    if (!this.materialIndex) {
+      this.materialIndex = await firstValueFrom(
+        this.http.get<MaterialIndexEntry[]>(`${CATALOG_BASE}/material-index.json`)
+      );
+    }
+    return this.materialIndex;
+  }
+
   async loadSynonyms(): Promise<Record<string, string>> {
     if (!this.synonyms) {
       this.synonyms = await firstValueFrom(
@@ -122,6 +160,7 @@ export class DocCatIconeService {
     await Promise.all([
       this.ensureLucideSprite(),
       this.loadLucideIndex(),
+      this.loadMaterialIndex(),
       this.loadSynonyms(),
       this.loadChips(),
     ]);

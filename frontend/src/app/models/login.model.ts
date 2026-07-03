@@ -29,11 +29,12 @@ export interface LoginEmpresaChip {
 
 export interface LoginConfig {
   favicon_url: string | null;
-  marca_topo: { titulo: string; subtitulo: string };
+  marca_topo: { titulo: string; subtitulo: string; exibir: boolean };
   hero: {
     titulo_linha1: string;
     titulo_destaque: string;
     lead: string;
+    exibir: boolean;
   };
   pill: { texto: string };
   auth: { titulo: string; subtitulo: string };
@@ -56,12 +57,14 @@ export const LOGIN_DEFAULTS: LoginConfig = {
   marca_topo: {
     titulo: 'GRUPO WTORRE',
     subtitulo: 'INTRANET CORPORATIVA',
+    exibir: true,
   },
   hero: {
     titulo_linha1: 'Um só grupo.',
     titulo_destaque: 'Quatro grandes destinos.',
     lead:
       'Acesse sistemas, documentos e serviços das empresas do grupo em uma única plataforma segura.',
+    exibir: true,
   },
   pill: {
     texto: 'PÁGINA CORPORATIVA · ACESSO RESTRITO',

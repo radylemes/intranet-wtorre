@@ -26,12 +26,14 @@ const LOGIN_DEFAULTS = {
   marca_topo: {
     titulo: 'GRUPO WTORRE',
     subtitulo: 'INTRANET CORPORATIVA',
+    exibir: true,
   },
   hero: {
     titulo_linha1: 'Um só grupo.',
     titulo_destaque: 'Quatro grandes destinos.',
     lead:
       'Acesse sistemas, documentos e serviços das empresas do grupo em uma única plataforma segura.',
+    exibir: true,
   },
   pill: {
     texto: 'PÁGINA CORPORATIVA · ACESSO RESTRITO',
@@ -517,6 +519,7 @@ function normalizeLoginConfig(raw) {
     base.marca_topo.subtitulo =
       String(raw.marca_topo.subtitulo ?? base.marca_topo.subtitulo).trim() ||
       base.marca_topo.subtitulo;
+    base.marca_topo.exibir = raw.marca_topo.exibir !== false;
   }
 
   if (raw?.hero) {
@@ -526,6 +529,7 @@ function normalizeLoginConfig(raw) {
       String(raw.hero.titulo_destaque ?? base.hero.titulo_destaque).trim() ||
       base.hero.titulo_destaque;
     base.hero.lead = String(raw.hero.lead ?? base.hero.lead).trim() || base.hero.lead;
+    base.hero.exibir = raw.hero.exibir !== false;
   }
 
   if (raw?.pill) {

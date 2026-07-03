@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
@@ -20,6 +20,7 @@ import { AdminDropzoneComponent } from '../../../shared/admin/admin-dropzone/adm
 import { ConteudoEntidadesEditorComponent } from '../../../shared/admin/conteudo-entidades-editor/conteudo-entidades-editor.component';
 import { AlertasService } from '../../../services/alertas.service';
 import { DocCatIconePickerComponent } from '../../../shared/documentos/doc-cat-icone-picker.component';
+import { DocCatIconeComponent } from '../../../shared/documentos/doc-cat-icone.component';
 import { DocEntidadeLogoPickerComponent } from '../../../shared/documentos/doc-entidade-logo-picker.component';
 import { DocCatIconeService } from '../../../shared/documentos/doc-cat-icone.service';
 import { AuthService } from '../../../services/auth.service';
@@ -42,6 +43,7 @@ interface PaiOption {
     AdminModalComponent,
     AdminDropzoneComponent,
     DocCatIconePickerComponent,
+    DocCatIconeComponent,
     DocEntidadeLogoPickerComponent,
     ConteudoEntidadesEditorComponent,
     TreinamentosAdminComponent,
@@ -76,6 +78,8 @@ export class DocumentosAdminComponent implements OnInit {
   readonly uploadProgress = signal(0);
   readonly uploadando = signal(false);
   readonly modalCatAberto = signal(false);
+  readonly modalIconeAberto = signal(false);
+  readonly iconTemp = signal(ICONE_PADRAO);
   readonly modalDocAberto = signal(false);
   readonly modalPaginaAberto = signal(false);
   readonly modalSetorAberto = signal(false);
@@ -119,16 +123,17 @@ export class DocumentosAdminComponent implements OnInit {
 
   selectedFile: File | null = null;
   selectedThumbFile: File | null = null;
-  removerThumb = false;
-  editandoDocThumbUrl: string | null = null;
   editandoDocMeta: { extensao: string; nome: string; tamanho: number } | null = null;
-  private thumbObjectUrl: string | null = null;
 
-  get thumbPreviewUrl(): string | null {
-    if (this.removerThumb) return null;
-    if (this.thumbObjectUrl) return this.thumbObjectUrl;
-    return this.editandoDocThumbUrl;
-  }
+  readonly removerThumb = signal(false);
+  readonly thumbCarregando = signal(false);
+  private readonly thumbObjectUrl = signal<string | null>(null);
+  private readonly editandoThumbObjectUrl = signal<string | null>(null);
+
+  readonly thumbPreviewUrl = computed(() => {
+    if (this.removerThumb()) return null;
+    return this.thumbObjectUrl() ?? this.editandoThumbObjectUrl();
+  });
 
   constructor() {
     effect(() => {
@@ -453,12 +458,44 @@ export class DocumentosAdminComponent implements OnInit {
     });
   }
 
-  selecionarIcone(value: string): void {
-    this.catForm.patchValue({ icone: value });
-  }
-
   iconeSelecionado(): string {
     return this.catForm.controls.icone.value;
+  }
+
+  iconeHeaderCat(): string | null {
+    const val = this.catForm.controls.icone.value.trim();
+    return val || null;
+  }
+
+  temIconeCat(): boolean {
+    return !!this.catForm.controls.icone.value.trim();
+  }
+
+  abrirModalIcone(): void {
+    const atual = this.catForm.controls.icone.value.trim();
+    this.iconTemp.set(
+      atual ? this.iconeService.normalizarParaLeitura(atual) : ICONE_PADRAO
+    );
+    this.modalIconeAberto.set(true);
+  }
+
+  fecharModalIcone(): void {
+    this.modalIconeAberto.set(false);
+  }
+
+  confirmarIcone(): void {
+    this.catForm.patchValue({
+      icone: this.iconeService.normalizarParaSalvar(this.iconTemp()) ?? '',
+    });
+    this.fecharModalIcone();
+  }
+
+  selecionarIconTemp(value: string): void {
+    this.iconTemp.set(value);
+  }
+
+  limparIconeCat(): void {
+    this.catForm.patchValue({ icone: '' });
   }
 
   tituloModalCat(): string {
@@ -579,9 +616,27 @@ export class DocumentosAdminComponent implements OnInit {
     );
     this.selectedFile = null;
     this.revokeThumbObjectUrl();
+    this.revokeEditandoThumbUrl();
     this.selectedThumbFile = null;
-    this.removerThumb = false;
-    this.editandoDocThumbUrl = doc.thumbnail_url ?? null;
+    this.removerThumb.set(false);
+    this.thumbCarregando.set(false);
+    if (doc.tem_thumb || doc.thumbnail_url) {
+      this.thumbCarregando.set(true);
+      this.documentosService.carregarThumbnailPorId(doc.id).subscribe({
+        next: (blob) => {
+          this.thumbCarregando.set(false);
+          if (!blob) {
+            this.editandoThumbObjectUrl.set(null);
+            return;
+          }
+          this.editandoThumbObjectUrl.set(URL.createObjectURL(blob));
+        },
+        error: () => {
+          this.thumbCarregando.set(false);
+          this.editandoThumbObjectUrl.set(null);
+        },
+      });
+    }
     this.editandoDocMeta = {
       extensao: doc.extensao.toUpperCase(),
       nome: doc.nome_original,
@@ -594,28 +649,56 @@ export class DocumentosAdminComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     this.revokeThumbObjectUrl();
+    this.revokeEditandoThumbUrl();
     this.selectedThumbFile = file;
-    this.removerThumb = false;
+    this.removerThumb.set(false);
     if (file) {
-      this.thumbObjectUrl = URL.createObjectURL(file);
+      this.thumbObjectUrl.set(URL.createObjectURL(file));
     }
   }
 
   marcarRemoverThumb(): void {
-    this.removerThumb = true;
+    this.removerThumb.set(true);
     this.selectedThumbFile = null;
     this.revokeThumbObjectUrl();
+    this.revokeEditandoThumbUrl();
   }
 
   private revokeThumbObjectUrl(): void {
-    if (this.thumbObjectUrl) {
-      URL.revokeObjectURL(this.thumbObjectUrl);
-      this.thumbObjectUrl = null;
+    const url = this.thumbObjectUrl();
+    if (url) {
+      URL.revokeObjectURL(url);
+      this.thumbObjectUrl.set(null);
+    }
+  }
+
+  private revokeEditandoThumbUrl(): void {
+    const url = this.editandoThumbObjectUrl();
+    if (url) {
+      URL.revokeObjectURL(url);
+      this.editandoThumbObjectUrl.set(null);
     }
   }
 
   onVisibilidadesDocChange(v: VisibilidadeEntidadeInput[]): void {
     this.visibilidadesDocInput.set(v);
+    const prev = new Map(this.visibilidadesDoc().map((item) => [Number(item.pagina_id), item]));
+    this.visibilidadesDoc.set(
+      v.map((item) => {
+        const pag = this.paginas().find((p) => p.id === item.pagina_id);
+        const existing = prev.get(Number(item.pagina_id));
+        return {
+          pagina_id: item.pagina_id,
+          pagina_nome: pag?.nome ?? existing?.pagina_nome,
+          pagina_slug: pag?.slug ?? existing?.pagina_slug,
+          categoria_id: item.categoria_id,
+          categoria_nome:
+            existing?.categoria_id === item.categoria_id ? existing?.categoria_nome : undefined,
+          categoria_slug:
+            existing?.categoria_id === item.categoria_id ? existing?.categoria_slug : undefined,
+        };
+      })
+    );
   }
 
   cancelarDocumento(): void {
@@ -626,9 +709,10 @@ export class DocumentosAdminComponent implements OnInit {
     this.visibilidadesDocInput.set([]);
     this.selectedFile = null;
     this.revokeThumbObjectUrl();
+    this.revokeEditandoThumbUrl();
     this.selectedThumbFile = null;
-    this.removerThumb = false;
-    this.editandoDocThumbUrl = null;
+    this.removerThumb.set(false);
+    this.thumbCarregando.set(false);
     this.editandoDocMeta = null;
     this.uploadProgress.set(0);
   }
@@ -699,7 +783,7 @@ export class DocumentosAdminComponent implements OnInit {
       this.erro.set('');
       const raw = this.docForm.getRawValue();
 
-      if (this.selectedThumbFile || this.removerThumb) {
+      if (this.selectedThumbFile || this.removerThumb()) {
         const formData = new FormData();
         formData.append('titulo', raw.titulo);
         formData.append('descricao', raw.descricao || '');
@@ -709,7 +793,7 @@ export class DocumentosAdminComponent implements OnInit {
         if (this.selectedThumbFile) {
           formData.append('thumb', this.selectedThumbFile);
         }
-        if (this.removerThumb) {
+        if (this.removerThumb()) {
           formData.append('remover_thumb', 'true');
         }
         this.documentosService.atualizarDocumentoFormData(editId, formData).subscribe({

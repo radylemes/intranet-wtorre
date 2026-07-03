@@ -67,11 +67,12 @@
       </div>
     </div>
 
-    <div class="chips">
+    <nav class="switcher" aria-label="Filtrar por empresa">
       <button
         type="button"
-        class="chip c-all"
+        class="ent-tab ent-tab--text"
         [class.active]="!empresaFiltro()"
+        [style.--ent-cor]="'var(--ink)'"
         (click)="limparEmpresa()"
       >
         Todas as empresas
@@ -79,26 +80,31 @@
       @for (emp of empresas(); track emp) {
         <button
           type="button"
-          [class]="'chip ' + chipClasse(emp)"
+          class="ent-tab"
           [class.active]="empresaFiltro() === emp"
+          [style.--ent-cor]="corMarcaEmpresa(emp)"
           (click)="toggleEmpresa(emp)"
         >
-          <span class="cd" [style.background]="corMarca(emp)"></span>
-          {{ emp }}
+          @if (logoUrlEmpresa(emp); as src) {
+            <img [src]="src" [alt]="emp" class="ent-logo" />
+          } @else {
+            <span class="eb" [style.background]="corMarcaEmpresa(emp)">{{ emp.charAt(0) }}</span>
+            <span>{{ emp }}</span>
+          }
         </button>
       }
       @if (temOutros()) {
         <button
           type="button"
-          class="chip c-neutro"
+          class="ent-tab ent-tab--text"
           [class.active]="empresaFiltro() === OUTROS_EMPRESA"
+          [style.--ent-cor]="'var(--ink-dim)'"
           (click)="toggleOutros()"
         >
-          <span class="cd" style="background: var(--ink-dim)"></span>
           Outros
         </button>
       }
-    </div>
+    </nav>
 
     @if (erro()) {
       <div class="alert err">{{ erro() }}</div>

@@ -22,9 +22,10 @@ const paginasRoutes = require('./routes/paginas.routes');
 const camarotesRoutes = require('./routes/camarotes.routes');
 const webhooksRoutes = require('./routes/webhooks.routes');
 const solicitacaoColaboradorRoutes = require('./routes/solicitacao-colaborador.routes');
+const contentVersionRoutes = require('./routes/content-version.routes');
 const brandingRoutes = require('./routes/branding.routes');
 const grupoLogosRoutes = require('./routes/grupo-logos.routes');
-const contentVersionRoutes = require('./routes/content-version.routes');
+const iconesRoutes = require('./routes/icones.routes');
 const comunicadosRoutes = require('./routes/comunicados.routes');
 const eventosRoutes = require('./routes/eventos.routes');
 const powerbiRoutes = require('./routes/powerbi.routes');
@@ -36,6 +37,7 @@ const { ensureFotosDir } = require('./controllers/colaboradores.controller');
 const { ensureGrupoLogosDir } = require('./config/grupo-logos-upload');
 const { ensureHomeCarrosselDir } = require('./config/home-carrossel-upload');
 const { ensureDocumentosPaginasLogosDir } = require('./config/documentos-paginas-logo-upload');
+const { ensureIconesCustomDir } = require('./config/icones-custom-upload');
 
 try {
   validateEnv();
@@ -66,6 +68,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/v1/branding', brandingRoutes);
 app.use('/api/v1/grupo-logos', grupoLogosRoutes);
+app.use('/api/v1/icones', iconesRoutes);
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/tenants', tenantsRoutes);
@@ -126,6 +129,11 @@ app.listen(env.port, () => {
     ensureDocumentosPaginasLogosDir();
   } catch (err) {
     console.error('[documentos] Não foi possível preparar pasta de logos de entidades:', err.message);
+  }
+  try {
+    ensureIconesCustomDir();
+  } catch (err) {
+    console.error('[icones] Não foi possível preparar pasta de ícones personalizados:', err.message);
   }
   reconcileAll()
     .then((count) => console.log(`[documentos] Menu sincronizado com ${count} página(s).`))

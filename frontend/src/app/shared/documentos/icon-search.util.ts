@@ -7,10 +7,13 @@ import {
   IconeResolvido,
   IconeSegmento,
   LucideIndexEntry,
+  MaterialIconStyle,
+  MaterialIndexEntry,
 } from '../../models/documento.model';
 
 export const ICON_SEARCH_MAX = 300;
 export const ICON_INITIAL_MAX = 60;
+export const ICON_PAGE_SIZE = 60;
 
 export interface IconSearchResult {
   namespaced: string;
@@ -164,6 +167,97 @@ export function searchBrandIcons(
   }
 
   return results;
+}
+
+function materialNamespaced(style: MaterialIconStyle, name: string): string {
+  return `material:${style}:${name}`;
+}
+
+function materialLabel(name: string, style: MaterialIconStyle): string {
+  return `${name} (${style})`;
+}
+
+export function materialSymbolId(id: string): string {
+  const [style, ...nameParts] = id.split(':');
+  return `${style}_${nameParts.join('_')}`;
+}
+
+export function getInitialMaterialIcons(
+  entries: MaterialIndexEntry[],
+  limit = ICON_INITIAL_MAX
+): IconSearchResult[] {
+  return [...entries]
+    .sort((a, b) => a.style.localeCompare(b.style) || a.name.localeCompare(b.name))
+    .slice(0, limit)
+    .map((entry) => ({
+      namespaced: materialNamespaced(entry.style, entry.name),
+      label: materialLabel(entry.name, entry.style),
+      segmento: 'material' as const,
+    }));
+}
+
+export function searchMaterialIcons(
+  entries: MaterialIndexEntry[],
+  query: string,
+  limit = ICON_SEARCH_MAX
+): IconSearchResult[] {
+  const q = normalizeQuery(query);
+  if (!q) return [];
+
+  const words = q.split(/\s+/).filter(Boolean);
+  const results: IconSearchResult[] = [];
+
+  for (const entry of entries) {
+    const hay = `${entry.name} ${entry.style}`;
+    const hayNorm = normalizeQuery(hay);
+
+    const matches =
+      words.length > 0
+        ? words.every((word) => hayNorm.includes(word))
+        : hayNorm.includes(q);
+
+    if (matches) {
+      results.push({
+        namespaced: materialNamespaced(entry.style, entry.name),
+        label: materialLabel(entry.name, entry.style),
+        segmento: 'material',
+      });
+      if (results.length >= limit) break;
+    }
+  }
+
+  return results;
+}
+
+export function searchAllIcons(
+  lucideEntries: LucideIndexEntry[],
+  brandEntries: BrandIndexEntry[],
+  materialEntries: MaterialIndexEntry[],
+  query: string,
+  synonyms: Record<string, string>,
+  limit = ICON_SEARCH_MAX
+): IconSearchResult[] {
+  const lucide = searchLucideIcons(lucideEntries, query, synonyms, limit)
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const brand = searchBrandIcons(brandEntries, query, limit)
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+  const material = searchMaterialIcons(materialEntries, query, limit)
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  return [...lucide, ...brand, ...material];
+}
+
+export function segmentoBadgeLabel(segmento: IconeSegmento): string {
+  switch (segmento) {
+    case 'brand':
+      return 'Marca';
+    case 'material':
+      return 'Material';
+    case 'custom':
+      return 'Personalizado';
+    default:
+      return 'Ícone';
+  }
 }
 
 export function resolveIconeRaw(icone: string | null | undefined): IconeResolvido {

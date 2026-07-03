@@ -2,13 +2,17 @@
 
 ## Visão geral
 
-O módulo Camarotes envia **e-mails individuais** por contrato quando o vencimento está exatamente a:
+O módulo Camarotes envia **e-mails individuais** por contrato quando o vencimento atinge cada marco. Cada gatilho é **independente**: se o alerta daquele marco ainda não foi enviado, o cron (ou disparo manual) envia — inclusive contratos **atrasados** que perderam o dia exato.
 
-| Gatilho | Template | Urgência |
-|---------|----------|----------|
-| **90 dias** | `camarote-90dias.html` | Baixa |
-| **30 dias** | `camarote-30dias.html` | Atenção |
-| **0 dias** (vence hoje ou vencido) | `camarote-hoje.html` | Urgente |
+| Gatilho | Condição (dias restantes) | Template | Urgência |
+|---------|---------------------------|----------|----------|
+| **90 dias** | 31 a 90 dias restantes (`> 30` e `<= 90`) | `camarote-90dias.html` | Baixa |
+| **30 dias** | 1 a 30 dias restantes | `camarote-30dias.html` | Atenção |
+| **0 dias** | vence hoje ou já vencido (`<= 0`) | `camarote-hoje.html` | Urgente |
+
+Na **listagem**, contratos que **vencem hoje** e **vencidos** aparecem no gatilho **0** (badge "Vence hoje" ou "Vencido"). Use o filtro **Vence hoje / vencidos** ou **Notificação: Todos** para visualizá-los.
+
+Exemplo: contrato a **85 dias** sem alerta de 90 → enviado no próximo cron. Contrato a **25 dias** sem alerta de 30 → recebe **apenas** o e-mail de 30 dias (a faixa de 90 dias já não se aplica).
 
 Configuração em **Admin → Configuração de Camarotes → Alertas por e-mail**.
 
@@ -39,7 +43,11 @@ O assunto de cada gatilho também aceita `[XXX]` e `{{numero}}`.
 
 ## Deduplicação
 
-Cada combinação `unidade_id + gatilho_dias + final_locacao` só dispara **uma vez**, registada em `camarotes_alertas_envio`. Se o contrato for renovado (nova `final_locacao`), os gatilhos voltam a aplicar-se.
+Cada combinação `numero + gatilho_dias + final_locacao` só dispara **uma vez**, registada em `camarotes_alertas_envio`. A verificação usa o número do camarote (não apenas `unidade_id`) para tolerar resincronizações da planilha SharePoint.
+
+Se o contrato for renovado (nova `final_locacao`), os gatilhos voltam a aplicar-se.
+
+O cron e o disparo manual **não reenviam** alertas já registados. Reenvio forçado exige `?forcar=true` na API.
 
 ## Rastreamento de entrega e falhas
 
@@ -72,6 +80,7 @@ Leitura/abertura de e-mail **não** faz parte do escopo.
 - **Horário configurável** (default `08:00`, fuso `America/Sao_Paulo`)
 - **Cadência global:** diária ou semanal
 - **Opcional:** disparar alertas após sincronização da planilha
+- **Retry:** a cada execução, envia contratos pendentes **na faixa exclusiva** de cada gatilho (90: 31–90, 30: 1–30, 0: ≤0) — nunca mais de um gatilho por contrato na mesma execução
 
 ## API (admin)
 
@@ -80,7 +89,8 @@ Leitura/abertura de e-mail **não** faz parte do escopo.
 | GET | `/api/v1/camarotes/config` | Config + gatilhos + horário |
 | PUT | `/api/v1/camarotes/config` | Salvar configuração |
 | GET | `/api/v1/camarotes/gatilhos/:dias/preview` | Pré-visualizar template |
-| POST | `/api/v1/camarotes/enviar-alertas` | Disparo manual |
+| GET | `/api/v1/camarotes/alertas-contratos` | Contratos em alerta (pendentes e notificados) |
+| POST | `/api/v1/camarotes/enviar-alertas` | Disparo manual (`?forcar=true` para reenvio) |
 | GET | `/api/v1/camarotes/alertas-envio-log` | Histórico de envios (status por destinatário) |
 
 Webhook público (sem JWT) para eventos ACS:

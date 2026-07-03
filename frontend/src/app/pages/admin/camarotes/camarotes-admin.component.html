@@ -122,62 +122,113 @@
 
       @if (abaAtiva() === 'alertas') {
         <div class="camarotes-tab-panel">
-          <div class="config-bar">
-            <div class="config-bar-emails">
-              <label class="fl">E-mails de destino (um por linha)</label>
-              <div class="email-busca-wrap">
-                <input
-                  type="search"
-                  class="email-busca-input"
-                  placeholder="Buscar colaborador no AD para adicionar…"
-                  [ngModel]="buscaEmailTexto()"
-                  (ngModelChange)="onBuscaEmailInput($event)"
-                />
-                @if (resultadosBuscaEmail().length) {
-                  <ul class="busca-resultados">
-                    @for (c of resultadosBuscaEmail(); track c.id) {
-                      <li>
-                        <button type="button" class="busca-item" (click)="adicionarEmailDestino(c)">
-                          <strong>{{ c.nome }}</strong>
-                          <span>{{ c.email || '—' }}</span>
-                        </button>
-                      </li>
+          <section class="dest-card">
+            <header class="dest-card__head">
+              <h2 class="dest-card__title">Destinatários</h2>
+              <p class="dest-card__sub">Quem recebe estas notificações por e-mail</p>
+            </header>
+
+            <div class="dest-card__body">
+              <div class="dest-toolbar">
+                <div class="dest-field dest-field--search">
+                  <label for="busca-destinatarios">Buscar no AD</label>
+                  <div class="dest-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input
+                      id="busca-destinatarios"
+                      type="search"
+                      placeholder="Buscar colaborador no AD para adicionar…"
+                      autocomplete="off"
+                      [ngModel]="buscaEmailTexto()"
+                      (ngModelChange)="onBuscaEmailInput($event)"
+                      (keydown)="onBuscaEmailKeydown($event)"
+                    />
+                    @if (resultadosBuscaEmail().length) {
+                      <ul class="busca-resultados dest-search__results">
+                        @for (c of resultadosBuscaEmail(); track c.id) {
+                          <li>
+                            <button type="button" class="busca-item" (click)="adicionarEmailDestino(c)">
+                              <strong>{{ c.nome }}</strong>
+                              <span>{{ c.email || '—' }}</span>
+                            </button>
+                          </li>
+                        }
+                      </ul>
                     }
-                  </ul>
-                }
+                  </div>
+                </div>
+                <div class="dest-field dest-field--cadencia">
+                  <label for="cadencia-alertas">Cadência</label>
+                  <select
+                    id="cadencia-alertas"
+                    class="dest-control"
+                    [ngModel]="cadencia()"
+                    (ngModelChange)="cadencia.set($event)"
+                  >
+                    <option value="diaria">Diária</option>
+                    <option value="semanal">Semanal</option>
+                  </select>
+                </div>
+                <div class="dest-field dest-field--time">
+                  <label for="horario-alertas">Horário</label>
+                  <input
+                    id="horario-alertas"
+                    class="dest-control"
+                    type="time"
+                    [ngModel]="horarioEnvio()"
+                    (ngModelChange)="horarioEnvio.set($event)"
+                  />
+                </div>
               </div>
-              <textarea
-                rows="3"
-                [ngModel]="emailsTexto()"
-                (ngModelChange)="emailsTexto.set($event)"
-                placeholder="usuario@nubankparque.com"
-              ></textarea>
+
+              <div class="dest-meta">
+                <span class="dest-meta__label">Adicionados</span>
+                <span class="dest-meta__count">{{ destinatariosCountLabel() }}</span>
+              </div>
+
+              @if (destinatarios().length) {
+                <div class="dest-chips">
+                  @for (d of destinatarios(); track d.email) {
+                    <article class="dest-chip">
+                      <span
+                        class="dest-chip__avatar"
+                        [style.background]="corAvatarDestinatario(d.email)"
+                      >{{ iniciaisDestinatario(d.nome) }}</span>
+                      <span class="dest-chip__info">
+                        <span class="dest-chip__name">{{ d.nome }}</span>
+                        <span class="dest-chip__mail">{{ d.email }}</span>
+                      </span>
+                      <span class="dest-chip__tag">{{ d.tag }}</span>
+                      <button
+                        type="button"
+                        class="dest-chip__remove"
+                        title="Remover"
+                        (click)="removerDestinatario(d.email)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                          <path d="M18 6 6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </article>
+                  }
+                </div>
+              }
+
             </div>
-            <div class="config-bar-cadencia">
-              <label class="fl">Cadência global</label>
-              <select [ngModel]="cadencia()" (ngModelChange)="cadencia.set($event)">
-                <option value="diaria">Diária</option>
-                <option value="semanal">Semanal</option>
-              </select>
-            </div>
-            <div class="config-bar-horario">
-              <label class="fl">Horário</label>
-              <input type="text" [ngModel]="horarioEnvio()" (ngModelChange)="horarioEnvio.set($event)" placeholder="08:00" />
-            </div>
-            <button type="button" class="btn-primary" [disabled]="salvandoConfig()" (click)="salvarConfig()">
-              {{ salvandoConfig() ? 'Salvando…' : 'Salvar' }}
-            </button>
-          </div>
+          </section>
 
           <div class="section-label">Gatilhos de vencimento</div>
 
           <div class="triggers-grid">
             @for (meta of gatilhoUi; track meta.dias) {
               @let g = gatilhoPorDias(meta.dias);
-              <div class="tcard" [class]="meta.cardClass" [class.tcard-off]="!g.ativo">
-                <div class="tcard-head" [class]="meta.headClass">
+              <div class="tcard {{ meta.cardClass }}" [class.tcard-off]="!g.ativo">
+                <div class="tcard-head {{ meta.headClass }}">
                   <span class="tcard-title">{{ meta.titulo }}</span>
-                  <span class="tbadge" [class]="meta.badgeClass">{{ meta.badge }}</span>
+                  <span class="tbadge {{ meta.badgeClass }}">{{ meta.badge }}</span>
                 </div>
                 <div class="tcard-body">
                   <div>
@@ -239,67 +290,131 @@
               <span class="slider"></span>
             </label>
           </div>
+
+          <div class="alertas-save-bar">
+            <button type="button" class="btn-primary" [disabled]="salvandoConfig()" (click)="salvarConfig()">
+              {{ salvandoConfig() ? 'Salvando…' : 'Salvar configuração de alertas' }}
+            </button>
+          </div>
         </div>
       }
 
       @if (abaAtiva() === 'contratos') {
         <div class="camarotes-tab-panel">
-          <div class="disparos-header">
-            <div>
-              <div class="section-label">Contratos em alerta</div>
-              <p class="disparos-hint">
-                Contratos nos marcos de envio: 90 e 30 dias até o vencimento, ou vencidos / vence hoje (gatilho 0).
-              </p>
-              @if (contratosPendentes() > 0) {
-                <span class="sbadge sbadge-pend contratos-pend-badge">
-                  {{ contratosPendentes() }} pendente(s) de notificação
-                </span>
-              }
-            </div>
-            <div class="disparos-toolbar">
-              <div class="disparos-filtro">
-                <label class="fl" for="filtro-gatilho-contratos">Gatilho</label>
-                <select
-                  id="filtro-gatilho-contratos"
-                  [ngModel]="filtroGatilhoContratos()"
-                  (ngModelChange)="filtroGatilhoContratos.set($event); onFiltroContratosChange()"
+          <div class="contratos-alertas-layout">
+            <div class="section-label">Contratos em alerta</div>
+
+            @if (contratosResumo(); as r) {
+              <div class="contratos-mini-dashboard" aria-label="Resumo de contratos em alerta">
+                <button
+                  type="button"
+                  class="mini-dash-card mini-dash-total"
+                  [class.is-active]="filtroGatilhoContratos() === 'todos'"
+                  (click)="filtrarContratosPorGatilho('todos')"
                 >
-                  <option [ngValue]="'todos'">Todos</option>
-                  <option [ngValue]="90">90 dias</option>
-                  <option [ngValue]="30">30 dias</option>
-                  <option [ngValue]="0">Hoje / vencidos</option>
-                </select>
-              </div>
-              <div class="disparos-filtro">
-                <label class="fl" for="filtro-notif-contratos">Notificação</label>
-                <select
-                  id="filtro-notif-contratos"
-                  [ngModel]="filtroNotificadoContratos()"
-                  (ngModelChange)="filtroNotificadoContratos.set($event); onFiltroContratosChange()"
+                  <span class="mini-dash-num">{{ r.total }}</span>
+                  <span class="mini-dash-label">Total</span>
+                  <span class="mini-dash-sub">{{ r.pendentes }} pendente(s)</span>
+                </button>
+                <button
+                  type="button"
+                  class="mini-dash-card mini-dash-g90"
+                  [class.is-active]="filtroGatilhoContratos() === 90"
+                  (click)="filtrarContratosPorGatilho(90)"
                 >
-                  <option [ngValue]="'todos'">Todos</option>
-                  <option [ngValue]="'sim'">Notificado</option>
-                  <option [ngValue]="'nao'">Pendente</option>
-                </select>
+                  <span class="mini-dash-num">{{ r.g90.total }}</span>
+                  <span class="mini-dash-label">90 dias</span>
+                  <span class="mini-dash-sub">{{ r.g90.pendentes }} pendente(s)</span>
+                </button>
+                <button
+                  type="button"
+                  class="mini-dash-card mini-dash-g30"
+                  [class.is-active]="filtroGatilhoContratos() === 30"
+                  (click)="filtrarContratosPorGatilho(30)"
+                >
+                  <span class="mini-dash-num">{{ r.g30.total }}</span>
+                  <span class="mini-dash-label">30 dias</span>
+                  <span class="mini-dash-sub">{{ r.g30.pendentes }} pendente(s)</span>
+                </button>
+                <button
+                  type="button"
+                  class="mini-dash-card mini-dash-hoje"
+                  [class.is-active]="filtroGatilhoContratos() === 0"
+                  (click)="filtrarContratosPorGatilho(0)"
+                >
+                  <span class="mini-dash-num">{{ r.vence_hoje }}</span>
+                  <span class="mini-dash-label">Vence hoje</span>
+                  <span class="mini-dash-sub">no gatilho 0</span>
+                </button>
+                <button
+                  type="button"
+                  class="mini-dash-card mini-dash-venc"
+                  [class.is-active]="filtroGatilhoContratos() === 0"
+                  (click)="filtrarContratosPorGatilho(0)"
+                >
+                  <span class="mini-dash-num">{{ r.vencidos }}</span>
+                  <span class="mini-dash-label">Vencidos</span>
+                  <span class="mini-dash-sub">{{ r.g0.pendentes }} pendente(s)</span>
+                </button>
               </div>
-              <button
-                type="button"
-                class="btn-ghost btn-sm"
-                [disabled]="carregandoContratosAlerta()"
-                (click)="carregarContratosAlerta()"
-              >
-                {{ carregandoContratosAlerta() ? 'Atualizando…' : 'Atualizar' }}
-              </button>
+            } @else if (carregandoContratosAlerta()) {
+              <p class="disparos-hint">Carregando resumo…</p>
+            }
+
+            <div class="contratos-toolbar-row">
+              <div class="disparos-toolbar">
+                <div class="disparos-filtro">
+                  <label class="fl" for="filtro-gatilho-contratos">Gatilho</label>
+                  <select
+                    id="filtro-gatilho-contratos"
+                    [ngModel]="filtroGatilhoContratos()"
+                    (ngModelChange)="filtroGatilhoContratos.set($event); onFiltroContratosChange()"
+                  >
+                    <option [ngValue]="'todos'">Todos</option>
+                    <option [ngValue]="90">90 dias</option>
+                    <option [ngValue]="30">30 dias</option>
+                    <option [ngValue]="0">Vence hoje / vencidos</option>
+                  </select>
+                </div>
+                <div class="disparos-filtro">
+                  <label class="fl" for="filtro-notif-contratos">Notificação</label>
+                  <select
+                    id="filtro-notif-contratos"
+                    [ngModel]="filtroNotificadoContratos()"
+                    (ngModelChange)="filtroNotificadoContratos.set($event); onFiltroContratosChange()"
+                  >
+                    <option [ngValue]="'todos'">Todos</option>
+                    <option [ngValue]="'sim'">Notificado</option>
+                    <option [ngValue]="'nao'">Pendente</option>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  class="btn-camarotes btn-sm"
+                  [disabled]="enviando() || carregandoContratosAlerta()"
+                  (click)="enviarAlertas()"
+                >
+                  {{ enviando() ? 'Enviando…' : 'Enviar pendentes' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-ghost btn-sm"
+                  [disabled]="carregandoContratosAlerta()"
+                  (click)="carregarContratosAlerta()"
+                >
+                  {{ carregandoContratosAlerta() ? 'Atualizando…' : 'Atualizar' }}
+                </button>
+              </div>
             </div>
           </div>
 
           @if (carregandoContratosAlerta() && !contratosAlerta().length) {
             <p class="empty">Carregando contratos…</p>
           } @else if (!contratosAlerta().length) {
-            <p class="empty">Nenhum contrato nos marcos de alerta hoje.</p>
+            <p class="empty">Nenhum contrato pendente de notificação.</p>
           } @else {
-            <div class="table-scroll">
-              <table>
+            <div class="table-scroll contratos-table-scroll">
+              <table class="contratos-table">
                 <thead>
                   <tr>
                     <th>Gatilho</th>
@@ -307,6 +422,7 @@
                     <th>Cessionário</th>
                     <th>Setor / Andar</th>
                     <th>Vencimento</th>
+                    <th>Dias restantes</th>
                     <th>Notificação</th>
                     <th class="td-r"></th>
                   </tr>
@@ -316,8 +432,8 @@
                     <tr>
                       <td>
                         @let meta = metaGatilho(c.gatilho_dias);
-                        <span class="tbadge" [class]="meta?.badgeClass || ''">
-                          {{ meta?.titulo || c.gatilho_dias + ' dias' }}
+                        <span class="tbadge {{ meta?.badgeClass || '' }}">
+                          {{ labelGatilhoContrato(c) }}
                         </span>
                         @if (!c.gatilho_ativo) {
                           <span class="gatilho-inativo-tag">Inativo</span>
@@ -327,12 +443,19 @@
                       <td>{{ c.cessionario }}</td>
                       <td>{{ c.setor || '—' }} · {{ c.andar || '—' }}</td>
                       <td>{{ c.final_locacao | date: 'dd/MM/yyyy' }}</td>
+                      <td class="dias-restantes-cell">
+                        {{ formatDiasRestantes(c.dias_restantes) }}
+                      </td>
                       <td>
                         @if (c.notificado) {
                           <span class="sbadge sbadge-ok">Enviado</span>
                           <span class="notif-data">{{ c.notificado_em | date: 'dd/MM/yyyy HH:mm' }}</span>
                         } @else {
+                          @let sit = metaSituacaoEnvio(c.situacao_envio);
                           <span class="sbadge sbadge-pend">Pendente</span>
+                          @if (c.situacao_envio === 'atrasado') {
+                            <span class="sbadge" [class]="sit.badgeClass">{{ sit.label }}</span>
+                          }
                         }
                       </td>
                       <td class="td-r">
@@ -360,67 +483,87 @@
 
       @if (abaAtiva() === 'usuarios') {
         <div class="camarotes-tab-panel">
-          <div class="config-bar">
-            <div class="field busca-field">
-              <label class="fl" for="busca-viz">Buscar colaborador</label>
-              <input
-                id="busca-viz"
-                type="search"
-                placeholder="Nome ou e-mail"
-                [ngModel]="buscaTexto()"
-                (ngModelChange)="onBuscaInput($event)"
-                [disabled]="adicionandoVisualizador()"
-              />
-              @if (resultadosBusca().length) {
-                <ul class="busca-resultados">
-                  @for (c of resultadosBusca(); track c.id) {
-                    <li>
+          <section class="dest-card">
+            <header class="dest-card__head">
+              <h2 class="dest-card__title">Visualizadores</h2>
+              <p class="dest-card__sub">Quem pode acessar o dashboard de camarotes</p>
+            </header>
+
+            <div class="dest-card__body">
+              <div class="dest-toolbar dest-toolbar--full">
+                <div class="dest-field dest-field--search">
+                  <label for="busca-viz">Buscar no AD</label>
+                  <div class="dest-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input
+                      id="busca-viz"
+                      type="search"
+                      placeholder="Buscar colaborador no AD para adicionar…"
+                      autocomplete="off"
+                      [ngModel]="buscaTexto()"
+                      (ngModelChange)="onBuscaInput($event)"
+                      [disabled]="adicionandoVisualizador()"
+                    />
+                    @if (resultadosBusca().length) {
+                      <ul class="busca-resultados dest-search__results">
+                        @for (c of resultadosBusca(); track c.id) {
+                          <li>
+                            <button
+                              type="button"
+                              class="busca-item"
+                              [disabled]="adicionandoVisualizador()"
+                              (click)="adicionarVisualizador(c)"
+                            >
+                              <strong>{{ c.nome }}</strong>
+                              <span>{{ c.email || '—' }}</span>
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="dest-meta">
+                <span class="dest-meta__label">Adicionados</span>
+                <span class="dest-meta__count">{{ visualizadoresCountLabel() }}</span>
+              </div>
+
+              @if (visualizadores().length) {
+                <div class="dest-chips">
+                  @for (v of visualizadores(); track v.usuario_id) {
+                    <article class="dest-chip">
+                      <span
+                        class="dest-chip__avatar"
+                        [style.background]="corAvatarDestinatario(v.email)"
+                      >{{ iniciaisDestinatario(v.nome_completo) }}</span>
+                      <span class="dest-chip__info">
+                        <span class="dest-chip__name">{{ v.nome_completo }}</span>
+                        <span class="dest-chip__mail">{{ v.email }}</span>
+                      </span>
+                      <span class="dest-chip__tag">{{ tagVisualizador(v) }}</span>
                       <button
                         type="button"
-                        class="busca-item"
-                        [disabled]="adicionandoVisualizador()"
-                        (click)="adicionarVisualizador(c)"
+                        class="dest-chip__remove"
+                        title="Remover"
+                        (click)="removerVisualizador(v)"
                       >
-                        <strong>{{ c.nome }}</strong>
-                        <span>{{ c.email || '—' }}</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                          <path d="M18 6 6 18M6 6l12 12" />
+                        </svg>
                       </button>
-                    </li>
+                    </article>
                   }
-                </ul>
+                </div>
+              } @else {
+                <p class="dest-empty">Nenhum visualizador cadastrado.</p>
               }
             </div>
-          </div>
-
-          @if (!visualizadores().length) {
-            <p class="empty">Nenhum visualizador cadastrado.</p>
-          } @else {
-            <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>E-mail</th>
-                    <th>Departamento</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (v of visualizadores(); track v.usuario_id) {
-                    <tr>
-                      <td class="td-name">{{ v.nome_completo }}</td>
-                      <td>{{ v.email }}</td>
-                      <td>{{ v.departamento || '—' }}</td>
-                      <td class="td-r">
-                        <button type="button" class="link-danger" (click)="removerVisualizador(v)">
-                          Remover
-                        </button>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
+          </section>
         </div>
       }
 

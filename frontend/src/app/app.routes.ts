@@ -63,6 +63,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'plaquinhas-camarote',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/plaquinhas-camarote/plaquinhas-camarote.component').then(
+        (m) => m.PlaquinhasCamaroteComponent
+      ),
+  },
+  {
     path: 'treinamentos',
     canActivate: [authGuard],
     loadComponent: () =>

@@ -7,5 +7,8 @@
   { "label": "TI", "query": "server" },
   { "label": "Jurídico", "query": "scale" },
   { "label": "Comunicação", "query": "mail" },
-  { "label": "Marcas", "query": "", "segment": "brand" }
+  { "label": "Marcas", "query": "", "segment": "brand" },
+  { "label": "Outlined", "query": "outlined", "segment": "material" },
+  { "label": "Rounded", "query": "rounded", "segment": "material" },
+  { "label": "Sharp", "query": "sharp", "segment": "material" }
 ]

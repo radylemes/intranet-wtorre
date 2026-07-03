@@ -122,27 +122,49 @@ async function listarContratosEmAlerta(req, res) {
     if (notificadoRaw === 'true') notificado = true;
     else if (notificadoRaw === 'false') notificado = false;
 
-    const todos = await camarotesRepo.listContratosEmAlerta({
-      gatilho_dias: gatilhoDias,
-    });
+    const todos = await camarotesRepo.listContratosEmAlerta({});
+
+    const resumo = buildResumoContratosAlerta(todos);
 
     let itens = todos;
-    if (notificado === true) {
-      itens = todos.filter((i) => i.notificado);
-    } else if (notificado === false) {
-      itens = todos.filter((i) => !i.notificado);
+    if (gatilhoDias != null && gatilhoDias !== '') {
+      const g = Number(gatilhoDias);
+      itens = itens.filter((i) => i.gatilho_dias === g);
     }
-
-    const pendentes = todos.filter((i) => !i.notificado && i.gatilho_ativo).length;
+    if (notificado === true) {
+      itens = itens.filter((i) => i.notificado);
+    } else if (notificado === false) {
+      itens = itens.filter((i) => !i.notificado);
+    }
 
     return res.json({
       total: itens.length,
-      pendentes,
+      pendentes: resumo.pendentes,
+      resumo,
       itens,
     });
   } catch (err) {
     return handleError(res, err);
   }
+}
+
+function buildResumoContratosAlerta(itens) {
+  const pendentesDe = (lista) =>
+    lista.filter((i) => !i.notificado && i.gatilho_ativo).length;
+  const porGatilho = (dias) => itens.filter((i) => i.gatilho_dias === dias);
+  const g90 = porGatilho(90);
+  const g30 = porGatilho(30);
+  const g0 = porGatilho(0);
+
+  return {
+    total: itens.length,
+    pendentes: pendentesDe(itens),
+    g90: { total: g90.length, pendentes: pendentesDe(g90) },
+    g30: { total: g30.length, pendentes: pendentesDe(g30) },
+    g0: { total: g0.length, pendentes: pendentesDe(g0) },
+    vence_hoje: itens.filter((i) => i.dias_restantes === 0).length,
+    vencidos: g0.filter((i) => i.dias_restantes < 0).length,
+  };
 }
 
 async function dashboard(req, res) {
@@ -158,13 +180,17 @@ async function unidades(req, res) {
   try {
     const config = await camarotesRepo.getConfig();
     const dias = config?.dias_vence_breve ?? 90;
-    const diasMax = req.query.dias_max != null ? Number(req.query.dias_max) : undefined;
+    const diasRestantesMin =
+      req.query.dias_restantes_min != null ? Number(req.query.dias_restantes_min) : undefined;
+    const diasRestantesMax =
+      req.query.dias_restantes_max != null ? Number(req.query.dias_restantes_max) : undefined;
     const lista = await camarotesRepo.listUnidades(
       {
         tipo: req.query.tipo,
         setor: req.query.setor,
         situacao: req.query.situacao,
-        dias_max: Number.isFinite(diasMax) ? diasMax : undefined,
+        dias_restantes_min: Number.isFinite(diasRestantesMin) ? diasRestantesMin : undefined,
+        dias_restantes_max: Number.isFinite(diasRestantesMax) ? diasRestantesMax : undefined,
       },
       dias
     );
@@ -185,6 +211,7 @@ async function obterConfig(_req, res) {
 
 async function atualizarConfig(req, res) {
   try {
+    const body = req.body || {};
     const {
       emails_alerta,
       dias_vence_breve,
@@ -197,24 +224,49 @@ async function atualizarConfig(req, res) {
       envio_apos_sync,
       sharepoint_url,
       sharepoint_sheet,
-    } = req.body || {};
+    } = body;
 
-    const emails = validarEmailsAlerta(emails_alerta ?? []);
-    const dias = Number(dias_vence_breve ?? 90);
-    if (!Number.isFinite(dias) || dias < 1 || dias > 365) {
-      return res.status(400).json({ mensagem: 'Dias "vence em breve" deve estar entre 1 e 365.' });
+    const updateData = {};
+
+    if (emails_alerta !== undefined) {
+      updateData.emails_alerta = validarEmailsAlerta(emails_alerta);
     }
 
-    await camarotesRepo.updateConfig({
-      emails_alerta: emails,
-      dias_vence_breve: dias,
-      cadencia: cadencia === 'semanal' ? 'semanal' : 'diaria',
-      envio_ativo: !!envio_ativo,
-      sync_automatica: sync_automatica !== false,
-      sync_frequencia,
-      sharepoint_url: sharepoint_url !== undefined ? (sharepoint_url?.trim() || null) : undefined,
-      sharepoint_sheet: sharepoint_sheet !== undefined ? (sharepoint_sheet?.trim() || 'Camarotes') : undefined,
-    });
+    if (dias_vence_breve !== undefined) {
+      const dias = Number(dias_vence_breve);
+      if (!Number.isFinite(dias) || dias < 1 || dias > 365) {
+        return res.status(400).json({ mensagem: 'Dias "vence em breve" deve estar entre 1 e 365.' });
+      }
+      updateData.dias_vence_breve = dias;
+    }
+
+    if (cadencia !== undefined) {
+      updateData.cadencia = cadencia === 'semanal' ? 'semanal' : 'diaria';
+    }
+
+    if (envio_ativo !== undefined) {
+      updateData.envio_ativo = !!envio_ativo;
+    }
+
+    if (sync_automatica !== undefined) {
+      updateData.sync_automatica = sync_automatica !== false;
+    }
+
+    if (sync_frequencia !== undefined) {
+      updateData.sync_frequencia = sync_frequencia;
+    }
+
+    if (sharepoint_url !== undefined) {
+      updateData.sharepoint_url = sharepoint_url?.trim() || null;
+    }
+
+    if (sharepoint_sheet !== undefined) {
+      updateData.sharepoint_sheet = sharepoint_sheet?.trim() || 'Camarotes';
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await camarotesRepo.updateConfig(updateData);
+    }
 
     if (Array.isArray(gatilhos)) {
       await camarotesRepo.upsertGatilhos(validarGatilhos(gatilhos));
@@ -287,9 +339,10 @@ async function enviarAlertas(req, res) {
     const preview = req.query.preview === '1' || req.query.preview === 'true';
     const gatilhoDias = req.query.gatilho_dias != null ? Number(req.query.gatilho_dias) : undefined;
     const unidadeId = req.query.unidade_id != null ? Number(req.query.unidade_id) : undefined;
+    const forcar = req.query.forcar === '1' || req.query.forcar === 'true';
     const resultado = await alertasService.processarAlertas({
       preview,
-      forcar: true,
+      forcar,
       gatilhoDias,
       unidadeId,
     });

@@ -28,7 +28,7 @@ async function validateParent(parentId, paginaId, selfId = null) {
 function parseBody(body) {
   const iconeRaw = body.icone?.trim() || null;
   if (!validarIconeEntrada(iconeRaw)) {
-    const err = new Error('Ícone inválido. Use lucide:nome ou brand:slug.');
+    const err = new Error('Ícone inválido. Use lucide:nome, brand:slug ou material:estilo:nome.');
     err.status = 400;
     throw err;
   }

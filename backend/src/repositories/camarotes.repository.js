@@ -64,6 +64,10 @@ function mapUnidade(row) {
     primeira_locacao: row.primeira_locacao,
     inicio_locacao: row.inicio_locacao,
     final_locacao: row.final_locacao,
+    dias_restantes:
+      row.dias_restantes != null && row.dias_restantes !== ''
+        ? Number(row.dias_restantes)
+        : diasRestantes(row.final_locacao),
     tempo_anos: row.tempo_anos,
     tempo_meses: row.tempo_meses,
     valor_total: row.valor_total != null ? Number(row.valor_total) : null,
@@ -138,30 +142,49 @@ async function getConfig() {
 
 async function updateConfig(data) {
   const pool = getPool();
-  const hasSharepoint = data.sharepoint_url !== undefined || data.sharepoint_sheet !== undefined;
-  const spFields = hasSharepoint ? ', sharepoint_url = ?, sharepoint_sheet = ?' : '';
-  const spParams = hasSharepoint
-    ? [data.sharepoint_url?.trim() || null, data.sharepoint_sheet?.trim() || 'Camarotes']
-    : [];
+  const sets = [];
+  const params = [];
+
+  if (data.emails_alerta !== undefined) {
+    sets.push('emails_alerta = ?');
+    params.push(JSON.stringify(data.emails_alerta || []));
+  }
+  if (data.dias_vence_breve !== undefined) {
+    sets.push('dias_vence_breve = ?');
+    params.push(data.dias_vence_breve);
+  }
+  if (data.cadencia !== undefined) {
+    sets.push('cadencia = ?');
+    params.push(data.cadencia === 'semanal' ? 'semanal' : 'diaria');
+  }
+  if (data.envio_ativo !== undefined) {
+    sets.push('envio_ativo = ?');
+    params.push(data.envio_ativo ? 1 : 0);
+  }
+  if (data.sync_automatica !== undefined) {
+    sets.push('sync_automatica = ?');
+    params.push(data.sync_automatica !== false ? 1 : 0);
+  }
+  if (data.sync_frequencia !== undefined) {
+    sets.push('sync_frequencia = ?');
+    params.push(normalizeSyncFrequencia(data.sync_frequencia));
+  }
+  if (data.sharepoint_url !== undefined) {
+    sets.push('sharepoint_url = ?');
+    params.push(data.sharepoint_url?.trim() || null);
+  }
+  if (data.sharepoint_sheet !== undefined) {
+    sets.push('sharepoint_sheet = ?');
+    params.push(data.sharepoint_sheet?.trim() || 'Camarotes');
+  }
+
+  if (sets.length === 0) {
+    return getConfig();
+  }
+
   await pool.execute(
-    `UPDATE camarotes_config SET
-      emails_alerta = ?,
-      dias_vence_breve = ?,
-      cadencia = ?,
-      envio_ativo = ?,
-      sync_automatica = ?,
-      sync_frequencia = ?
-      ${spFields}
-     WHERE id = 1`,
-    [
-      JSON.stringify(data.emails_alerta || []),
-      data.dias_vence_breve ?? 90,
-      data.cadencia === 'semanal' ? 'semanal' : 'diaria',
-      data.envio_ativo ? 1 : 0,
-      data.sync_automatica !== false ? 1 : 0,
-      normalizeSyncFrequencia(data.sync_frequencia),
-      ...spParams,
-    ]
+    `UPDATE camarotes_config SET ${sets.join(', ')} WHERE id = 1`,
+    params
   );
   return getConfig();
 }
@@ -181,16 +204,18 @@ async function replaceUnidadesByTipo(tipoUnidade, unidades) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    await conn.execute('DELETE FROM camarotes_unidades WHERE tipo_unidade = ?', [tipoUnidade]);
+
+    const cols = [
+      'tipo_unidade', 'andar', 'setor', 'numero', 'capacidade', 'cessionario',
+      'tipo_cessionario', 'primeira_locacao', 'inicio_locacao', 'final_locacao',
+      'tempo_anos', 'tempo_meses', 'valor_total', 'valor_cessao', 'valor_anual',
+      'entrada', 'valor_parcelado', 'valor_vagas', 'qtd_parcelas', 'vagas_vvip',
+      'credencial_staff', 'categorias_staff', 'pack30', 'status_contrato',
+    ];
+    const updateCols = cols.filter((c) => c !== 'tipo_unidade' && c !== 'numero');
+    const updateClause = updateCols.map((c) => `${c} = VALUES(${c})`).join(', ');
 
     if (unidades.length) {
-      const cols = [
-        'tipo_unidade', 'andar', 'setor', 'numero', 'capacidade', 'cessionario',
-        'tipo_cessionario', 'primeira_locacao', 'inicio_locacao', 'final_locacao',
-        'tempo_anos', 'tempo_meses', 'valor_total', 'valor_cessao', 'valor_anual',
-        'entrada', 'valor_parcelado', 'valor_vagas', 'qtd_parcelas', 'vagas_vvip',
-        'credencial_staff', 'categorias_staff', 'pack30', 'status_contrato',
-      ];
       const placeholders = unidades
         .map(() => `(${cols.map(() => '?').join(',')})`)
         .join(',');
@@ -224,9 +249,19 @@ async function replaceUnidadesByTipo(tipoUnidade, unidades) {
         );
       }
       await conn.execute(
-        `INSERT INTO camarotes_unidades (${cols.join(',')}) VALUES ${placeholders}`,
+        `INSERT INTO camarotes_unidades (${cols.join(',')}) VALUES ${placeholders}
+         ON DUPLICATE KEY UPDATE ${updateClause}`,
         params
       );
+
+      const numeros = unidades.map((u) => u.numero);
+      const placeholdersDel = numeros.map(() => '?').join(',');
+      await conn.execute(
+        `DELETE FROM camarotes_unidades WHERE tipo_unidade = ? AND numero NOT IN (${placeholdersDel})`,
+        [tipoUnidade, ...numeros]
+      );
+    } else {
+      await conn.execute('DELETE FROM camarotes_unidades WHERE tipo_unidade = ?', [tipoUnidade]);
     }
 
     await conn.commit();
@@ -266,7 +301,10 @@ async function listSyncLog(limit = 20) {
   return rows.map(mapSyncLog);
 }
 
-async function listUnidades({ tipo, setor, situacao, dias_max } = {}, diasVenceBreve = 90) {
+async function listUnidades(
+  { tipo, setor, situacao, dias_restantes_min, dias_restantes_max } = {},
+  diasVenceBreve = 90
+) {
   const pool = getPool();
   const conditions = [];
   const params = [diasVenceBreve];
@@ -279,11 +317,17 @@ async function listUnidades({ tipo, setor, situacao, dias_max } = {}, diasVenceB
     conditions.push('setor = ?');
     params.push(setor.trim());
   }
-  if (dias_max != null && Number.isFinite(Number(dias_max))) {
+  if (dias_restantes_min != null && Number.isFinite(Number(dias_restantes_min))) {
     conditions.push(OCUPADO);
-    conditions.push('final_locacao >= CURDATE()');
-    conditions.push('final_locacao <= DATE_ADD(CURDATE(), INTERVAL ? DAY)');
-    params.push(Number(dias_max));
+    conditions.push('final_locacao IS NOT NULL');
+    conditions.push('DATEDIFF(final_locacao, CURDATE()) >= ?');
+    params.push(Number(dias_restantes_min));
+  }
+  if (dias_restantes_max != null && Number.isFinite(Number(dias_restantes_max))) {
+    conditions.push(OCUPADO);
+    conditions.push('final_locacao IS NOT NULL');
+    conditions.push('DATEDIFF(final_locacao, CURDATE()) <= ?');
+    params.push(Number(dias_restantes_max));
   }
   if (situacao) {
     conditions.push(`${sqlSituacaoExpr('')} = ?`);
@@ -337,15 +381,30 @@ function resumoAlertas(unidades, tipo) {
     sem_data: 0,
   };
   for (const u of list) {
-    if (u.situacao === 'vencido') counts.vencidos += 1;
-    else if (u.situacao === 'vence_breve') counts.vence_breve += 1;
-    else if (u.situacao === 'vago') counts.vagos += 1;
-    else if (u.situacao === 'ativo') counts.ativos += 1;
-    if (!u.final_locacao && u.cessionario) counts.sem_data += 1;
+    if (u.situacao === 'vago') {
+      counts.vagos += 1;
+      continue;
+    }
+    if (!u.final_locacao) {
+      if (u.cessionario) counts.sem_data += 1;
+      else counts.ativos += 1;
+      continue;
+    }
 
     const dias = diasRestantes(u.final_locacao);
-    if (dias != null && dias >= 0 && dias <= DIAS_VENCIMENTO_URGENTE && u.situacao !== 'vago') {
+    if (dias == null) {
+      if (u.cessionario) counts.sem_data += 1;
+      continue;
+    }
+
+    if (dias <= 0) {
+      counts.vencidos += 1;
+    } else if (dias <= DIAS_VENCIMENTO_URGENTE) {
       counts.vence_30d += 1;
+    } else if (dias <= 90) {
+      counts.vence_breve += 1;
+    } else {
+      counts.ativos += 1;
     }
   }
   return counts;
@@ -441,7 +500,7 @@ async function fetchVencimentosEscalares(diasVenceBreve = 90) {
   const pool = getPool();
   const [rows] = await pool.execute(
     `SELECT
-       COALESCE(SUM(${sqlSituacaoExpr('')} = 'vencido'), 0) AS vencidos,
+       COALESCE(SUM(final_locacao <= CURDATE()), 0) AS vencidos,
        COALESCE(SUM(final_locacao >= DATE_ADD(CURDATE(), INTERVAL 12 MONTH)), 0) AS apos_12m,
        DATE_FORMAT(CURDATE(), '%Y-%m') AS ym_atual,
        DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS ref_hoje,
@@ -451,7 +510,7 @@ async function fetchVencimentosEscalares(diasVenceBreve = 90) {
      WHERE tipo_unidade = ?
        AND ${OCUPADO}
        AND final_locacao IS NOT NULL`,
-    [diasVenceBreve, diasVenceBreve, TIPO_CAMAROTE]
+    [diasVenceBreve, TIPO_CAMAROTE]
   );
   return rows[0] || {};
 }
@@ -718,30 +777,80 @@ async function updateAlertasSettings(data) {
   return getAlertasSettings();
 }
 
-async function listUnidadesPorDiasRestantes(dias) {
-  const pool = getPool();
-  const diasNum = Number(dias);
-  const dateCondition =
-    diasNum === 0
-      ? 'u.final_locacao <= CURDATE()'
-      : 'DATEDIFF(u.final_locacao, CURDATE()) = ?';
-  const params = diasNum === 0 ? [] : [diasNum];
-
-  const [rows] = await pool.execute(
-    `SELECT u.*,
-       (CASE
+const SQL_UNIDADE_SITUACAO = `(CASE
          WHEN TRIM(COALESCE(u.cessionario, '')) = '' THEN 'vago'
          WHEN u.final_locacao IS NULL THEN 'ativo'
          WHEN u.final_locacao < CURDATE() THEN 'vencido'
          WHEN u.final_locacao <= DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN 'vence_breve'
          ELSE 'ativo'
-       END) AS situacao
-     FROM camarotes_unidades u
-     WHERE u.tipo_unidade = 'camarote'
+       END) AS situacao`;
+
+const SQL_UNIDADE_BASE_WHERE = `u.tipo_unidade = 'camarote'
        AND TRIM(COALESCE(u.cessionario, '')) <> ''
-       AND u.final_locacao IS NOT NULL
-       AND ${dateCondition}`,
-    params
+       AND u.final_locacao IS NOT NULL`;
+
+const SQL_ENVIO_POR_NUMERO = `EXISTS (
+         SELECT 1 FROM camarotes_alertas_envio e
+         INNER JOIN camarotes_unidades ux ON ux.id = e.unidade_id
+         WHERE e.gatilho_dias = ?
+           AND e.final_locacao = u.final_locacao
+           AND ux.numero = u.numero
+       )`;
+
+/** Faixas exclusivas para listagem (sem duplicar linhas). */
+const SQL_CONTRATO_ELEGIVEL_GATILHO_LISTAGEM = `(
+         (g.dias = 90 AND DATEDIFF(u.final_locacao, CURDATE()) BETWEEN 31 AND 90)
+         OR (g.dias = 30 AND DATEDIFF(u.final_locacao, CURDATE()) BETWEEN 1 AND 30)
+         OR (g.dias = 0 AND DATEDIFF(u.final_locacao, CURDATE()) <= 0)
+       )`;
+
+/** Faixa exclusiva por gatilho — envio e preview (evita 90d + 30d no mesmo contrato). */
+function sqlFaixaDiasPorGatilho(gatilhoDias, alias = 'u') {
+  const diff = `DATEDIFF(${alias}.final_locacao, CURDATE())`;
+  const dias = Number(gatilhoDias);
+  if (dias === 90) return `${diff} BETWEEN 31 AND 90`;
+  if (dias === 30) return `${diff} BETWEEN 1 AND 30`;
+  if (dias === 0) return `${diff} <= 0`;
+  return `${diff} <= ${dias}`;
+}
+
+/** Filtro "Hoje / vencidos": vence hoje (0) + já vencidos (< 0). */
+const SQL_CONTRATO_GATILHO_ZERO_FILTRO = `(
+         g.dias = 0 AND DATEDIFF(u.final_locacao, CURDATE()) <= 0
+       )`;
+
+function mapSituacaoEnvio(row) {
+  if (row.envio_id != null) return 'notificado';
+  const diasRestantes = Number(row.dias_restantes);
+  const gatilhoDias = Number(row.gatilho_dias);
+  if (diasRestantes === 0) return 'no_prazo';
+  if (diasRestantes === gatilhoDias) return 'no_prazo';
+  return 'atrasado';
+}
+
+async function listUnidadesPorLimiteGatilho(dias) {
+  const pool = getPool();
+  const faixa = sqlFaixaDiasPorGatilho(dias);
+  const [rows] = await pool.execute(
+    `SELECT u.*, ${SQL_UNIDADE_SITUACAO}
+     FROM camarotes_unidades u
+     WHERE ${SQL_UNIDADE_BASE_WHERE}
+       AND ${faixa}`,
+    []
+  );
+  return rows.map((r) => mapUnidade(r));
+}
+
+async function listUnidadesPendentesGatilho(dias) {
+  const pool = getPool();
+  const faixa = sqlFaixaDiasPorGatilho(dias);
+  const [rows] = await pool.execute(
+    `SELECT u.*, ${SQL_UNIDADE_SITUACAO}
+     FROM camarotes_unidades u
+     WHERE ${SQL_UNIDADE_BASE_WHERE}
+       AND ${faixa}
+       AND NOT ${SQL_ENVIO_POR_NUMERO}`,
+    [dias]
   );
   return rows.map((r) => mapUnidade(r));
 }
@@ -758,8 +867,13 @@ async function findUnidadeById(id) {
 async function jaEnviouAlerta(unidadeId, gatilhoDias, finalLocacao) {
   const pool = getPool();
   const [rows] = await pool.execute(
-    `SELECT id FROM camarotes_alertas_envio
-     WHERE unidade_id = ? AND gatilho_dias = ? AND final_locacao = ?
+    `SELECT e.id FROM camarotes_alertas_envio e
+     INNER JOIN camarotes_unidades u_cur ON u_cur.id = ?
+     INNER JOIN camarotes_unidades ux ON ux.id = e.unidade_id
+     WHERE e.gatilho_dias = ?
+       AND e.final_locacao = ?
+       AND ux.numero = u_cur.numero
+       AND ux.final_locacao = u_cur.final_locacao
      LIMIT 1`,
     [unidadeId, gatilhoDias, finalLocacao]
   );
@@ -780,16 +894,20 @@ async function listContratosEmAlerta(filtros = {}) {
   const where = [];
   const params = [];
 
-  if (filtros.gatilho_dias != null && filtros.gatilho_dias !== '') {
+  const gatilhoFiltro =
+    filtros.gatilho_dias != null && filtros.gatilho_dias !== ''
+      ? Number(filtros.gatilho_dias)
+      : null;
+
+  if (gatilhoFiltro != null) {
     where.push('g.dias = ?');
-    params.push(Number(filtros.gatilho_dias));
+    params.push(gatilhoFiltro);
   }
 
-  if (filtros.notificado === true) {
-    where.push('e.id IS NOT NULL');
-  } else if (filtros.notificado === false) {
-    where.push('e.id IS NULL');
-  }
+  const joinElegibilidade =
+    gatilhoFiltro === 0
+      ? SQL_CONTRATO_GATILHO_ZERO_FILTRO
+      : SQL_CONTRATO_ELEGIVEL_GATILHO_LISTAGEM;
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
@@ -804,21 +922,28 @@ async function listContratosEmAlerta(filtros = {}) {
        u.andar,
        u.final_locacao,
        DATEDIFF(u.final_locacao, CURDATE()) AS dias_restantes,
-       e.id AS envio_id,
-       e.enviado_em AS notificado_em
+       (
+         SELECT e.id FROM camarotes_alertas_envio e
+         INNER JOIN camarotes_unidades ux ON ux.id = e.unidade_id
+         WHERE e.gatilho_dias = g.dias
+           AND e.final_locacao = u.final_locacao
+           AND ux.numero = u.numero
+         ORDER BY e.enviado_em DESC
+         LIMIT 1
+       ) AS envio_id,
+       (
+         SELECT e.enviado_em FROM camarotes_alertas_envio e
+         INNER JOIN camarotes_unidades ux ON ux.id = e.unidade_id
+         WHERE e.gatilho_dias = g.dias
+           AND e.final_locacao = u.final_locacao
+           AND ux.numero = u.numero
+         ORDER BY e.enviado_em DESC
+         LIMIT 1
+       ) AS notificado_em
      FROM camarotes_gatilhos g
      INNER JOIN camarotes_unidades u
-       ON u.tipo_unidade = 'camarote'
-       AND TRIM(COALESCE(u.cessionario, '')) <> ''
-       AND u.final_locacao IS NOT NULL
-       AND (
-         (g.dias = 0 AND u.final_locacao <= CURDATE())
-         OR (g.dias <> 0 AND DATEDIFF(u.final_locacao, CURDATE()) = g.dias)
-       )
-     LEFT JOIN camarotes_alertas_envio e
-       ON e.unidade_id = u.id
-       AND e.gatilho_dias = g.dias
-       AND e.final_locacao = u.final_locacao
+       ON ${SQL_UNIDADE_BASE_WHERE}
+       AND ${joinElegibilidade}
      ${whereSql}
      ORDER BY g.dias DESC, u.numero ASC`,
     params
@@ -836,16 +961,8 @@ async function listContratosEmAlerta(filtros = {}) {
     gatilho_ativo: !!r.gatilho_ativo,
     notificado: r.envio_id != null,
     notificado_em: r.notificado_em || null,
+    situacao_envio: mapSituacaoEnvio(r),
   }));
-}
-
-async function registrarEnvioAlerta(unidadeId, gatilhoDias, finalLocacao) {
-  const pool = getPool();
-  await pool.execute(
-    `INSERT IGNORE INTO camarotes_alertas_envio (unidade_id, gatilho_dias, final_locacao)
-     VALUES (?, ?, ?)`,
-    [unidadeId, gatilhoDias, finalLocacao]
-  );
 }
 
 function aggregateStatusEntrega(destinatarios) {
@@ -918,8 +1035,8 @@ async function listAlertasEnvioLog(limit = 50) {
        d.gatilho_dias,
        d.final_locacao,
        d.tentativa_em AS enviado_em,
-       u.numero,
-       u.cessionario,
+       COALESCE(u.numero, CONCAT('#', d.unidade_id)) AS numero,
+       COALESCE(u.cessionario, 'Unidade removida') AS cessionario,
        JSON_ARRAYAGG(
          JSON_OBJECT(
            'destinatario', d.destinatario,
@@ -930,16 +1047,18 @@ async function listAlertasEnvioLog(limit = 50) {
          )
        ) AS destinatarios_json
      FROM camarotes_alertas_destinos d
-     INNER JOIN camarotes_unidades u ON u.id = d.unidade_id
+     LEFT JOIN camarotes_unidades u ON u.id = d.unidade_id
      GROUP BY d.unidade_id, d.gatilho_dias, d.final_locacao, d.tentativa_em, u.numero, u.cessionario
      ORDER BY d.tentativa_em DESC
      LIMIT ${lim}`
   );
 
   const [legacyRows] = await pool.execute(
-    `SELECT e.id, e.gatilho_dias, e.final_locacao, e.enviado_em, u.numero, u.cessionario
+    `SELECT e.id, e.gatilho_dias, e.final_locacao, e.enviado_em,
+       COALESCE(u.numero, CONCAT('#', e.unidade_id)) AS numero,
+       COALESCE(u.cessionario, 'Unidade removida') AS cessionario
      FROM camarotes_alertas_envio e
-     INNER JOIN camarotes_unidades u ON u.id = e.unidade_id
+     LEFT JOIN camarotes_unidades u ON u.id = e.unidade_id
      WHERE NOT EXISTS (
        SELECT 1 FROM camarotes_alertas_destinos d
        WHERE d.unidade_id = e.unidade_id
@@ -1003,7 +1122,8 @@ module.exports = {
   upsertGatilhos,
   getAlertasSettings,
   updateAlertasSettings,
-  listUnidadesPorDiasRestantes,
+  listUnidadesPorLimiteGatilho,
+  listUnidadesPendentesGatilho,
   findUnidadeById,
   jaEnviouAlerta,
   registrarEnvioAlerta,

@@ -1,5 +1,10 @@
 <header class="main">
-  <div class="wrap navrow">
+  <div
+    class="wrap navrow"
+    #navRow
+    [class.navrow--compact-1]="!mobile() && navCompactLevel() >= 1"
+    [class.navrow--compact-2]="!mobile() && navCompactLevel() >= 2"
+  >
     <button
       class="menu-toggle"
       type="button"
@@ -16,7 +21,7 @@
       </svg>
     </button>
 
-    <nav class="menu" [class.aberto]="menuAberto()">
+    <nav class="menu" #navMenu [class.aberto]="menuAberto()">
       @for (item of menuItems(); track item.id) {
         <app-menu-node
           [item]="item"
@@ -54,10 +59,12 @@
           </a>
         }
       }
-      <div class="avatar-wrap">
+      <div class="avatar-wrap" #avatarWrap>
         <button
           class="avatar"
           type="button"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="avatarMenuAberto()"
           [title]="auth.usuario()?.nome_completo ?? auth.usuario()?.nome ?? 'Meu perfil'"
           (click)="toggleAvatarMenu()"
         >

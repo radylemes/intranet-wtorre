@@ -1,6 +1,6 @@
-import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   CategoriaDocumento,
@@ -153,9 +153,55 @@ export class DocumentosService {
     return this.http.put<Documento>(this.api(`/documentos/${id}`), formData);
   }
 
-  carregarThumbnail(url: string): Observable<Blob> {
-    const path = url.startsWith('/api/') ? url : this.api(url);
-    return this.http.get(path, { responseType: 'blob' });
+  carregarThumbnailPorId(id: number): Observable<Blob | null> {
+    return this.http
+      .get(this.api(`/documentos/${id}/thumb/stream`), {
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((res: HttpResponse<Blob>) => {
+          const body = res.body;
+          if (res.status !== 200 || !body?.size) return null;
+          const ct = (res.headers.get('Content-Type') || '').split(';')[0].trim();
+          if (ct.includes('application/json')) return null;
+          const type = ct.startsWith('image/') ? ct : 'image/jpeg';
+          return body.type ? body : new Blob([body], { type });
+        }),
+        catchError(() => of(null))
+      );
+  }
+
+  carregarThumbnail(url: string): Observable<Blob | null> {
+    const path = this.resolveThumbnailPath(url);
+    return this.http
+      .get(path, {
+        responseType: 'blob',
+        observe: 'response',
+      })
+      .pipe(
+        map((res: HttpResponse<Blob>) => {
+          const body = res.body;
+          if (res.status !== 200 || !body?.size) return null;
+          const ct = (res.headers.get('Content-Type') || '').split(';')[0].trim();
+          if (ct.includes('application/json')) return null;
+          const type = ct.startsWith('image/') ? ct : 'image/jpeg';
+          return body.type ? body : new Blob([body], { type });
+        }),
+        catchError(() => of(null))
+      );
+  }
+
+  private resolveThumbnailPath(url: string): string {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      try {
+        return new URL(url).pathname;
+      } catch {
+        return url;
+      }
+    }
+    if (url.startsWith('/api/')) return url;
+    return this.api(url.startsWith('/') ? url : `/${url}`);
   }
 
   removerDocumento(id: number): Observable<{ ok: boolean }> {

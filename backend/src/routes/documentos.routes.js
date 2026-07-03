@@ -37,6 +37,7 @@ router.delete('/setores/admin/:id', requireJwt, requireModulo('documentos'), set
 
 router.get('/', requireJwt, controller.list);
 router.get('/thumbs/:filename', requireJwt, controller.serveThumb);
+router.get('/:id/thumb/stream', requireJwt, controller.thumbStream);
 router.get('/:id/view', requireJwt, controller.view);
 router.get('/:id/download', requireJwt, controller.download);
 router.post(

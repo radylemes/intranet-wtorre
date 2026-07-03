@@ -51,13 +51,19 @@ export class CamarotesService {
     tipo?: TipoUnidade;
     setor?: string;
     situacao?: SituacaoUnidade;
-    dias_max?: number;
+    dias_restantes_min?: number;
+    dias_restantes_max?: number;
   }): Observable<CamaroteUnidade[]> {
     let params = new HttpParams();
     if (filtros?.tipo) params = params.set('tipo', filtros.tipo);
     if (filtros?.setor) params = params.set('setor', filtros.setor);
     if (filtros?.situacao) params = params.set('situacao', filtros.situacao);
-    if (filtros?.dias_max != null) params = params.set('dias_max', String(filtros.dias_max));
+    if (filtros?.dias_restantes_min != null) {
+      params = params.set('dias_restantes_min', String(filtros.dias_restantes_min));
+    }
+    if (filtros?.dias_restantes_max != null) {
+      params = params.set('dias_restantes_max', String(filtros.dias_restantes_max));
+    }
     return this.http.get<CamaroteUnidade[]>(this.api('/camarotes/unidades'), { params });
   }
 
@@ -114,9 +120,14 @@ export class CamarotesService {
     );
   }
 
-  enviarAlertas(preview = false, opts?: { gatilho_dias?: number; unidade_id?: number }): Observable<EnviarAlertasResposta> {
+  enviarAlertas(
+    preview = false,
+    opts?: { gatilho_dias?: number; unidade_id?: number },
+    forcar = false
+  ): Observable<EnviarAlertasResposta> {
     let params = new HttpParams();
     if (preview) params = params.set('preview', '1');
+    if (forcar) params = params.set('forcar', 'true');
     if (opts?.gatilho_dias != null) params = params.set('gatilho_dias', String(opts.gatilho_dias));
     if (opts?.unidade_id != null) params = params.set('unidade_id', String(opts.unidade_id));
     return this.http.post<EnviarAlertasResposta>(this.api('/camarotes/enviar-alertas'), {}, { params });

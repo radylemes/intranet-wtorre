@@ -8,9 +8,9 @@
     (click)="abrirKpi('vencido')"
     (keydown)="onKpiKeydown($event, 'vencido')"
   >
-    <div class="label">Contratos vencidos</div>
+    <div class="label">Vence hoje / vencidos</div>
     <div class="value num">{{ dashboard.camarotes.alertas.vencidos }}</div>
-    <div class="sub">exigem renovação imediata</div>
+    <div class="sub">renovação imediata</div>
   </div>
   <div
     class="card kpi is-orange"
@@ -32,9 +32,9 @@
     (click)="abrirKpi('vence_breve')"
     (keydown)="onKpiKeydown($event, 'vence_breve')"
   >
-    <div class="label">Vencem em breve</div>
+    <div class="label">Vencem em 90 dias</div>
     <div class="value num">{{ dashboard.camarotes.alertas.vence_breve }}</div>
-    <div class="sub">nos próximos {{ dashboard.dias_vence_breve }} dias</div>
+    <div class="sub">entre 31 e 90 dias</div>
   </div>
   <div
     class="card kpi is-green"

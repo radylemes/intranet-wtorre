@@ -5,15 +5,25 @@ import { DocCatIconeService } from './doc-cat-icone.service';
   selector: 'app-doc-cat-icone',
   standalone: true,
   template: `
-    <svg
-      [attr.width]="size()"
-      [attr.height]="size()"
-      [style.color]="cor()"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <use [attr.href]="href()" [attr.xlink:href]="href()" />
-    </svg>
+    @if (resolvido().segmento === 'custom') {
+      <img
+        [src]="customUrl()"
+        [width]="size()"
+        [height]="size()"
+        alt=""
+        aria-hidden="true"
+      />
+    } @else {
+      <svg
+        [attr.width]="size()"
+        [attr.height]="size()"
+        [style.color]="cor()"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <use [attr.href]="href()" [attr.xlink:href]="href()" />
+      </svg>
+    }
   `,
   styles: `
     :host {
@@ -23,8 +33,10 @@ import { DocCatIconeService } from './doc-cat-icone.service';
       flex-shrink: 0;
       color: var(--ink-soft, #48536a);
     }
-    svg {
+    svg,
+    img {
       display: block;
+      object-fit: contain;
     }
   `,
 })
@@ -39,13 +51,12 @@ export class DocCatIconeComponent {
   readonly resolvido = computed(() => this.iconeService.resolve(this.nome()));
 
   readonly href = computed(() => {
-    const r = this.resolvido();
-    const sprite =
-      r.segmento === 'brand'
-        ? this.iconeService.brandSpriteUrl
-        : this.iconeService.lucideSpriteUrl;
-    return `${sprite}#${r.id}`;
+    const sprite = this.iconeService.spriteUrlFor(this.nome());
+    const id = this.iconeService.symbolIdFor(this.nome());
+    return `${sprite}#${id}`;
   });
+
+  readonly customUrl = computed(() => this.iconeService.customIconUrl(this.nome()));
 
   readonly cor = computed(() => {
     const r = this.resolvido();

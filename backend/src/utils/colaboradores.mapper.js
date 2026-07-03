@@ -16,7 +16,12 @@ function resolveEmpresaFromEmail(email, dominioMap) {
   return entry ? entry.empresa : null;
 }
 
-function isPersonUser(user) {
+const {
+  isNonPersonMailboxPurpose,
+  isPersonMailboxPurpose,
+} = require('./colaboradores.mailbox-purpose');
+
+function isPersonUser(user, mailboxPurpose = undefined) {
   if (!user || user.accountEnabled !== true) return false;
   if (user.userType === 'Guest') return false;
 
@@ -29,6 +34,16 @@ function isPersonUser(user) {
 
   const dept = user.department && String(user.department).trim();
   if (!dept) return false;
+
+  if (mailboxPurpose !== undefined) {
+    if (isNonPersonMailboxPurpose(mailboxPurpose)) return false;
+    if (isPersonMailboxPurpose(mailboxPurpose)) return true;
+  }
+
+  const given = user.givenName && String(user.givenName).trim();
+  const surname = user.surname && String(user.surname).trim();
+  const employeeId = user.employeeId && String(user.employeeId).trim();
+  if (!given && !surname && !employeeId) return false;
 
   return true;
 }
@@ -98,12 +113,13 @@ function mapUserToColaborador(user, tenant, dominioMap) {
   };
 }
 
-function filterAndMapUsers(users, tenant, dominioMap) {
+function filterAndMapUsers(users, tenant, dominioMap, { mailboxPurposes } = {}) {
   let ignorados = 0;
   const mapped = [];
 
   for (const user of users) {
-    if (!isPersonUser(user)) {
+    const mailboxPurpose = mailboxPurposes?.get(user.id);
+    if (!isPersonUser(user, mailboxPurpose)) {
       ignorados += 1;
       continue;
     }

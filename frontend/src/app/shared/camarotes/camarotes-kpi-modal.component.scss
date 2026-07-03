@@ -129,9 +129,32 @@ tbody tr:last-child td {
 
 .kpi-modal-foot {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 14px 22px 18px;
   border-top: 1px solid var(--line-solid, #e2e6ee);
+}
+
+.btn-exportar {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--line-solid, #e2e6ee);
+  background: var(--panel, #fff);
+  color: var(--ink, #10151f);
+  cursor: pointer;
+}
+
+.btn-exportar:hover:not(:disabled) {
+  border-color: #cdd2e0;
+}
+
+.btn-exportar:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .btn-fechar {

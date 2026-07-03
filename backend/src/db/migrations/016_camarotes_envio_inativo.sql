@@ -1,1 +1,2 @@
-UPDATE camarotes_config SET envio_ativo = 0 WHERE id = 1;
+-- One-time: envio_ativo foi definido como 0 na implantação inicial desta feature.
+-- Não reexecutar UPDATE aqui — o migrate roda todos os .sql a cada deploy e apagaria a configuração salva pelo usuário.

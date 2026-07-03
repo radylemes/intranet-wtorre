@@ -25,6 +25,7 @@ export interface CamaroteUnidade {
   primeira_locacao: string | null;
   inicio_locacao: string | null;
   final_locacao: string | null;
+  dias_restantes?: number | null;
   valor_anual: number | null;
   valor_total: number | null;
   pack30: boolean;
@@ -190,6 +191,8 @@ export interface CamarotesAlertasEnvioLog {
   destinatarios: CamarotesAlertasEnvioDestinatario[];
 }
 
+export type CamarotesSituacaoEnvio = 'notificado' | 'no_prazo' | 'atrasado';
+
 export interface CamarotesAlertaContrato {
   unidade_id: number;
   numero: string;
@@ -202,11 +205,28 @@ export interface CamarotesAlertaContrato {
   gatilho_ativo: boolean;
   notificado: boolean;
   notificado_em: string | null;
+  situacao_envio: CamarotesSituacaoEnvio;
+}
+
+export interface CamarotesAlertasResumoGatilho {
+  total: number;
+  pendentes: number;
+}
+
+export interface CamarotesAlertasResumo {
+  total: number;
+  pendentes: number;
+  g90: CamarotesAlertasResumoGatilho;
+  g30: CamarotesAlertasResumoGatilho;
+  g0: CamarotesAlertasResumoGatilho;
+  vence_hoje: number;
+  vencidos: number;
 }
 
 export interface CamarotesAlertasContratosResposta {
   total: number;
   pendentes: number;
+  resumo: CamarotesAlertasResumo;
   itens: CamarotesAlertaContrato[];
 }
 

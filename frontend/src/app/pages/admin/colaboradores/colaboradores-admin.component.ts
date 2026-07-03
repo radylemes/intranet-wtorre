@@ -6,6 +6,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 import { AdminDropzoneComponent } from '../../../shared/admin/admin-dropzone/admin-dropzone.component';
+import { AniversarioMaskDirective } from '../../../shared/directives/aniversario-mask.directive';
 import { AlertasService } from '../../../services/alertas.service';
 import { ColaboradoresService } from '../../../services/colaboradores.service';
 import {
@@ -43,7 +44,7 @@ const IMPORT_CAMPO_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-colaboradores-admin',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, AdminModalComponent, AdminDropzoneComponent],
+  imports: [FormsModule, ReactiveFormsModule, AdminModalComponent, AdminDropzoneComponent, AniversarioMaskDirective],
   templateUrl: './colaboradores-admin.component.html',
   styleUrl: './colaboradores-admin.component.scss',
 })
