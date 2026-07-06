@@ -149,8 +149,11 @@ export class DocumentosService {
     return this.http.put<Documento>(this.api(`/documentos/${id}`), payload);
   }
 
-  atualizarDocumentoFormData(id: number, formData: FormData): Observable<Documento> {
-    return this.http.put<Documento>(this.api(`/documentos/${id}`), formData);
+  atualizarDocumentoFormData(id: number, formData: FormData): Observable<HttpEvent<Documento>> {
+    return this.http.put<Documento>(this.api(`/documentos/${id}`), formData, {
+      reportProgress: true,
+      observe: 'events',
+    });
   }
 
   carregarThumbnailPorId(id: number): Observable<Blob | null> {

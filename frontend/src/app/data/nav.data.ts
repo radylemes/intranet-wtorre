@@ -20,6 +20,7 @@ export const NAV_LINKS: NavItem[] = [
   { label: 'Treinamentos', href: '/documentos/wtorre?cat=treinamentos' },
   { label: 'Assinaturas de E-mail', href: '/assinaturas' },
   { label: 'Plaquinhas Camarote', href: '/plaquinhas-camarote' },
+  { label: 'Ferramentas de PDF', href: '/ferramentas/pdf' },
   { label: 'TI' },
   { label: 'BI' },
   { label: 'Oportunidades' },

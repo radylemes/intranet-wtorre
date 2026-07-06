@@ -165,7 +165,7 @@ function buildAcsSender(cfg) {
         message.attachments = acsAttachments;
       }
 
-      await acsRateLimit();
+      await acsRateLimit(mailOpts.onAcsWait);
 
       const poller = await client.beginSend(message);
       const result = await poller.pollUntilDone();

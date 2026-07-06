@@ -171,7 +171,21 @@ async function update(id, data) {
   const pool = getPool();
   const fields = [];
   const values = [];
-  const allowed = ['categoria_id', 'titulo', 'descricao', 'thumbnail_path', 'setor_id', 'ativo', 'destaque', 'destaque_ordem'];
+  const allowed = [
+    'categoria_id',
+    'titulo',
+    'descricao',
+    'thumbnail_path',
+    'nome_original',
+    'arquivo_path',
+    'mime',
+    'extensao',
+    'tamanho_bytes',
+    'setor_id',
+    'ativo',
+    'destaque',
+    'destaque_ordem',
+  ];
 
   for (const key of allowed) {
     if (data[key] !== undefined) {

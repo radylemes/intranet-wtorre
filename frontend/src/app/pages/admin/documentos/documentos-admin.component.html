@@ -267,44 +267,46 @@
             }
 
             @if (documentos().length) {
-              @for (doc of documentos(); track doc.id) {
-                <div class="doc">
-                  <span class="ext" [class]="fileIconClass(doc.extensao)">
-                    {{ doc.extensao.toUpperCase().slice(0, 3) }}
-                  </span>
-                  <div class="dmain">
-                    <div class="dtitle">
-                      {{ doc.titulo }}
-                      @if (doc.destaque) {
-                        <span class="destaque">DESTAQUE</span>
-                      }
+              <div class="doc-list">
+                @for (doc of documentos(); track doc.id) {
+                  <div class="doc">
+                    <span class="ext" [class]="fileIconClass(doc.extensao)">
+                      {{ doc.extensao.toUpperCase().slice(0, 3) }}
+                    </span>
+                    <div class="dmain">
+                      <div class="dtitle">
+                        {{ doc.titulo }}
+                        @if (doc.destaque) {
+                          <span class="destaque">DESTAQUE</span>
+                        }
+                      </div>
+                      <div class="dchips">
+                        @for (chip of entidadeChips(doc); track chip.nome) {
+                          <span
+                            class="echip"
+                            [style.background]="chip.bg"
+                            [style.color]="chip.cor"
+                          >{{ chip.nome }}</span>
+                        }
+                      </div>
+                      <div class="dmeta">{{ formatarMetaDoc(doc) }}</div>
                     </div>
-                    <div class="dchips">
-                      @for (chip of entidadeChips(doc); track chip.nome) {
-                        <span
-                          class="echip"
-                          [style.background]="chip.bg"
-                          [style.color]="chip.cor"
-                        >{{ chip.nome }}</span>
-                      }
+                    <div class="dacts">
+                      <button type="button" class="iact txt" (click)="editarDocumento(doc)">Editar</button>
+                      <button type="button" class="iact del" title="Remover" (click)="excluirDocumento(doc)">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M6 6l12 12M18 6L6 18"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </button>
                     </div>
-                    <div class="dmeta">{{ formatarMetaDoc(doc) }}</div>
                   </div>
-                  <div class="dacts">
-                    <button type="button" class="iact txt" (click)="editarDocumento(doc)">Editar</button>
-                    <button type="button" class="iact del" title="Remover" (click)="excluirDocumento(doc)">
-                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M6 6l12 12M18 6L6 18"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              }
+                }
+              </div>
             }
           } @else {
             <p class="empty detail-empty">Selecione uma categoria para ver e enviar documentos.</p>
@@ -657,6 +659,59 @@
             }
           </div>
         </div>
+
+        @if (editandoDocId()) {
+          <div class="field arquivo-field">
+            <label>Arquivo</label>
+            @if (selectedFile) {
+              <p class="arquivo-meta hint">
+                Novo: {{ selectedFile.name }} · {{ formatarTamanho(selectedFile.size) }}
+              </p>
+              <div class="thumb-actions-col">
+                <label class="btn-soft" for="doc-arquivo-substituto">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12L8 8m4-4l4 4"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Trocar arquivo
+                </label>
+                <button type="button" class="link-danger" (click)="limparArquivoSubstituto()">
+                  Manter arquivo atual
+                </button>
+              </div>
+            } @else if (editandoDocMeta) {
+              <p class="arquivo-meta hint">
+                Atual: {{ editandoDocMeta.nome }} · {{ formatarTamanho(editandoDocMeta.tamanho) }}
+              </p>
+              <div class="thumb-actions-col">
+                <label class="btn-soft" for="doc-arquivo-substituto">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0-12L8 8m4-4l4 4"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  Trocar arquivo
+                </label>
+              </div>
+            }
+            <input
+              id="doc-arquivo-substituto"
+              type="file"
+              class="sr-only"
+              [accept]="uploadAccept"
+              (change)="onArquivoSubstitutoSelected($event)"
+            />
+          </div>
+        }
 
         <p class="pv-places-h">Onde aparece</p>
         @if (entEditor && entEditor.countAtivas() > 0) {

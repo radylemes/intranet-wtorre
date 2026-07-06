@@ -562,24 +562,40 @@ export class DocumentosAdminComponent implements OnInit {
   }
 
   onFileSelected(file: File): void {
+    if (!this.validarArquivoSelecionado(file)) return;
     this.selectedFile = file;
-    this.erro.set('');
-    const ext = file.name.split('.').pop()?.toLowerCase() || '';
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      this.erro.set('Tipo de arquivo não permitido.');
-      this.selectedFile = null;
-      return;
-    }
-    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
-      this.erro.set(`Arquivo excede o limite de ${MAX_UPLOAD_MB} MB.`);
-      this.selectedFile = null;
-      return;
-    }
     if (!this.docForm.controls.titulo.value) {
       const baseName = file.name.replace(/\.[^.]+$/, '');
       this.docForm.patchValue({ titulo: baseName });
     }
     this.abrirModalDoc(false);
+  }
+
+  onArquivoSubstitutoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!this.validarArquivoSelecionado(file)) return;
+    this.selectedFile = file;
+  }
+
+  limparArquivoSubstituto(): void {
+    this.selectedFile = null;
+  }
+
+  private validarArquivoSelecionado(file: File): boolean {
+    this.erro.set('');
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      this.erro.set('Tipo de arquivo não permitido.');
+      return false;
+    }
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      this.erro.set(`Arquivo excede o limite de ${MAX_UPLOAD_MB} MB.`);
+      return false;
+    }
+    return true;
   }
 
   abrirModalDoc(reset = true): void {
@@ -715,6 +731,7 @@ export class DocumentosAdminComponent implements OnInit {
     this.thumbCarregando.set(false);
     this.editandoDocMeta = null;
     this.uploadProgress.set(0);
+    this.uploadando.set(false);
   }
 
   visibilidadesIniciais(): VisibilidadeEntidade[] {
@@ -783,31 +800,48 @@ export class DocumentosAdminComponent implements OnInit {
       this.erro.set('');
       const raw = this.docForm.getRawValue();
 
-      if (this.selectedThumbFile || this.removerThumb()) {
+      if (this.selectedFile || this.selectedThumbFile || this.removerThumb()) {
         const formData = new FormData();
         formData.append('titulo', raw.titulo);
         formData.append('descricao', raw.descricao || '');
         formData.append('setor_id', String(raw.setor_id));
         formData.append('destaque', raw.destaque ? 'true' : 'false');
         formData.append('visibilidades', JSON.stringify(vis));
+        if (this.selectedFile) {
+          formData.append('arquivo', this.selectedFile);
+        }
         if (this.selectedThumbFile) {
           formData.append('thumb', this.selectedThumbFile);
         }
         if (this.removerThumb()) {
           formData.append('remover_thumb', 'true');
         }
+
+        if (this.selectedFile) {
+          this.uploadando.set(true);
+          this.uploadProgress.set(0);
+        }
+
         this.documentosService.atualizarDocumentoFormData(editId, formData).subscribe({
-          next: () => {
-            this.mensagem.set('Documento atualizado.');
-            this.salvando.set(false);
-            this.modalDocAberto.set(false);
-            this.cancelarDocumento();
-            const cat = this.categoriaSelecionada();
-            if (cat) this.carregarDocumentos(cat);
+          next: (event) => {
+            if (event.type === HttpEventType.UploadProgress && event.total) {
+              this.uploadProgress.set(Math.round((100 * event.loaded) / event.total));
+            } else if (event.type === HttpEventType.Response) {
+              this.mensagem.set('Documento atualizado.');
+              this.salvando.set(false);
+              this.uploadando.set(false);
+              this.uploadProgress.set(0);
+              this.modalDocAberto.set(false);
+              this.cancelarDocumento();
+              const cat = this.categoriaSelecionada();
+              if (cat) this.carregarDocumentos(cat);
+            }
           },
           error: (err: HttpErrorResponse) => {
             this.erro.set(err.error?.mensagem || 'Erro ao atualizar documento.');
             this.salvando.set(false);
+            this.uploadando.set(false);
+            this.uploadProgress.set(0);
           },
         });
         return;
@@ -940,26 +974,26 @@ export class DocumentosAdminComponent implements OnInit {
   }
 
   labelSalvarDoc(): string {
-    if (this.editandoDocId()) return 'Salvar alterações';
     if (this.uploadando()) return 'Enviando...';
+    if (this.editandoDocId()) return 'Salvar alterações';
     return 'Enviar documento';
   }
 
   extensaoModalDoc(): string | null {
-    if (this.editandoDocMeta) return this.editandoDocMeta.extensao;
     if (this.selectedFile) {
       const ext = this.selectedFile.name.split('.').pop()?.toUpperCase();
       return ext || 'ARQ';
     }
+    if (this.editandoDocMeta) return this.editandoDocMeta.extensao;
     return null;
   }
 
   metaArquivoModalDoc(): string {
-    if (this.editandoDocMeta) {
-      return `${this.editandoDocMeta.nome} · ${this.formatarTamanho(this.editandoDocMeta.tamanho)}`;
-    }
     if (this.selectedFile) {
       return `${this.selectedFile.name} · ${this.formatarTamanho(this.selectedFile.size)}`;
+    }
+    if (this.editandoDocMeta) {
+      return `${this.editandoDocMeta.nome} · ${this.formatarTamanho(this.editandoDocMeta.tamanho)}`;
     }
     return '';
   }

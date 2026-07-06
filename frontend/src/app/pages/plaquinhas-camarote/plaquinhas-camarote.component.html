@@ -291,12 +291,17 @@
             <section
               class="card plaq-card"
               [attr.data-target]="$index + 1"
+              [class.card-primary]="isPrimaryCard($index)"
+              [class.card-locked]="isCardLocked($index)"
               (mouseenter)="setHighlightedCell($index)"
               (mouseleave)="setHighlightedCell(null)"
             >
               <div class="head">
                 <span class="idx">{{ $index + 1 }}</span>
                 <span class="name">{{ label }}</span>
+                @if (isPrimaryCard($index)) {
+                  <span class="badge-primary">Principal</span>
+                }
                 <span class="size">{{ placaSizeLabel($index) }}</span>
               </div>
 
@@ -328,6 +333,10 @@
                   Arte carregada
                 </div>
 
+                @if (isCardLocked($index)) {
+                  <p class="sync-hint">Vinculada à Plaquinha 1</p>
+                }
+
                 <div class="row row-scale">
                   <span class="k">Tamanho</span>
                   <input
@@ -335,6 +344,7 @@
                     min="10"
                     max="200"
                     step="1"
+                    [disabled]="isCardLocked($index)"
                     [ngModel]="state().scales[$index]"
                     (ngModelChange)="setScale($index, $event)"
                   />
@@ -344,6 +354,7 @@
                     min="10"
                     max="200"
                     step="1"
+                    [disabled]="isCardLocked($index)"
                     [ngModel]="state().scales[$index]"
                     (ngModelChange)="setScale($index, $event)"
                   />
@@ -351,7 +362,12 @@
 
                 <div class="row">
                   <span class="k">Rotação</span>
-                  <button type="button" class="pill-select" (click)="rotateCell($index)">
+                  <button
+                    type="button"
+                    class="pill-select"
+                    [disabled]="isCardLocked($index)"
+                    (click)="rotateCell($index)"
+                  >
                     ↻ Girar
                   </button>
                   <span class="rot-val">{{ state().rotations[$index] }}°</span>
@@ -359,7 +375,12 @@
 
                 <div class="row">
                   <span class="k">Posição</span>
-                  <button type="button" class="pill-select" (click)="centerCell($index)">
+                  <button
+                    type="button"
+                    class="pill-select"
+                    [disabled]="isCardLocked($index)"
+                    (click)="centerCell($index)"
+                  >
                     ⌖ Central.
                   </button>
                 </div>
@@ -371,10 +392,16 @@
                   <input
                     type="color"
                     class="swatch-input"
+                    [disabled]="isCardLocked($index)"
                     [value]="state().bgColors[$index]"
                     (input)="setBgColor($index, $any($event.target).value)"
                   />
-                  <button type="button" class="pill-select" (click)="setBgWhite($index)">
+                  <button
+                    type="button"
+                    class="pill-select"
+                    [disabled]="isCardLocked($index)"
+                    (click)="setBgWhite($index)"
+                  >
                     Branco
                   </button>
                 </div>
@@ -386,6 +413,7 @@
                   <button
                     type="button"
                     [class.on]="state().logoModes[$index] === 'cover'"
+                    [disabled]="isCardLocked($index)"
                     (click)="setLogoMode($index, 'cover')"
                   >
                     Preencher
@@ -393,6 +421,7 @@
                   <button
                     type="button"
                     [class.on]="state().logoModes[$index] === 'contain'"
+                    [disabled]="isCardLocked($index)"
                     (click)="setLogoMode($index, 'contain')"
                   >
                     Centralizar

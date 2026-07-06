@@ -46,6 +46,8 @@ interface ConverterState {
   fileName: string | null;
 }
 
+const PRIMARY_CELL_INDEX = 0;
+
 @Component({
   selector: 'app-plaquinhas-camarote',
   standalone: true,
@@ -152,11 +154,34 @@ export class PlaquinhasCamaroteComponent implements AfterViewInit, OnDestroy {
     this.refreshPreview();
   }
 
+  isCardLocked(index: number): boolean {
+    return this.state().syncAll && index !== PRIMARY_CELL_INDEX;
+  }
+
+  isPrimaryCard(index: number): boolean {
+    return this.state().syncAll && index === PRIMARY_CELL_INDEX;
+  }
+
   setSyncAll(checked: boolean): void {
-    this.state.update((s) => ({ ...s, syncAll: checked }));
+    this.state.update((s) => {
+      if (!checked) return { ...s, syncAll: false };
+
+      const primaryOffset = { ...s.offsets[PRIMARY_CELL_INDEX] };
+      return {
+        ...s,
+        syncAll: true,
+        scales: s.scales.map(() => s.scales[PRIMARY_CELL_INDEX]),
+        bgColors: s.bgColors.map(() => s.bgColors[PRIMARY_CELL_INDEX]),
+        logoModes: s.logoModes.map(() => s.logoModes[PRIMARY_CELL_INDEX]),
+        offsets: s.offsets.map(() => ({ ...primaryOffset })),
+      };
+    });
+    this.refreshPreview();
   }
 
   setScale(index: number, value: number): void {
+    if (this.isCardLocked(index)) return;
+
     const v = Math.min(200, Math.max(10, value));
     this.state.update((s) => {
       const scales = [...s.scales];
@@ -171,26 +196,36 @@ export class PlaquinhasCamaroteComponent implements AfterViewInit, OnDestroy {
   }
 
   rotateCell(index: number): void {
+    if (this.isCardLocked(index)) return;
+
     this.state.update((s) => {
-      const rotations = [...s.rotations];
-      rotations[index] = (rotations[index] + 90) % 360;
+      const rotations = s.syncAll
+        ? s.rotations.map((r) => (r + 90) % 360)
+        : s.rotations.map((r, i) => (i === index ? (r + 90) % 360 : r));
       return { ...s, rotations };
     });
     this.refreshPreview();
   }
 
   centerCell(index: number): void {
-    this.state.update((s) => {
-      const offsets = s.offsets.map((o, i) => (i === index ? { x: 0, y: 0 } : o));
-      return { ...s, offsets };
-    });
+    if (this.isCardLocked(index)) return;
+
+    this.state.update((s) => ({
+      ...s,
+      offsets: s.syncAll
+        ? s.offsets.map(() => ({ x: 0, y: 0 }))
+        : s.offsets.map((o, i) => (i === index ? { x: 0, y: 0 } : o)),
+    }));
     this.refreshPreview();
   }
 
   setBgColor(index: number, color: string): void {
+    if (this.isCardLocked(index)) return;
+
     this.state.update((s) => {
-      const bgColors = [...s.bgColors];
-      bgColors[index] = color;
+      const bgColors = s.syncAll
+        ? s.bgColors.map(() => color)
+        : s.bgColors.map((c, i) => (i === index ? color : c));
       return { ...s, bgColors };
     });
     this.refreshPreview();
@@ -201,9 +236,12 @@ export class PlaquinhasCamaroteComponent implements AfterViewInit, OnDestroy {
   }
 
   setLogoMode(index: number, mode: LogoFitMode): void {
+    if (this.isCardLocked(index)) return;
+
     this.state.update((s) => {
-      const logoModes = [...s.logoModes];
-      logoModes[index] = mode;
+      const logoModes = s.syncAll
+        ? s.logoModes.map(() => mode)
+        : s.logoModes.map((m, i) => (i === index ? mode : m));
       return { ...s, logoModes };
     });
     this.refreshPreview();
@@ -434,6 +472,7 @@ export class PlaquinhasCamaroteComponent implements AfterViewInit, OnDestroy {
     event.preventDefault();
     const state = this.state();
     if (!getPlaquinhaSrc(state, index)) return;
+    if (state.syncAll && index !== PRIMARY_CELL_INDEX) return;
 
     const point = 'touches' in event ? event.touches[0] : event;
     this.activeDrag = {

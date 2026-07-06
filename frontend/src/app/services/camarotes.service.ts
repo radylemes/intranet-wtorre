@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -13,6 +13,8 @@ import {
   CamarotesVisualizador,
   EnviarAlertasResposta,
   EnviarResumoResposta,
+  EnvioAlertaJobResposta,
+  EnvioAlertaStatusResposta,
   GatilhoPreviewResposta,
   SituacaoUnidade,
   SyncResumo,
@@ -125,12 +127,39 @@ export class CamarotesService {
     opts?: { gatilho_dias?: number; unidade_id?: number },
     forcar = false
   ): Observable<EnviarAlertasResposta> {
+    let params = this.enviarAlertasParams(preview, opts, forcar);
+    return this.http.post<EnviarAlertasResposta>(this.api('/camarotes/enviar-alertas'), {}, { params });
+  }
+
+  enviarAlertasAsync(
+    opts?: { gatilho_dias?: number; unidade_id?: number },
+    forcar = false
+  ): Observable<HttpResponse<EnvioAlertaJobResposta>> {
+    const params = this.enviarAlertasParams(false, opts, forcar);
+    return this.http.post<EnvioAlertaJobResposta>(
+      this.api('/camarotes/enviar-alertas'),
+      {},
+      { params, observe: 'response' }
+    );
+  }
+
+  statusEnvioAlertas(jobKey: string): Observable<EnvioAlertaStatusResposta> {
+    return this.http.get<EnvioAlertaStatusResposta>(this.api('/camarotes/enviar-alertas/status'), {
+      params: { job_key: jobKey },
+    });
+  }
+
+  private enviarAlertasParams(
+    preview: boolean,
+    opts?: { gatilho_dias?: number; unidade_id?: number },
+    forcar = false
+  ): HttpParams {
     let params = new HttpParams();
     if (preview) params = params.set('preview', '1');
     if (forcar) params = params.set('forcar', 'true');
     if (opts?.gatilho_dias != null) params = params.set('gatilho_dias', String(opts.gatilho_dias));
     if (opts?.unidade_id != null) params = params.set('unidade_id', String(opts.unidade_id));
-    return this.http.post<EnviarAlertasResposta>(this.api('/camarotes/enviar-alertas'), {}, { params });
+    return params;
   }
 
   /** @deprecated Use enviarAlertas() */

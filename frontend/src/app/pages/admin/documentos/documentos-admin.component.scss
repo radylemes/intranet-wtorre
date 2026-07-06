@@ -348,6 +348,12 @@
   margin-top: 1px;
 }
 
+.doc-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .doc {
   display: flex;
   align-items: center;
@@ -355,7 +361,6 @@
   padding: 11px 12px;
   border: 1.5px solid var(--line, #e4e8f0);
   border-radius: 11px;
-  margin-bottom: 8px;
   transition: 0.14s;
   background: #fff;
 }
@@ -625,12 +630,25 @@
   margin-bottom: 0;
 }
 
-.doc-modal-form .preview-col .thumb-field > label {
+.doc-modal-form .preview-col .arquivo-field {
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+.doc-modal-form .preview-col .thumb-field > label,
+.doc-modal-form .preview-col .arquivo-field > label {
   display: block;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-soft, #48536a);
   margin-bottom: 10px;
+}
+
+.doc-modal-form .preview-col .arquivo-meta {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .doc-modal-form .thumb-actions-col {
@@ -789,6 +807,10 @@
 
 @include bp.mobile {
   .md {
+    grid-template-columns: 1fr;
+  }
+
+  .doc-list {
     grid-template-columns: 1fr;
   }
 

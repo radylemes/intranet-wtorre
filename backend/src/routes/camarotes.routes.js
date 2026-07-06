@@ -20,6 +20,7 @@ router.get('/config', ...adminGuard, controller.obterConfig);
 router.put('/config', ...adminGuard, controller.atualizarConfig);
 router.get('/gatilhos/:dias/preview', ...adminGuard, controller.previewGatilho);
 router.post('/gatilhos/:dias/teste', ...adminGuard, controller.testarGatilho);
+router.get('/enviar-alertas/status', ...adminGuard, controller.statusEnvioAlertas);
 router.post('/enviar-alertas', ...adminGuard, controller.enviarAlertas);
 router.post('/enviar-resumo', ...adminGuard, controller.enviarResumo);
 router.post('/sincronizar', ...adminGuard, controller.sincronizar);

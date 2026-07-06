@@ -1,0 +1,12 @@
+-- Fila de envio em background: status intermediários e previsão de envio.
+--
+-- PRODUÇÃO — executar manualmente UMA vez (migrate não reaplica ALTER):
+--
+-- ALTER TABLE camarotes_alertas_destinos
+--   MODIFY COLUMN status ENUM(
+--     'pendente', 'na_fila', 'enviando', 'enviado', 'entregue', 'bounce', 'falha', 'cancelado'
+--   ) NOT NULL DEFAULT 'pendente',
+--   ADD COLUMN enviar_em DATETIME(3) NULL AFTER status;
+--
+-- Idempotente no migrate automatizado:
+SELECT 1;

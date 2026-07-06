@@ -300,6 +300,24 @@
   width: fit-content;
 }
 
+.dest-chip--add {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-style: dashed;
+  background: transparent;
+  cursor: text;
+
+  input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    color: var(--ink-soft, #6e6a7c);
+    outline: none;
+  }
+}
+
 .dest-chip__remove {
   position: absolute;
   top: 6px;

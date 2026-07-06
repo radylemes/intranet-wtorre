@@ -647,6 +647,34 @@
   box-shadow: var(--sombra);
 }
 
+.plaq-card.card-primary {
+  border-color: var(--roxo-vibe);
+  box-shadow: 0 0 0 1px var(--roxo-vibe);
+}
+
+.plaq-card.card-locked .row {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.plaq-card .badge-primary {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--roxo);
+  background: var(--lavanda);
+  border: 1px solid var(--lavanda-borda);
+  border-radius: 999px;
+  padding: 2px 7px;
+  line-height: 1.3;
+}
+
+.plaq-card .sync-hint {
+  margin: 6px 15px 0;
+  font-size: 11px;
+  color: var(--cinza-claro);
+  font-weight: 500;
+}
+
 .plaq-card .head {
   display: flex;
   align-items: center;

@@ -168,17 +168,34 @@ async function upload(req, res) {
 }
 
 async function update(req, res) {
+  const arquivoFile = req.files?.arquivo?.[0];
   const thumbFile = req.files?.thumb?.[0];
 
   try {
     const id = Number(req.params.id);
     const existing = await docRepo.findById(id);
     if (!existing) {
+      unlinkSafe(arquivoFile?.path);
       if (thumbFile?.path) unlinkSafe(thumbFile.path);
       return res.status(404).json({ mensagem: 'Documento não encontrado.' });
     }
 
     const data = {};
+
+    if (arquivoFile) {
+      const validation = validateUploadFile(arquivoFile);
+      if (!validation.ok) {
+        unlinkSafe(arquivoFile.path);
+        unlinkSafe(thumbFile?.path);
+        return res.status(400).json({ mensagem: validation.mensagem });
+      }
+      unlinkArquivo(existing.arquivo_path);
+      data.nome_original = arquivoFile.originalname;
+      data.arquivo_path = arquivoFile.filename;
+      data.mime = arquivoFile.mimetype;
+      data.extensao = validation.ext;
+      data.tamanho_bytes = arquivoFile.size;
+    }
     if (req.body.titulo !== undefined) {
       const titulo = req.body.titulo?.trim();
       if (!titulo) return res.status(400).json({ mensagem: 'titulo é obrigatório.' });
@@ -225,6 +242,7 @@ async function update(req, res) {
           legacyCatId || null
         );
       } catch (err) {
+        unlinkSafe(arquivoFile?.path);
         if (thumbFile?.path) unlinkSafe(thumbFile.path);
         return res.status(err.status || 400).json({ mensagem: err.message });
       }
@@ -249,6 +267,7 @@ async function update(req, res) {
     await contentVersionService.bump('documentos');
     return res.json(doc);
   } catch (err) {
+    unlinkSafe(arquivoFile?.path);
     if (thumbFile?.path) unlinkSafe(thumbFile.path);
     return res.status(err.status || 400).json({ mensagem: err.message });
   }

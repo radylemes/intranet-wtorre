@@ -340,22 +340,42 @@ async function enviarAlertas(req, res) {
     const gatilhoDias = req.query.gatilho_dias != null ? Number(req.query.gatilho_dias) : undefined;
     const unidadeId = req.query.unidade_id != null ? Number(req.query.unidade_id) : undefined;
     const forcar = req.query.forcar === '1' || req.query.forcar === 'true';
-    const resultado = await alertasService.processarAlertas({
-      preview,
-      forcar,
-      gatilhoDias,
-      unidadeId,
-    });
 
-    if (!preview && resultado.enviado) {
-      await auditRepo.log({
-        ...auditMeta(req),
-        action: 'CAMAROTES_ALERTAS_ENVIADOS',
-        email: req.user?.email,
+    if (preview) {
+      const resultado = await alertasService.processarAlertas({
+        preview: true,
+        forcar,
+        gatilhoDias,
+        unidadeId,
       });
+      return res.json(resultado);
     }
 
-    return res.json(resultado);
+    const params = { forcar, gatilhoDias, unidadeId };
+    const meta = auditMeta(req);
+    const aceite = await alertasService.iniciarEnvioBackground(params, {
+      onSucesso: async () => {
+        await auditRepo.log({
+          ...meta,
+          action: 'CAMAROTES_ALERTAS_ENVIADOS',
+          email: req.user?.email,
+        });
+      },
+    });
+
+    return res.status(202).json(aceite);
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+async function statusEnvioAlertas(req, res) {
+  try {
+    const jobKey = req.query.job_key;
+    if (!jobKey) {
+      return res.status(400).json({ mensagem: 'Informe job_key.' });
+    }
+    return res.json(alertasService.getEnvioJobStatus(String(jobKey)));
   } catch (err) {
     return handleError(res, err);
   }
@@ -434,6 +454,7 @@ module.exports = {
   previewGatilho,
   testarGatilho,
   enviarAlertas,
+  statusEnvioAlertas,
   enviarResumo,
   acesso,
   listarVisualizadores,

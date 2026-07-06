@@ -965,9 +965,13 @@ async function listContratosEmAlerta(filtros = {}) {
   }));
 }
 
+const STATUS_DESTINO_EM_PROCESSAMENTO = new Set(['pendente', 'na_fila', 'enviando']);
+
 function aggregateStatusEntrega(destinatarios) {
   if (!destinatarios?.length) return 'legado';
   const statuses = destinatarios.map((d) => d.status);
+  if (statuses.some((s) => STATUS_DESTINO_EM_PROCESSAMENTO.has(s))) return 'processando';
+  if (statuses.every((s) => s === 'cancelado')) return 'cancelado';
   if (statuses.every((s) => s === 'falha')) return 'falha';
   if (statuses.some((s) => s === 'bounce')) return 'bounce';
   if (statuses.every((s) => s === 'entregue')) return 'entregue';
@@ -1004,6 +1008,87 @@ async function registrarDestinoEnvio({
       erro || null,
     ]
   );
+}
+
+async function registrarDestinosPendentes({ items, tentativaEm, provider }) {
+  if (!items?.length) return;
+  const pool = getPool();
+  const placeholders = items.map(() => '(?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+  const values = items.flatMap((item) => [
+    item.unidadeId,
+    item.gatilhoDias,
+    item.finalLocacao,
+    tentativaEm,
+    String(item.destinatario || '').trim().toLowerCase(),
+    null,
+    provider,
+    'pendente',
+  ]);
+
+  await pool.execute(
+    `INSERT INTO camarotes_alertas_destinos
+       (unidade_id, gatilho_dias, final_locacao, tentativa_em, destinatario, message_id, provider, status)
+     VALUES ${placeholders}`,
+    values
+  );
+}
+
+async function atualizarDestinoEnvio({
+  unidadeId,
+  gatilhoDias,
+  finalLocacao,
+  tentativaEm,
+  destinatario,
+  status,
+  messageId,
+  provider,
+  erro,
+  enviarEm,
+}) {
+  const pool = getPool();
+  const email = String(destinatario || '').trim().toLowerCase();
+  const sets = [];
+  const values = [];
+
+  if (status !== undefined) {
+    sets.push('status = ?');
+    values.push(status);
+  }
+  if (messageId !== undefined) {
+    sets.push('message_id = ?');
+    values.push(messageId);
+  }
+  if (provider !== undefined) {
+    sets.push('provider = ?');
+    values.push(provider);
+  }
+  if (erro !== undefined) {
+    sets.push('erro = ?');
+    values.push(erro);
+  }
+  if (enviarEm !== undefined) {
+    sets.push('enviar_em = ?');
+    values.push(enviarEm);
+  }
+
+  const statusFinal = ['enviado', 'entregue', 'bounce', 'falha', 'cancelado'];
+  if (status !== undefined && statusFinal.includes(status)) {
+    sets.push('status_atualizado_em = NOW()');
+  }
+
+  if (!sets.length) return 0;
+
+  const [result] = await pool.execute(
+    `UPDATE camarotes_alertas_destinos
+     SET ${sets.join(', ')}
+     WHERE unidade_id = ?
+       AND gatilho_dias = ?
+       AND final_locacao = ?
+       AND tentativa_em = ?
+       AND destinatario = ?`,
+    [...values, unidadeId, gatilhoDias, finalLocacao, tentativaEm, email]
+  );
+  return result.affectedRows || 0;
 }
 
 async function atualizarStatusEntregaPorMessageId({ messageId, status, erro }) {
@@ -1043,7 +1128,8 @@ async function listAlertasEnvioLog(limit = 50) {
            'status', d.status,
            'erro', d.erro,
            'provider', d.provider,
-           'message_id', d.message_id
+           'message_id', d.message_id,
+           'enviar_em', d.enviar_em
          )
        ) AS destinatarios_json
      FROM camarotes_alertas_destinos d
@@ -1128,6 +1214,8 @@ module.exports = {
   jaEnviouAlerta,
   registrarEnvioAlerta,
   registrarDestinoEnvio,
+  registrarDestinosPendentes,
+  atualizarDestinoEnvio,
   atualizarStatusEntregaPorMessageId,
   mapAcsDeliveryStatus,
   listAlertasEnvioLog,

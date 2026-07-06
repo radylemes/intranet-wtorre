@@ -55,7 +55,10 @@ router.put(
   '/:id',
   requireJwt,
   requireModulo('documentos'),
-  uploadFields.fields([{ name: 'thumb', maxCount: 1 }]),
+  uploadFields.fields([
+    { name: 'arquivo', maxCount: 1 },
+    { name: 'thumb', maxCount: 1 },
+  ]),
   handleMulterError,
   controller.update
 );

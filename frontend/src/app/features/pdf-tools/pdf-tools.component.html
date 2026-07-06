@@ -1,0 +1,354 @@
+<div class="pagina-pdf-tools">
+  <app-public-chrome>
+    <div class="studio">
+      <div class="wrap">
+        <header>
+          <div class="brand">
+            <svg class="glyph" viewBox="0 0 40 44" fill="none" aria-hidden="true">
+              <rect x="8" y="6" width="26" height="32" rx="3" fill="#f6f8fc" stroke="#1d54e6" stroke-width="1.5" />
+              <rect x="3" y="2" width="26" height="32" rx="3" fill="#fff" stroke="#1d54e6" stroke-width="1.5" />
+              <path d="M9 11h14M9 16h14M9 21h9" stroke="#1d54e6" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            <div>
+              <h1>Ferramentas de PDF</h1>
+            </div>
+          </div>
+          <p class="sub">
+            <svg class="lock" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4" y="10" width="16" height="10" rx="2" stroke="#8a93a8" stroke-width="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#8a93a8" stroke-width="2" />
+            </svg>
+            Tudo roda no seu navegador — nenhum arquivo é enviado para servidor algum.
+          </p>
+        </header>
+
+        <div class="tabs" role="tablist" aria-label="Operações de PDF">
+          <button
+            type="button"
+            class="tab"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'merge'"
+            (click)="setTab('merge')"
+          >
+            Unir PDFs
+          </button>
+          <button
+            type="button"
+            class="tab"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'split'"
+            (click)="setTab('split')"
+          >
+            Dividir PDF
+          </button>
+        </div>
+
+        <!-- MERGE -->
+        <section class="panel" [class.active]="activeTab() === 'merge'" aria-labelledby="merge-tab">
+          <div
+            class="drop"
+            tabindex="0"
+            role="button"
+            aria-label="Selecionar PDFs para unir"
+            [class.over]="mergeDragOver()"
+            [class.disabled]="processando() || mergeLoading()"
+            (click)="openMergeFilePicker(mergeInput)"
+            (keydown)="onMergeDropzoneKeydown($event, mergeInput)"
+            (dragenter)="preventDragDefault($event); onDragEnter('merge')"
+            (dragover)="preventDragDefault($event); onDragEnter('merge')"
+            (dragleave)="onDragLeave('merge', $event)"
+            (drop)="onMergeDrop($event)"
+          >
+            <input
+              #mergeInput
+              type="file"
+              accept=".pdf,application/pdf"
+              multiple
+              hidden
+              [attr.data-key]="mergeInputKey()"
+              (change)="onMergeFileSelected($event)"
+              (click)="$event.stopPropagation()"
+            />
+            @if (mergeLoading()) {
+              <p class="drop-state">Lendo arquivos…</p>
+            } @else {
+              <svg class="stack" viewBox="0 0 46 52" fill="none" aria-hidden="true">
+                <rect x="12" y="8" width="30" height="38" rx="4" fill="#f6f8fc" stroke="#1d54e6" stroke-width="2" />
+                <rect x="4" y="4" width="30" height="38" rx="4" fill="#fff" stroke="#1d54e6" stroke-width="2" />
+                <path d="M19 20h6m-3-3v6" stroke="#1d54e6" stroke-width="2" stroke-linecap="round" />
+              </svg>
+              <h3>Arraste PDFs aqui</h3>
+              <p>ou <b>clique para escolher</b> — dois ou mais arquivos</p>
+            }
+          </div>
+
+          <ul
+            class="list"
+            cdkDropList
+            (cdkDropListDropped)="onMergeReorder($event)"
+          >
+            @for (entry of mergeFiles(); track entry.id) {
+              <li class="item" cdkDrag [cdkDragDisabled]="processando()">
+                <button
+                  type="button"
+                  class="handle"
+                  cdkDragHandle
+                  aria-label="Reordenar {{ entry.name }}"
+                  [disabled]="processando()"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                    <path
+                      d="M6 3h.01M10 3h.01M6 8h.01M10 8h.01M6 13h.01M10 13h.01"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+                <svg class="fileicon" viewBox="0 0 28 34" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 3a2 2 0 0 1 2-2h11l7 7v23a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V3Z"
+                    fill="#f6f8fc"
+                    stroke="#1d54e6"
+                    stroke-width="1.5"
+                  />
+                  <path d="M17 1v7h7" stroke="#1d54e6" stroke-width="1.5" />
+                  <text
+                    x="14"
+                    y="26"
+                    font-size="6"
+                    font-family="Archivo, sans-serif"
+                    font-weight="700"
+                    fill="#1d54e6"
+                    text-anchor="middle"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <div class="meta">
+                  <div class="name">{{ entry.name }}</div>
+                  <div class="pages">
+                    {{ entry.pageCount }} pág. · {{ formatSize(entry.size) }}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="rm"
+                  title="Remover"
+                  aria-label="Remover {{ entry.name }}"
+                  [disabled]="processando()"
+                  (click)="removeMergeFile(entry.id)"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                    <path
+                      d="M4 4l8 8M12 4l-8 8"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+              </li>
+            }
+          </ul>
+
+          <button type="button" class="go" [disabled]="!podeUnir()" (click)="mergePdfs()">
+            {{ processando() ? 'Unindo PDFs…' : 'Unir PDFs' }}
+          </button>
+
+          @if (mergeStatus()) {
+            <div class="status" [class.err]="mergeStatusErr()">{{ mergeStatus() }}</div>
+          } @else {
+            <div class="status" aria-hidden="true"></div>
+          }
+
+          @if (mergeResult(); as result) {
+            <div class="result show">
+              <div class="txt">{{ result.text }}</div>
+              <a [href]="result.url" [download]="result.filename">Baixar</a>
+            </div>
+          }
+        </section>
+
+        <!-- SPLIT -->
+        <section class="panel" [class.active]="activeTab() === 'split'" aria-labelledby="split-tab">
+          <div
+            class="drop"
+            tabindex="0"
+            role="button"
+            aria-label="Selecionar um PDF para dividir"
+            [class.over]="splitDragOver()"
+            [class.disabled]="processando() || splitLoading()"
+            (click)="openSplitFilePicker(splitInput)"
+            (keydown)="onSplitDropzoneKeydown($event, splitInput)"
+            (dragenter)="preventDragDefault($event); onDragEnter('split')"
+            (dragover)="preventDragDefault($event); onDragEnter('split')"
+            (dragleave)="onDragLeave('split', $event)"
+            (drop)="onSplitDrop($event)"
+          >
+            <input
+              #splitInput
+              type="file"
+              accept=".pdf,application/pdf"
+              hidden
+              [attr.data-key]="splitInputKey()"
+              (change)="onSplitFileSelected($event)"
+              (click)="$event.stopPropagation()"
+            />
+            @if (splitLoading()) {
+              <p class="drop-state">Lendo arquivo…</p>
+            } @else {
+              <svg class="stack" viewBox="0 0 46 52" fill="none" aria-hidden="true">
+                <rect x="8" y="4" width="30" height="44" rx="4" fill="#fff" stroke="#1d54e6" stroke-width="2" />
+                <path d="M23 4v44" stroke="#1d54e6" stroke-width="2" stroke-dasharray="4 3" />
+              </svg>
+              <h3>Arraste um PDF aqui</h3>
+              <p>ou <b>clique para escolher</b> um arquivo</p>
+            }
+          </div>
+
+          <ul class="list">
+            @if (splitFile(); as entry) {
+              <li class="item">
+                <svg class="fileicon" viewBox="0 0 28 34" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 3a2 2 0 0 1 2-2h11l7 7v23a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V3Z"
+                    fill="#f6f8fc"
+                    stroke="#1d54e6"
+                    stroke-width="1.5"
+                  />
+                  <path d="M17 1v7h7" stroke="#1d54e6" stroke-width="1.5" />
+                  <text
+                    x="14"
+                    y="26"
+                    font-size="6"
+                    font-family="Archivo, sans-serif"
+                    font-weight="700"
+                    fill="#1d54e6"
+                    text-anchor="middle"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <div class="meta">
+                  <div class="name">{{ entry.name }}</div>
+                  <div class="pages">
+                    {{ entry.pageCount }} páginas · {{ formatSize(entry.size) }}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="rm"
+                  aria-label="Remover"
+                  [disabled]="processando()"
+                  (click)="clearSplitFile()"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                    <path
+                      d="M4 4l8 8M12 4l-8 8"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+              </li>
+            }
+          </ul>
+
+          @if (splitFile()) {
+            <div class="field">
+              <label>Como você quer dividir?</label>
+              <div class="modes">
+                <label class="mode" [attr.data-on]="splitMode() === 'extract'">
+                  <input
+                    type="radio"
+                    name="splitMode"
+                    value="extract"
+                    [checked]="splitMode() === 'extract'"
+                    [disabled]="processando()"
+                    (change)="setSplitMode('extract')"
+                  />
+                  <span>
+                    <span class="t">Extrair páginas</span>
+                    <span class="d">Ex.: 1-3, 5, 8-10 → um único PDF com essas páginas</span>
+                  </span>
+                </label>
+                <label class="mode" [attr.data-on]="splitMode() === 'everyN'">
+                  <input
+                    type="radio"
+                    name="splitMode"
+                    value="everyN"
+                    [checked]="splitMode() === 'everyN'"
+                    [disabled]="processando()"
+                    (change)="setSplitMode('everyN')"
+                  />
+                  <span>
+                    <span class="t">A cada N páginas</span>
+                    <span class="d">Quebra em blocos de N páginas (vários arquivos .zip)</span>
+                  </span>
+                </label>
+                <label class="mode" [attr.data-on]="splitMode() === 'individual'">
+                  <input
+                    type="radio"
+                    name="splitMode"
+                    value="individual"
+                    [checked]="splitMode() === 'individual'"
+                    [disabled]="processando()"
+                    (change)="setSplitMode('individual')"
+                  />
+                  <span>
+                    <span class="t">Páginas individuais</span>
+                    <span class="d">Cada página vira um PDF separado (.zip)</span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="inline" [class.show]="splitMode() === 'extract'">
+                <input
+                  type="text"
+                  placeholder="1-3, 5, 8-10"
+                  [disabled]="processando()"
+                  [ngModel]="pageRange()"
+                  (ngModelChange)="pageRange.set($event)"
+                />
+                <div class="hint">{{ splitRangeHint() }}</div>
+              </div>
+
+              <div class="inline" [class.show]="splitMode() === 'everyN'">
+                <input
+                  type="number"
+                  min="1"
+                  [max]="splitFile()!.pageCount"
+                  placeholder="Nº de páginas por bloco"
+                  [disabled]="processando()"
+                  [ngModel]="pagesPerChunk()"
+                  (ngModelChange)="pagesPerChunk.set(+$event || 1)"
+                />
+              </div>
+            </div>
+          }
+
+          <button type="button" class="go" [disabled]="!podeDividir()" (click)="splitPdf()">
+            {{ processando() ? 'Dividindo PDF…' : 'Dividir PDF' }}
+          </button>
+
+          @if (splitStatus()) {
+            <div class="status" [class.err]="splitStatusErr()">{{ splitStatus() }}</div>
+          } @else {
+            <div class="status" aria-hidden="true"></div>
+          }
+
+          @if (splitResult(); as result) {
+            <div class="result show">
+              <div class="txt">{{ result.text }}</div>
+              <a [href]="result.url" [download]="result.filename">Baixar</a>
+            </div>
+          }
+        </section>
+      </div>
+    </div>
+  </app-public-chrome>
+
+  <app-footer />
+</div>

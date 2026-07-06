@@ -5,6 +5,8 @@ const PAGINAS_INTERNAS = [
   { path: '/aniversariantes', label: 'Aniversariantes' },
   { path: '/treinamentos', label: 'Treinamentos' },
   { path: '/assinaturas', label: 'Assinaturas de E-mail' },
+  { path: '/plaquinhas-camarote', label: 'Plaquinhas Camarote' },
+  { path: '/ferramentas/pdf', label: 'Ferramentas de PDF' },
 ];
 
 const DOCUMENTOS_PATH_REGEX = /^\/documentos(\/[a-z0-9-]+)?$/;

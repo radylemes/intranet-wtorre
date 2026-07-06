@@ -9,8 +9,8 @@
       <button type="button" class="btn-ghost btn-sm" [disabled]="sincronizando()" (click)="sincronizar()">
         {{ sincronizando() ? 'Sincronizando…' : '⟳ Sincronizar agora' }}
       </button>
-      <button type="button" class="btn-camarotes btn-sm" [disabled]="enviando()" (click)="enviarAlertas()">
-        {{ enviando() ? 'Enviando…' : 'Enviar alertas' }}
+      <button type="button" class="btn-camarotes btn-sm" [disabled]="envioEmAndamento()" (click)="enviarAlertas()">
+        {{ envioEmAndamento() ? 'Enviando…' : 'Enviar alertas' }}
       </button>
     </div>
   </header>
@@ -131,7 +131,7 @@
             <div class="dest-card__body">
               <div class="dest-toolbar">
                 <div class="dest-field dest-field--search">
-                  <label for="busca-destinatarios">Buscar no AD</label>
+                  <label for="busca-destinatarios">Buscar no AD (opcional)</label>
                   <div class="dest-search">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <circle cx="11" cy="11" r="8" />
@@ -140,11 +140,10 @@
                     <input
                       id="busca-destinatarios"
                       type="search"
-                      placeholder="Buscar colaborador no AD para adicionar…"
+                      placeholder="Nome ou e-mail do colaborador…"
                       autocomplete="off"
                       [ngModel]="buscaEmailTexto()"
                       (ngModelChange)="onBuscaEmailInput($event)"
-                      (keydown)="onBuscaEmailKeydown($event)"
                     />
                     @if (resultadosBuscaEmail().length) {
                       <ul class="busca-resultados dest-search__results">
@@ -159,6 +158,7 @@
                       </ul>
                     }
                   </div>
+                  <p class="dest-empty">Ou digite um e-mail interno manualmente na lista abaixo.</p>
                 </div>
                 <div class="dest-field dest-field--cadencia">
                   <label for="cadencia-alertas">Cadência</label>
@@ -189,33 +189,41 @@
                 <span class="dest-meta__count">{{ destinatariosCountLabel() }}</span>
               </div>
 
-              @if (destinatarios().length) {
-                <div class="dest-chips">
-                  @for (d of destinatarios(); track d.email) {
-                    <article class="dest-chip">
-                      <span
-                        class="dest-chip__avatar"
-                        [style.background]="corAvatarDestinatario(d.email)"
-                      >{{ iniciaisDestinatario(d.nome) }}</span>
-                      <span class="dest-chip__info">
-                        <span class="dest-chip__name">{{ d.nome }}</span>
-                        <span class="dest-chip__mail">{{ d.email }}</span>
-                      </span>
-                      <span class="dest-chip__tag">{{ d.tag }}</span>
-                      <button
-                        type="button"
-                        class="dest-chip__remove"
-                        title="Remover"
-                        (click)="removerDestinatario(d.email)"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-                          <path d="M18 6 6 18M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </article>
-                  }
-                </div>
-              }
+              <div class="dest-chips">
+                @for (d of destinatarios(); track d.email) {
+                  <article class="dest-chip">
+                    <span
+                      class="dest-chip__avatar"
+                      [style.background]="corAvatarDestinatario(d.email)"
+                    >{{ iniciaisDestinatario(d.nome) }}</span>
+                    <span class="dest-chip__info">
+                      <span class="dest-chip__name">{{ d.nome }}</span>
+                      <span class="dest-chip__mail">{{ d.email }}</span>
+                    </span>
+                    <span class="dest-chip__tag">{{ d.tag }}</span>
+                    <button
+                      type="button"
+                      class="dest-chip__remove"
+                      title="Remover"
+                      (click)="removerDestinatario(d.email)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </article>
+                }
+                <span class="dest-chip dest-chip--add">
+                  <input
+                    type="email"
+                    placeholder="+ adicionar e-mail interno"
+                    [ngModel]="emailManualNovo()"
+                    (ngModelChange)="emailManualNovo.set($event)"
+                    (keydown)="onEmailManualKeydown($event)"
+                    (blur)="confirmarEmailManual()"
+                  />
+                </span>
+              </div>
 
             </div>
           </section>
@@ -391,10 +399,10 @@
                 <button
                   type="button"
                   class="btn-camarotes btn-sm"
-                  [disabled]="enviando() || carregandoContratosAlerta()"
+                  [disabled]="envioEmAndamento() || carregandoContratosAlerta()"
                   (click)="enviarAlertas()"
                 >
-                  {{ enviando() ? 'Enviando…' : 'Enviar pendentes' }}
+                  {{ envioEmAndamento() ? 'Enviando…' : 'Enviar pendentes' }}
                 </button>
                 <button
                   type="button"
@@ -462,14 +470,10 @@
                         <button
                           type="button"
                           [class]="c.notificado ? 'btn-ghost btn-sm btn-disparo-row' : 'btn-camarotes btn-sm btn-disparo-row'"
-                          [disabled]="disparandoContratoKey() === contratoDisparoKey(c)"
+                          [disabled]="envioEmAndamento()"
                           (click)="dispararContrato(c)"
                         >
-                          {{
-                            disparandoContratoKey() === contratoDisparoKey(c)
-                              ? 'Enviando…'
-                              : c.notificado ? 'Reenviar' : 'Disparar'
-                          }}
+                          {{ envioEmAndamento() ? 'Enviando…' : c.notificado ? 'Reenviar' : 'Disparar' }}
                         </button>
                       </td>
                     </tr>
@@ -628,6 +632,7 @@
               <div class="section-label">Disparos de e-mail</div>
               <p class="disparos-hint">
                 Cada combinação de camarote, gatilho e vencimento é registrada uma única vez. E-mails de teste não aparecem aqui.
+                Disparos em andamento aparecem com status Pendente, Na fila ou Enviando até concluir.
                 Com Azure ACS e webhook configurado, o status de entrega ou bounce é atualizado automaticamente; falhas de envio também ficam no histórico.
               </p>
             </div>
@@ -655,6 +660,10 @@
               </button>
             </div>
           </div>
+
+          @if (disparosPollingAtivo()) {
+            <p class="disparos-hint">Atualizando automaticamente…</p>
+          }
 
           @if (carregandoDisparos() && !alertasLogs().length) {
             <p class="empty">Carregando disparos…</p>
@@ -728,6 +737,9 @@
                                 >
                                   {{ labelStatusDestinatario(d.status) }}
                                 </span>
+                                @if (d.status === 'na_fila' || d.status === 'pendente' || d.status === 'enviando') {
+                                  <span class="destino-muted">{{ tempoRestanteDestino(d) }}</span>
+                                }
                                 @if (d.erro) {
                                   <button
                                     type="button"

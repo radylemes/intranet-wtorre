@@ -71,6 +71,12 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'ferramentas/pdf',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/pdf-tools/pdf-tools.component').then((m) => m.PdfToolsComponent),
+  },
+  {
     path: 'treinamentos',
     canActivate: [authGuard],
     loadComponent: () =>

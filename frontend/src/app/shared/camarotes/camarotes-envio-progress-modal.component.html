@@ -1,0 +1,217 @@
+@if (aberto && estado) {
+  <div
+    class="envio-modal-overlay"
+    [class.envio-modal-overlay--locked]="!podeFechar()"
+    (click)="onBackdropClick()"
+  >
+    <div
+      class="envio-modal-panel"
+      role="dialog"
+      aria-live="polite"
+      [attr.aria-label]="titulo"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="envio-modal-head">
+        <div>
+          <h3>{{ titulo }}</h3>
+          @if (estado.fase === 'enviando') {
+            <p class="envio-modal-sub">
+              Enviando {{ estado.concluidos }} de {{ estado.total }} contrato(s)…
+            </p>
+          } @else if (estado.fase === 'concluido') {
+            <p class="envio-modal-sub">Envio finalizado</p>
+          }
+        </div>
+        @if (podeFechar()) {
+          <button type="button" class="envio-modal-close" aria-label="Fechar" (click)="onCloseClick()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M6 6l12 12M18 6L6 18"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        }
+      </header>
+
+      <div class="envio-modal-body">
+        @if (estado.fase === 'preparando') {
+          <div class="envio-modal-state">
+            <span class="envio-spinner" aria-hidden="true"></span>
+            <p>Carregando contratos pendentes…</p>
+          </div>
+        } @else if (estado.fase === 'erro' && estado.mensagemGlobal) {
+          <p class="envio-modal-state envio-modal-erro">{{ estado.mensagemGlobal }}</p>
+        } @else {
+          @if (estado.fase === 'enviando' || estado.fase === 'concluido') {
+            <div class="progress-wrap">
+              <div class="progress-bar" [style.width.%]="progressoPct"></div>
+            </div>
+            <p class="envio-progress-label">{{ progressoPct }}% — {{ estado.concluidos }}/{{ estado.total }}</p>
+          }
+
+          @if (itemAtual && estado.fase === 'enviando') {
+            <div class="envio-atual">
+              <span class="envio-spinner envio-spinner--sm" aria-hidden="true"></span>
+              <div>
+                <strong>Camarote Nº {{ itemAtual.contrato.numero }}</strong>
+                <span class="envio-atual-meta">
+                  {{ labelGatilho(itemAtual.contrato.gatilho_dias) }} · {{ itemAtual.contrato.cessionario }}
+                </span>
+                @if (estado.aguardandoServidor) {
+                  <span class="envio-atual-hint">Aguardando envio de e-mails no servidor…</span>
+                }
+              </div>
+            </div>
+          }
+
+          @if (filaVisivel) {
+            <div class="envio-fila-wrap">
+              <div class="envio-fila-head">
+                <h4 class="envio-lista-titulo">Fila de e-mails</h4>
+                @if (filaResumoLabel) {
+                  <p class="envio-fila-resumo">{{ filaResumoLabel }}</p>
+                }
+              </div>
+              <div class="envio-fila-table-wrap">
+                <table class="envio-fila-table">
+                  <thead>
+                    <tr>
+                      <th>Destinatário</th>
+                      <th>Camarote</th>
+                      <th>Status</th>
+                      <th>Previsão</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (f of estado.fila!; track f.id) {
+                      <tr [class]="filaRowClass(f)">
+                        <td class="fila-email">{{ f.destinatario }}</td>
+                        <td>
+                          <span class="envio-lista-num">Nº {{ f.numero }}</span>
+                          <span class="envio-lista-gatilho">{{ labelGatilho(f.gatilho_dias) }}</span>
+                        </td>
+                        <td>
+                          <span class="sbadge" [class]="badgeClassFila(f.status)">{{ labelFilaStatus(f.status) }}</span>
+                          @if (f.motivo_fila && f.status === 'na_fila') {
+                            <span class="fila-motivo">{{ f.motivo_fila }}</span>
+                          }
+                          @if (f.erro && f.status === 'falha') {
+                            <span class="fila-erro">{{ f.erro }}</span>
+                          }
+                        </td>
+                        <td class="fila-previsao">{{ tempoRestante(f) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+
+          @if (estado.fase === 'concluido') {
+            <div class="envio-resumo">
+              <span class="envio-resumo-item envio-resumo-ok">{{ estado.enviados }} enviado(s)</span>
+              @if (estado.falhas > 0) {
+                <span class="envio-resumo-item envio-resumo-falha">{{ estado.falhas }} falha(s)</span>
+              }
+              @if (estado.mensagemGlobal) {
+                <p class="envio-resumo-msg">{{ estado.mensagemGlobal }}</p>
+              }
+            </div>
+          }
+
+          @if (itensProcessados.length) {
+            <div class="envio-lista-wrap">
+              <h4 class="envio-lista-titulo">Processados</h4>
+              <ul class="envio-lista">
+                @for (item of itensProcessados; track item.contrato.unidade_id + '-' + item.contrato.gatilho_dias) {
+                  <li class="envio-lista-item">
+                    <div class="envio-lista-main">
+                      <span class="sbadge" [class]="badgeClass(item.status)">{{ labelStatus(item.status) }}</span>
+                      <span class="envio-lista-num">Nº {{ item.contrato.numero }}</span>
+                      <span class="envio-lista-gatilho">{{ labelGatilho(item.contrato.gatilho_dias) }}</span>
+                    </div>
+                    @if (item.mensagem) {
+                      <p class="envio-lista-msg">{{ item.mensagem }}</p>
+                    }
+                    @if (item.erros?.length) {
+                      <ul class="envio-erros">
+                        @for (e of item.erros; track e.email) {
+                          <li>
+                            <span>{{ e.email }}: {{ e.mensagem }}</span>
+                            <button type="button" class="btn-copiar" (click)="onCopiar(e.mensagem)">Copiar</button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (estado.fase === 'concluido' && itensFalha.length) {
+            <div class="envio-falhas-wrap">
+              <h4 class="envio-lista-titulo envio-lista-titulo--falha">Detalhes das falhas</h4>
+              <div class="envio-falhas-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Camarote</th>
+                      <th>Gatilho</th>
+                      <th>Detalhe</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of itensFalha; track item.contrato.unidade_id + '-' + item.contrato.gatilho_dias) {
+                      <tr>
+                        <td>Nº {{ item.contrato.numero }}</td>
+                        <td>{{ labelGatilho(item.contrato.gatilho_dias) }}</td>
+                        <td>
+                          @if (item.erros?.length) {
+                            @for (e of item.erros; track e.email) {
+                              <div class="envio-falha-linha">{{ e.email }}: {{ e.mensagem }}</div>
+                            }
+                          } @else {
+                            {{ item.mensagem || 'Erro desconhecido' }}
+                          }
+                        </td>
+                        <td class="td-r">
+                          @if (item.mensagem || item.erros?.[0]?.mensagem) {
+                            <button
+                              type="button"
+                              class="btn-copiar"
+                              (click)="onCopiar(item.mensagem || item.erros?.[0]?.mensagem)"
+                            >
+                              Copiar
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+
+          @if (estado.fase === 'concluido' && !estado.total && estado.mensagemGlobal) {
+            <p class="envio-modal-state">{{ estado.mensagemGlobal }}</p>
+          }
+        }
+      </div>
+
+      <footer class="envio-modal-foot">
+        @if (podeFechar()) {
+          <button type="button" class="btn-fechar" (click)="onCloseClick()">Fechar</button>
+        } @else {
+          <span class="envio-foot-hint">Aguarde a conclusão do envio…</span>
+        }
+      </footer>
+    </div>
+  </div>
+}

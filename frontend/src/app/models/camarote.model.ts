@@ -166,13 +166,19 @@ export interface CamarotesAcesso {
 
 export interface CamarotesAlertasEnvioDestinatario {
   destinatario: string;
-  status: 'enviado' | 'entregue' | 'bounce' | 'falha';
+  status: 'pendente' | 'na_fila' | 'enviando' | 'enviado' | 'entregue' | 'bounce' | 'falha' | 'cancelado';
   erro?: string | null;
   provider?: 'smtp' | 'acs';
   message_id?: string | null;
+  enviar_em?: string | null;
 }
 
 export type CamarotesStatusEntrega =
+  | 'pendente'
+  | 'na_fila'
+  | 'enviando'
+  | 'processando'
+  | 'cancelado'
   | 'enviado'
   | 'entregue'
   | 'bounce'
@@ -255,3 +261,65 @@ export interface EnviarAlertasResposta {
 }
 
 export interface EnviarResumoResposta extends EnviarAlertasResposta {}
+
+export type EnvioAlertaItemStatus = 'pendente' | 'enviando' | 'sucesso' | 'falha' | 'ignorado';
+
+export interface EnvioAlertaProgressItem {
+  contrato: CamarotesAlertaContrato;
+  status: EnvioAlertaItemStatus;
+  mensagem?: string;
+  erros?: Array<{ email: string; mensagem: string }>;
+}
+
+export interface EnvioAlertaProgressState {
+  fase: 'preparando' | 'enviando' | 'concluido' | 'erro';
+  total: number;
+  concluidos: number;
+  enviados: number;
+  falhas: number;
+  itens: EnvioAlertaProgressItem[];
+  mensagemGlobal?: string;
+  aguardandoServidor?: boolean;
+  fila?: EnvioAlertaFilaItem[];
+  filaResumo?: EnvioAlertaFilaResumo;
+}
+
+export type EnvioAlertaFilaStatus = 'pendente' | 'na_fila' | 'enviando' | 'enviado' | 'falha';
+
+export interface EnvioAlertaFilaItem {
+  id: string;
+  unidade_id: number;
+  numero: string;
+  gatilho_dias: number;
+  destinatario: string;
+  status: EnvioAlertaFilaStatus;
+  enviar_em?: string | null;
+  enviado_em?: string | null;
+  erro?: string | null;
+  motivo_fila?: string | null;
+}
+
+export interface EnvioAlertaFilaResumo {
+  total: number;
+  pendente: number;
+  na_fila: number;
+  enviando: number;
+  enviado: number;
+  falha: number;
+}
+
+export interface EnvioAlertaJobResposta {
+  aceito: boolean;
+  status: 'iniciado' | 'em_andamento';
+  job_key: string;
+  total_enfileirados?: number;
+  tentativa_em?: string | null;
+}
+
+export interface EnvioAlertaStatusResposta extends EnviarAlertasResposta {
+  status: 'em_andamento' | 'concluido' | 'erro' | 'desconhecido';
+  job_key?: string;
+  mensagem?: string;
+  fila?: EnvioAlertaFilaItem[];
+  fila_resumo?: EnvioAlertaFilaResumo;
+}

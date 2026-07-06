@@ -73,33 +73,62 @@ function oldestInWindow(now, windowMs) {
   return null;
 }
 
-async function acsRateLimit() {
-  const windows = [
-    { limit: ACS_LIMITS.perMinute, ms: 60 * 1000 },
-    { limit: ACS_LIMITS.perHour, ms: 60 * 60 * 1000 },
-    { limit: ACS_LIMITS.perDay, ms: 24 * 60 * 60 * 1000 },
-  ];
+const ACS_WINDOWS = [
+  { limit: ACS_LIMITS.perMinute, ms: 60 * 1000, label: 'Limite ACS: 30 e-mails/min' },
+  { limit: ACS_LIMITS.perHour, ms: 60 * 60 * 1000, label: 'Limite ACS: 100 e-mails/h' },
+  { limit: ACS_LIMITS.perDay, ms: 24 * 60 * 60 * 1000, label: 'Limite ACS: 2400 e-mails/dia' },
+];
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const now = Date.now();
-    pruneTimestamps(now);
+function estimateAcsWaitMs() {
+  const now = Date.now();
+  pruneTimestamps(now);
 
-    let waitMs = 0;
-    for (const { limit, ms } of windows) {
-      const count = countInWindow(now, ms);
-      if (count >= limit) {
-        const oldest = oldestInWindow(now, ms);
-        if (oldest != null) {
-          const needed = oldest + ms - now + 50;
-          if (needed > waitMs) waitMs = needed;
-        }
+  let waitMs = 0;
+  for (const { limit, ms } of ACS_WINDOWS) {
+    const count = countInWindow(now, ms);
+    if (count >= limit) {
+      const oldest = oldestInWindow(now, ms);
+      if (oldest != null) {
+        const needed = oldest + ms - now + 50;
+        if (needed > waitMs) waitMs = needed;
       }
     }
+  }
+
+  return waitMs;
+}
+
+function acsWaitMotivo(waitMs) {
+  if (waitMs <= 0) return null;
+  const now = Date.now();
+  pruneTimestamps(now);
+
+  for (const { limit, ms, label } of ACS_WINDOWS) {
+    const count = countInWindow(now, ms);
+    if (count >= limit) {
+      const oldest = oldestInWindow(now, ms);
+      if (oldest != null) {
+        const needed = oldest + ms - now + 50;
+        if (needed > 0 && Math.abs(needed - waitMs) < 5000) return label;
+      }
+    }
+  }
+
+  return 'Limite ACS: aguardando janela de envio';
+}
+
+async function acsRateLimit(onWait) {
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const waitMs = estimateAcsWaitMs();
 
     if (waitMs <= 0) {
       acsSendTimestamps.push(Date.now());
       return;
+    }
+
+    if (typeof onWait === 'function') {
+      onWait(Date.now() + waitMs, waitMs, acsWaitMotivo(waitMs));
     }
 
     await sleep(waitMs);
@@ -144,6 +173,8 @@ module.exports = {
   stripHtml,
   inferContentType,
   toBase64Content,
+  estimateAcsWaitMs,
+  acsWaitMotivo,
   acsRateLimit,
   isSmtpConnectionError,
   applyHiddenToRecipients,

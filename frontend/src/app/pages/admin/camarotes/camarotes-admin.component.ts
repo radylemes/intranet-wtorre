@@ -1,9 +1,9 @@
-import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, of, firstValueFrom } from 'rxjs';
 import { AlertasService } from '../../../services/alertas.service';
 import { AuthService } from '../../../services/auth.service';
 import { CamarotesService } from '../../../services/camarotes.service';
@@ -22,6 +22,8 @@ import {
   CamarotesVisualizador,
 } from '../../../models/camarote.model';
 import { ColaboradorBusca } from '../../../models/perfil-acesso.model';
+
+const STATUS_DESTINO_EM_PROCESSAMENTO = new Set(['pendente', 'na_fila', 'enviando']);
 
 const GATILHOS_DEFAULT: CamarotesGatilho[] = [
   {
@@ -141,7 +143,7 @@ function corAvatarDestinatario(seed: string): string {
   templateUrl: './camarotes-admin.component.html',
   styleUrl: './camarotes-admin.component.scss',
 })
-export class CamarotesAdminComponent implements OnInit {
+export class CamarotesAdminComponent implements OnInit, OnDestroy {
   private readonly camarotesService = inject(CamarotesService);
   private readonly perfisService = inject(PerfisAcessoService);
   private readonly auth = inject(AuthService);
@@ -149,6 +151,8 @@ export class CamarotesAdminComponent implements OnInit {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly busca$ = new Subject<string>();
   private readonly buscaEmail$ = new Subject<string>();
+  private disparosPollTimer: ReturnType<typeof setInterval> | null = null;
+  private countdownTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly gatilhoUi = GATILHO_UI;
   readonly templateOpcoes: { value: CamarotesTemplateCodigo; label: string }[] = [
@@ -163,18 +167,20 @@ export class CamarotesAdminComponent implements OnInit {
   readonly alertasLogs = signal<CamarotesAlertasEnvioLog[]>([]);
   readonly filtroGatilhoDisparos = signal<'todos' | 90 | 30 | 0>('todos');
   readonly carregandoDisparos = signal(false);
+  readonly disparosPollingAtivo = signal(false);
+  readonly agoraMs = signal(Date.now());
   readonly contratosAlerta = signal<CamarotesAlertaContrato[]>([]);
   readonly contratosResumo = signal<CamarotesAlertasResumo | null>(null);
   readonly contratosPendentes = signal(0);
   readonly filtroGatilhoContratos = signal<'todos' | 90 | 30 | 0>('todos');
   readonly filtroNotificadoContratos = signal<'todos' | 'sim' | 'nao'>('todos');
   readonly carregandoContratosAlerta = signal(false);
-  readonly disparandoContratoKey = signal<string | null>(null);
   readonly visualizadores = signal<CamarotesVisualizador[]>([]);
   readonly resultadosBusca = signal<ColaboradorBusca[]>([]);
   readonly resultadosBuscaEmail = signal<ColaboradorBusca[]>([]);
   readonly buscaTexto = signal('');
   readonly buscaEmailTexto = signal('');
+  readonly emailManualNovo = signal('');
   readonly carregando = signal(false);
   readonly sincronizando = signal(false);
   readonly salvandoConfig = signal(false);
@@ -202,6 +208,8 @@ export class CamarotesAdminComponent implements OnInit {
   readonly previewDestinatario = signal('');
   readonly carregandoPreview = signal(false);
   readonly enviandoTestePreview = signal(false);
+
+  readonly envioEmAndamento = computed(() => this.enviando());
 
   readonly ultimaSyncLabel = computed(() => {
     const d = this.config()?.ultima_sync;
@@ -266,10 +274,18 @@ export class CamarotesAdminComponent implements OnInit {
       });
   }
 
+  ngOnDestroy(): void {
+    this.pararPollingDisparos();
+    this.pararCountdownDisparos();
+  }
+
   selecionarAba(aba: CamarotesAba): void {
     this.abaAtiva.set(aba);
     if (aba === 'disparos') {
       this.carregarDisparos();
+      if (this.temDisparosEmProcessamento()) {
+        this.iniciarPollingDisparos();
+      }
     }
     if (aba === 'contratos') {
       this.carregarContratosAlerta();
@@ -315,6 +331,24 @@ export class CamarotesAdminComponent implements OnInit {
 
   metaStatusEntrega(status: CamarotesStatusEntrega): { label: string; badgeClass: string; title?: string } {
     switch (status) {
+      case 'processando':
+        return {
+          label: 'Em processamento',
+          badgeClass: 'tbadge-info',
+          title: 'Envio em andamento — atualize ou aguarde a conclusão automática.',
+        };
+      case 'pendente':
+        return { label: 'Pendente', badgeClass: 'tbadge-muted' };
+      case 'na_fila':
+        return {
+          label: 'Na fila',
+          badgeClass: 'tbadge-warn',
+          title: 'Aguardando janela de envio ou intervalo entre destinatários.',
+        };
+      case 'enviando':
+        return { label: 'Enviando', badgeClass: 'tbadge-info' };
+      case 'cancelado':
+        return { label: 'Cancelado', badgeClass: 'tbadge-muted' };
       case 'entregue':
         return { label: 'Entregue', badgeClass: 'tbadge-ok' };
       case 'enviado':
@@ -345,7 +379,69 @@ export class CamarotesAdminComponent implements OnInit {
   }
 
   labelStatusDestinatario(status: CamarotesAlertasEnvioDestinatario['status']): string {
-    return this.metaStatusEntrega(status).label;
+    return this.metaStatusEntrega(status as CamarotesStatusEntrega).label;
+  }
+
+  tempoRestanteDestino(d: CamarotesAlertasEnvioDestinatario): string {
+    if (d.status === 'enviado' || d.status === 'entregue' || d.status === 'falha' || d.status === 'bounce') {
+      return '—';
+    }
+    if (d.status === 'enviando') return 'Enviando agora…';
+    if (d.status === 'pendente') return 'Aguardando';
+    if (d.status === 'na_fila' && d.enviar_em) {
+      const diff = new Date(d.enviar_em).getTime() - this.agoraMs();
+      if (diff <= 0) return 'Em breve…';
+      const sec = Math.ceil(diff / 1000);
+      if (sec < 60) return `Envio em ~${sec}s`;
+      const min = Math.ceil(sec / 60);
+      return `Envio em ~${min} min`;
+    }
+    return '—';
+  }
+
+  temDisparosEmProcessamento(logs = this.alertasLogs()): boolean {
+    return logs.some(
+      (log) =>
+        log.status_entrega === 'processando' ||
+        log.destinatarios.some((d) => STATUS_DESTINO_EM_PROCESSAMENTO.has(d.status))
+    );
+  }
+
+  private iniciarPollingDisparos(): void {
+    if (this.disparosPollTimer) return;
+    this.disparosPollingAtivo.set(true);
+    this.iniciarCountdownDisparos();
+    this.disparosPollTimer = setInterval(() => {
+      if (this.abaAtiva() === 'disparos') {
+        this.carregarDisparos(true);
+      }
+    }, 4000);
+  }
+
+  private pararPollingDisparos(): void {
+    if (this.disparosPollTimer) {
+      clearInterval(this.disparosPollTimer);
+      this.disparosPollTimer = null;
+    }
+    this.disparosPollingAtivo.set(false);
+    this.pararCountdownDisparos();
+  }
+
+  private iniciarCountdownDisparos(): void {
+    if (this.countdownTimer) return;
+    this.countdownTimer = setInterval(() => {
+      this.agoraMs.set(Date.now());
+      if (!this.temDisparosEmProcessamento()) {
+        this.pararPollingDisparos();
+      }
+    }, 1000);
+  }
+
+  private pararCountdownDisparos(): void {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
   }
 
   detalheStatusEntrega(log: CamarotesAlertasEnvioLog): string | undefined {
@@ -416,16 +512,23 @@ export class CamarotesAdminComponent implements OnInit {
     });
   }
 
-  carregarDisparos(): void {
-    this.carregandoDisparos.set(true);
+  carregarDisparos(silencioso = false): void {
+    if (!silencioso) this.carregandoDisparos.set(true);
     this.camarotesService.alertasEnvioLog(100).subscribe({
       next: (logs) => {
         this.alertasLogs.set(logs);
-        this.carregandoDisparos.set(false);
+        if (!silencioso) this.carregandoDisparos.set(false);
+        if (this.temDisparosEmProcessamento(logs)) {
+          if (!this.disparosPollTimer) this.iniciarPollingDisparos();
+        } else {
+          this.pararPollingDisparos();
+        }
       },
       error: (err: HttpErrorResponse) => {
-        this.erro.set(err.error?.mensagem || 'Erro ao carregar histórico de disparos.');
-        this.carregandoDisparos.set(false);
+        if (!silencioso) {
+          this.erro.set(err.error?.mensagem || 'Erro ao carregar histórico de disparos.');
+          this.carregandoDisparos.set(false);
+        }
       },
     });
   }
@@ -463,31 +566,13 @@ export class CamarotesAdminComponent implements OnInit {
     this.carregarContratosAlerta();
   }
 
-  contratoDisparoKey(c: CamarotesAlertaContrato): string {
-    return `${c.unidade_id}-${c.gatilho_dias}`;
-  }
-
   dispararContrato(c: CamarotesAlertaContrato): void {
-    const key = this.contratoDisparoKey(c);
-    this.disparandoContratoKey.set(key);
-    this.camarotesService
-      .enviarAlertas(false, { gatilho_dias: c.gatilho_dias, unidade_id: c.unidade_id }, c.notificado)
-      .subscribe({
-        next: (res) => {
-          this.disparandoContratoKey.set(null);
-          if (res.enviado) {
-            this.mensagem.set(`Alerta enviado para o camarote Nº ${c.numero}.`);
-            this.carregarContratosAlerta();
-            this.carregarDisparos();
-          } else {
-            this.erro.set(res.motivo || 'Nenhum envio realizado.');
-          }
-        },
-        error: (err: HttpErrorResponse) => {
-          this.disparandoContratoKey.set(null);
-          this.erro.set(err.error?.mensagem || 'Erro ao disparar alerta.');
-        },
-      });
+    if (this.envioEmAndamento()) return;
+    void this.enfileirarEnvio({
+      unidade_id: c.unidade_id,
+      gatilho_dias: c.gatilho_dias,
+      forcar: c.notificado,
+    });
   }
 
   onBuscaInput(valor: string): void {
@@ -500,12 +585,17 @@ export class CamarotesAdminComponent implements OnInit {
     this.buscaEmail$.next(valor);
   }
 
-  onBuscaEmailKeydown(event: KeyboardEvent): void {
+  confirmarEmailManual(): void {
+    const email = this.emailManualNovo().trim();
+    if (!email) return;
+    this.adicionarEmailManual(email);
+    this.emailManualNovo.set('');
+  }
+
+  onEmailManualKeydown(event: KeyboardEvent): void {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    const valor = this.buscaEmailTexto().trim();
-    if (!valor.includes('@')) return;
-    this.adicionarEmailManual(valor);
+    this.confirmarEmailManual();
   }
 
   iniciaisDestinatario = iniciaisDestinatario;
@@ -544,6 +634,7 @@ export class CamarotesAdminComponent implements OnInit {
     }
     this.destinatarios.update((lista) => [...lista, chip]);
     this.buscaEmailTexto.set('');
+    this.emailManualNovo.set('');
     this.resultadosBuscaEmail.set([]);
   }
 
@@ -726,6 +817,53 @@ export class CamarotesAdminComponent implements OnInit {
     this.previewGatilhoDias.set(null);
   }
 
+  private async enfileirarEnvio(opts?: {
+    gatilho_dias?: number;
+    unidade_id?: number;
+    forcar?: boolean;
+  }): Promise<void> {
+    this.enviando.set(true);
+    this.erro.set('');
+
+    try {
+      const httpOpts =
+        opts?.unidade_id != null
+          ? { gatilho_dias: opts.gatilho_dias, unidade_id: opts.unidade_id }
+          : undefined;
+
+      const httpRes = await firstValueFrom(
+        this.camarotesService.enviarAlertasAsync(httpOpts, opts?.forcar ?? false)
+      );
+
+      if (httpRes.status === 202 && httpRes.body?.aceito) {
+        const total = httpRes.body.total_enfileirados ?? 0;
+        if (total === 0) {
+          this.mensagem.set('Nenhum alerta pendente para envio.');
+        } else {
+          this.mensagem.set(
+            `${total} e-mail(s) enfileirado(s). Acompanhe em Disparos de e-mail.`
+          );
+          this.selecionarAba('disparos');
+          this.iniciarPollingDisparos();
+        }
+        this.carregarContratosAlerta();
+        return;
+      }
+
+      throw new Error('Resposta inesperada do servidor ao enfileirar envio.');
+    } catch (err) {
+      const msg =
+        err instanceof HttpErrorResponse
+          ? err.error?.mensagem || 'Erro ao enfileirar envio.'
+          : err instanceof Error
+            ? err.message
+            : 'Erro ao enfileirar envio.';
+      this.erro.set(msg);
+    } finally {
+      this.enviando.set(false);
+    }
+  }
+
   async enviarAlertas(): Promise<void> {
     const ok = await this.alertas.confirmar({
       titulo: 'Enviar alertas',
@@ -734,24 +872,6 @@ export class CamarotesAdminComponent implements OnInit {
     });
     if (!ok) return;
 
-    this.enviando.set(true);
-    this.camarotesService.enviarAlertas(false).subscribe({
-      next: (res) => {
-        this.enviando.set(false);
-        if (res.enviado) {
-          this.mensagem.set(`${res.enviados} alerta(s) enviado(s).`);
-        } else {
-          this.alertas.sucesso(res.motivo || 'Nenhum envio realizado.');
-        }
-        this.carregarTudo();
-        if (this.abaAtiva() === 'contratos') {
-          this.carregarContratosAlerta();
-        }
-      },
-      error: (err: HttpErrorResponse) => {
-        this.erro.set(err.error?.mensagem || 'Erro ao enviar alertas.');
-        this.enviando.set(false);
-      },
-    });
+    await this.enfileirarEnvio();
   }
 }

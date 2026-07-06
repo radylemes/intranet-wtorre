@@ -263,7 +263,8 @@ export function renderPlaquinhaSheet(
     const cnv = document.createElement('canvas');
     cnv.width = cw;
     cnv.height = ch;
-    cnv.style.cssText = `position:absolute;left:${cx}px;top:${cy}px;cursor:${src ? 'grab' : 'default'}`;
+    const canDrag = src && (!state.syncAll || i === 0);
+    cnv.style.cssText = `position:absolute;left:${cx}px;top:${cy}px;cursor:${canDrag ? 'grab' : 'default'}`;
     cnv.dataset['cellIdx'] = String(i);
     drawCellCanvas(cnv, src, cell.rot, state.scales[i], state.offsets[i].x, state.offsets[i].y, i, state);
 
