@@ -1,0 +1,30 @@
+@if (visivel()) {
+  @let premio = premioExibido()!;
+  <section class="bid-premio-card" aria-label="Prêmios BID">
+    <div class="wrap">
+      <span class="bid-premio-card__eyebrow">■ PLATAFORMA BID</span>
+      <h2 class="bid-premio-card__titulo-secao">Parabéns, você venceu! 🎉</h2>
+
+      <div class="bid-premio-card__ticket-wrap">
+        <app-bid-vencedor-ticket
+          [data]="ticketData(premio)"
+          [showDismiss]="true"
+          [showConfete]="true"
+          (dismiss)="dismiss(premio)"
+        />
+      </div>
+
+      @if (outrosPremios() > 0) {
+        <a
+          class="bid-premio-card__outros"
+          [href]="ctaUrl(premio)"
+          target="_blank"
+          rel="noopener"
+        >
+          +{{ outrosPremios() }}
+          {{ outrosPremios() === 1 ? 'outro prêmio' : 'outros prêmios' }}
+        </a>
+      }
+    </div>
+  </section>
+}

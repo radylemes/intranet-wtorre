@@ -1,0 +1,380 @@
+:host {
+  display: block;
+}
+
+.bid-vencedor-ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  background: linear-gradient(135deg, #1d54e6 0%, #0d2f8f 100%);
+  border-radius: 16px;
+  color: #fff;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(29, 84, 230, 0.28);
+  height: 100%;
+}
+
+.bid-vencedor-ticket__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.bid-vencedor-ticket__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(135deg, rgba(29, 84, 230, 0.88) 0%, rgba(13, 47, 143, 0.92) 100%);
+  pointer-events: none;
+}
+
+.bid-vencedor-ticket:not(.bid-vencedor-ticket--com-imagem) .bid-vencedor-ticket__overlay {
+  background: transparent;
+}
+
+.bid-vencedor-ticket::before,
+.bid-vencedor-ticket::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bid-vencedor-ticket::before {
+  width: 220px;
+  height: 220px;
+  top: -80px;
+  left: -60px;
+}
+
+.bid-vencedor-ticket::after {
+  width: 160px;
+  height: 160px;
+  bottom: -60px;
+  right: 300px;
+}
+
+.bid-vencedor-ticket--com-imagem::before,
+.bid-vencedor-ticket--com-imagem::after {
+  opacity: 0.35;
+}
+
+.bid-vencedor-ticket__dismiss {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.bid-vencedor-ticket__dismiss:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.bid-vencedor-ticket__conteudo {
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.bid-vencedor-ticket__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(4px);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+
+.bid-vencedor-ticket__trofeu {
+  font-size: 14px;
+}
+
+.bid-vencedor-ticket__titulo {
+  margin: 0;
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.bid-vencedor-ticket__subtitulo {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+  letter-spacing: 0.04em;
+}
+
+.bid-vencedor-ticket__meta {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+
+.bid-vencedor-ticket__label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.bid-vencedor-ticket__meta-valor {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffd76a;
+  line-height: 1.2;
+}
+
+.bid-vencedor-ticket__cta {
+  margin-top: auto;
+  align-self: flex-start;
+  background: #fff;
+  color: var(--wtorre, #1d54e6);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 10px 22px;
+  border-radius: 999px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bid-vencedor-ticket__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.bid-vencedor-ticket__canhoto {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(2px);
+  border-left: 2px dashed rgba(255, 255, 255, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.bid-vencedor-ticket__canhoto::before,
+.bid-vencedor-ticket__canhoto::after {
+  content: '';
+  position: absolute;
+  left: -12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg, #f4f5f8);
+}
+
+.bid-vencedor-ticket__canhoto::before {
+  top: -11px;
+}
+
+.bid-vencedor-ticket__canhoto::after {
+  bottom: -11px;
+}
+
+.bid-vencedor-ticket__rotulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.bid-vencedor-ticket__valor-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.bid-vencedor-ticket__lance-valor {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #ffd76a;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+.bid-vencedor-ticket__moeda {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffd76a;
+  opacity: 0.95;
+  margin-left: 4px;
+}
+
+.bid-vencedor-ticket__data-aposta {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  opacity: 0.8;
+  letter-spacing: 0.04em;
+}
+
+.bid-vencedor-ticket__ingressos {
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bid-vencedor-ticket__ingressos b {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket {
+  grid-template-columns: 1fr;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__conteudo {
+  padding: 16px 16px 12px;
+  gap: 8px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__titulo {
+  font-size: 18px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__subtitulo {
+  font-size: 12px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__meta-valor {
+  font-size: 14px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__cta {
+  align-self: center;
+  font-size: 12px;
+  padding: 9px 20px;
+}
+
+.bid-vencedor-ticket__confete {
+  position: absolute;
+  top: -10px;
+  border-radius: 2px;
+  opacity: 0.9;
+  animation: bid-vencedor-ticket-confete-cair linear infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes bid-vencedor-ticket-confete-cair {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+  }
+  100% {
+    transform: translateY(240px) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bid-vencedor-ticket__confete {
+    animation: none;
+    display: none;
+  }
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__canhoto {
+  border-left: none;
+  border-top: 2px dashed rgba(255, 255, 255, 0.4);
+  padding: 12px 16px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__lance-valor {
+  font-size: 26px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__moeda {
+  font-size: 13px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__canhoto::before,
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__canhoto::after {
+  left: auto;
+  top: -11px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__canhoto::before {
+  left: -11px;
+}
+
+:host(.bid-vencedor-ticket-host--compact) .bid-vencedor-ticket__canhoto::after {
+  right: -11px;
+  left: auto;
+}
+
+@media (max-width: 640px) {
+  .bid-vencedor-ticket {
+    grid-template-columns: 1fr;
+  }
+
+  .bid-vencedor-ticket__cta {
+    align-self: center;
+  }
+
+  .bid-vencedor-ticket__canhoto {
+    border-left: none;
+    border-top: 2px dashed rgba(255, 255, 255, 0.4);
+  }
+
+  .bid-vencedor-ticket__canhoto::before,
+  .bid-vencedor-ticket__canhoto::after {
+    left: auto;
+    top: -11px;
+  }
+
+  .bid-vencedor-ticket__canhoto::before {
+    left: -11px;
+  }
+
+  .bid-vencedor-ticket__canhoto::after {
+    right: -11px;
+    left: auto;
+  }
+}

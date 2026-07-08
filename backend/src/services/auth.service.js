@@ -27,16 +27,33 @@ async function resolverDepartamentoLogin({ oid, email, profile, usuarioExistente
   return null;
 }
 
+async function alinharEmailComColaborador(user) {
+  if (!user?.microsoft_id) return user;
+
+  const colab = await colaboradoresRepo.findAdminByAdId(user.microsoft_id);
+  const emailCorporativo = colab?.email?.trim();
+  if (!emailCorporativo) return user;
+
+  const atual = (user.email || '').trim().toLowerCase();
+  const corporativo = emailCorporativo.toLowerCase();
+  if (!atual || atual === corporativo) {
+    return atual === corporativo ? user : usersRepo.updateEmail(user.id, emailCorporativo);
+  }
+
+  return usersRepo.updateEmail(user.id, emailCorporativo);
+}
+
 async function toPublicUser(user) {
-  const modulos = await permissoesService.resolveModulos(user);
+  const alinhado = await alinharEmailComColaborador(user);
+  const modulos = await permissoesService.resolveModulos(alinhado);
   return {
-    id: user.id,
-    username: user.username,
-    nome_completo: user.nome_completo,
-    email: user.email,
-    perfil: user.perfil,
-    is_ad_user: user.is_ad_user,
-    ativo: user.ativo,
+    id: alinhado.id,
+    username: alinhado.username,
+    nome_completo: alinhado.nome_completo,
+    email: alinhado.email,
+    perfil: alinhado.perfil,
+    is_ad_user: alinhado.is_ad_user,
+    ativo: alinhado.ativo,
     modulos,
   };
 }
@@ -173,6 +190,8 @@ async function loginMicrosoft(azureUser, meta) {
   }
 
   await setorUsuarioService.resolverSetor(user);
+
+  user = await alinharEmailComColaborador(user);
 
   await auditRepo.log({
     userId: user.id,

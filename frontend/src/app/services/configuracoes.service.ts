@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { EmailConfig, HeaderChamadoConfig, SmtpConfig } from '../models/configuracoes.model';
+import { EmailConfig, HeaderChamadoConfig, SmtpConfig, BidIntegracaoConfig, SalvarBidIntegracaoBody, BidTesteConexaoResponse, BidSincronizarResponse } from '../models/configuracoes.model';
 
 export interface SalvarEmailBody {
   provider: 'smtp' | 'acs';
@@ -79,5 +79,21 @@ export class ConfiguracoesService {
   /** @deprecated Use enviarTesteEmail() */
   enviarTesteSmtp(destinatario?: string): Observable<{ ok: boolean; mensagem: string }> {
     return this.enviarTesteEmail(destinatario);
+  }
+
+  getBidIntegracao(): Observable<BidIntegracaoConfig> {
+    return this.http.get<BidIntegracaoConfig>(`${this.base}/bid`);
+  }
+
+  salvarBidIntegracao(body: SalvarBidIntegracaoBody): Observable<BidIntegracaoConfig> {
+    return this.http.put<BidIntegracaoConfig>(`${this.base}/bid`, body);
+  }
+
+  testarBidIntegracao(): Observable<BidTesteConexaoResponse> {
+    return this.http.post<BidTesteConexaoResponse>(`${this.base}/bid/testar`, {});
+  }
+
+  sincronizarBidIntegracao(): Observable<BidSincronizarResponse> {
+    return this.http.post<BidSincronizarResponse>(`${this.base}/bid/sincronizar`, {});
   }
 }

@@ -1,0 +1,102 @@
+@let item = data();
+<article
+  class="bid-vencedor-ticket"
+  [class.bid-vencedor-ticket--com-imagem]="!!item.imagem_url"
+>
+  @if (item.imagem_url) {
+    <img class="bid-vencedor-ticket__bg" [src]="item.imagem_url" alt="" />
+  }
+  <div class="bid-vencedor-ticket__overlay" aria-hidden="true"></div>
+
+  @if (showConfete()) {
+    @for (p of confeteParticulas(); track p.id) {
+      <span
+        class="bid-vencedor-ticket__confete"
+        aria-hidden="true"
+        [style.left.%]="p.left"
+        [style.background]="p.cor"
+        [style.animationDuration.s]="p.duration"
+        [style.animationDelay.s]="p.delay"
+        [style.width.px]="p.size"
+        [style.height.px]="p.size"
+      ></span>
+    }
+  }
+
+  @if (showDismiss()) {
+    <button
+      type="button"
+      class="bid-vencedor-ticket__dismiss"
+      aria-label="Fechar"
+      (click)="onDismiss()"
+    >
+      ×
+    </button>
+  }
+
+  <div class="bid-vencedor-ticket__conteudo">
+    <span class="bid-vencedor-ticket__badge">
+      <span class="bid-vencedor-ticket__trofeu">🏆</span> VOCÊ VENCEU O BID
+    </span>
+    <div>
+      <h3 class="bid-vencedor-ticket__titulo">{{ item.titulo }}</h3>
+      @if (item.subtitulo) {
+        <p class="bid-vencedor-ticket__subtitulo">{{ item.subtitulo }}</p>
+      }
+    </div>
+    <ul class="bid-vencedor-ticket__meta">
+      @if (item.data_jogo) {
+        <li>
+          <span class="bid-vencedor-ticket__label">Evento</span>
+          <span class="bid-vencedor-ticket__meta-valor">
+            {{ item.data_jogo | date: "EEE, d 'de' MMM · HH:mm" : '' : 'pt-BR' }}
+          </span>
+        </li>
+      }
+      @if (item.local) {
+        <li>
+          <span class="bid-vencedor-ticket__label">Local</span>
+          <span class="bid-vencedor-ticket__meta-valor">{{ item.local }}</span>
+        </li>
+      }
+      @if (item.setor_evento_nome) {
+        <li>
+          <span class="bid-vencedor-ticket__label">Setor</span>
+          <span class="bid-vencedor-ticket__meta-valor">{{ item.setor_evento_nome }}</span>
+        </li>
+      }
+    </ul>
+    <a
+      class="bid-vencedor-ticket__cta"
+      [href]="ctaUrl()"
+      target="_blank"
+      rel="noopener"
+    >
+      VER MEU INGRESSO ›
+    </a>
+  </div>
+
+  <div class="bid-vencedor-ticket__canhoto">
+    <span class="bid-vencedor-ticket__rotulo">Seu lance vencedor</span>
+    <div class="bid-vencedor-ticket__valor-wrap">
+      <span class="bid-vencedor-ticket__lance-valor">
+        {{ item.lance | number: lanceFormato(item.lance) : 'pt-BR' }}
+        <span class="bid-vencedor-ticket__moeda">WTokens</span>
+      </span>
+      @if (item.data_aposta) {
+        <small class="bid-vencedor-ticket__data-aposta">
+          apostado em
+          {{ item.data_aposta | date: "dd 'de' MMM · HH:mm" : '' : 'pt-BR' }}
+        </small>
+      }
+    </div>
+    @if (item.quantidade_ingressos != null) {
+      <div class="bid-vencedor-ticket__ingressos">
+        <b>{{ item.quantidade_ingressos }}</b>
+        {{
+          item.quantidade_ingressos === 1 ? 'ingresso garantido' : 'ingressos garantidos'
+        }}
+      </div>
+    }
+  </div>
+</article>

@@ -211,5 +211,130 @@
         </form>
       </div>
     </section>
+
+    <section class="card email-card">
+      <div class="card-head">
+        <h2>Integração BID</h2>
+        <p class="card-sub">
+          Carrossel de partidas abertas na tela inicial. A chave dá acesso a eventos e usuários — nunca
+          exponha no front-end.
+        </p>
+      </div>
+      <div class="card-body">
+        <form [formGroup]="bidForm" (ngSubmit)="salvarBid()" class="config-form">
+          <div class="toggle-field">
+            <div>
+              <div class="tt">Integração ativa</div>
+              <div class="ts">Exibe o carrossel de BIDs na página inicial</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" formControlName="ativo" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="bid-api-url">URL da API BID</label>
+            <input
+              id="bid-api-url"
+              formControlName="api_base_url"
+              type="url"
+              placeholder="https://bid.nubankparque.com"
+            />
+            <div class="help">Somente o domínio raiz (ex.: <code>https://bid.nubankparque.com</code>), sem <code>/api/integracao</code></div>
+          </div>
+
+          <div class="field">
+            <label for="bid-api-key">Chave de API</label>
+            <div class="secret">
+              <input
+                id="bid-api-key"
+                formControlName="api_key"
+                [type]="mostrarBidApiKey() ? 'text' : 'password'"
+                placeholder="Deixe vazio para manter a atual"
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                class="eye"
+                [attr.aria-label]="mostrarBidApiKey() ? 'Ocultar' : 'Mostrar'"
+                (click)="toggleBidApiKey()"
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+                </svg>
+              </button>
+            </div>
+            @if (bidHasApiKey()) {
+              <div class="help">Uma chave já está armazenada de forma cifrada.</div>
+            }
+          </div>
+
+          <div class="field">
+            <label for="bid-app-url">URL do app BID</label>
+            <input
+              id="bid-app-url"
+              formControlName="app_url"
+              type="url"
+              placeholder="https://bid.nubankparque.com"
+            />
+          </div>
+
+          <div class="toggle-field">
+            <div>
+              <div class="tt">Sync automática</div>
+              <div class="ts">Atualiza eventos e usuários BID em background</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" formControlName="sync_automatica" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="bid-sync-interval">Intervalo de sync (minutos)</label>
+            <input
+              id="bid-sync-interval"
+              formControlName="sync_intervalo_min"
+              type="number"
+              min="5"
+              max="60"
+            />
+            <div class="help">Dados servidos da base local; a API BID é consultada só no sync.</div>
+          </div>
+
+          @if (bidSyncStatus()) {
+            <div class="help">{{ bidSyncStatus() }}</div>
+          }
+
+          <div class="form-actions email-actions">
+            <button type="submit" class="btn-primary" [disabled]="salvandoBid()">
+              {{ salvandoBid() ? 'Salvando...' : 'Salvar integração BID' }}
+            </button>
+            <button
+              type="button"
+              class="btn-ghost"
+              [disabled]="testandoBid()"
+              (click)="testarBid()"
+            >
+              {{ testandoBid() ? 'Testando...' : 'Testar conexão' }}
+            </button>
+            <button
+              type="button"
+              class="btn-ghost"
+              [disabled]="sincronizandoBid()"
+              (click)="sincronizarBid()"
+            >
+              {{ sincronizandoBid() ? 'Sincronizando...' : 'Sincronizar agora' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
   }
 </div>

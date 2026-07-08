@@ -132,6 +132,16 @@
   color: var(--wtorre);
 }
 
+.news-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.news-link:hover .body .t {
+  color: var(--wtorre);
+}
+
 .cat.ev {
   color: var(--base);
 }
@@ -143,6 +153,9 @@
 }
 .cat.com {
   color: var(--gold);
+}
+.cat.aniversario {
+  color: #e0a52e;
 }
 
 .event {

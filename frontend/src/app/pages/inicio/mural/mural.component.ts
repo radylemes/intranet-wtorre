@@ -1,11 +1,14 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin } from 'rxjs';
 import { ComunicadosService } from '../../../services/comunicados.service';
+import { ColaboradoresService } from '../../../services/colaboradores.service';
 import { ContentRefreshService } from '../../../services/content-refresh.service';
 import { EventosService } from '../../../services/eventos.service';
-import { Comunicado } from '../../../models/comunicado.model';
+import { MuralNoticiaItem } from '../../../models/mural.model';
 import { Evento } from '../../../models/evento.model';
+import { mesclarNoticiasMural } from '../../../utils/mural-noticias.util';
 
 @Component({
   selector: 'app-mural',
@@ -16,10 +19,12 @@ import { Evento } from '../../../models/evento.model';
 })
 export class MuralComponent implements OnInit {
   private readonly comunicadosService = inject(ComunicadosService);
+  private readonly colaboradoresService = inject(ColaboradoresService);
   private readonly eventosService = inject(EventosService);
   private readonly contentRefresh = inject(ContentRefreshService);
 
-  readonly noticias = signal<Comunicado[]>([]);
+  readonly noticias = signal<MuralNoticiaItem[]>([]);
+  readonly carregandoNoticias = signal(true);
   readonly eventos = signal<Evento[]>([]);
   readonly carregandoEventos = signal(true);
   readonly imagemFalhou = signal<Set<string>>(new Set());
@@ -27,18 +32,30 @@ export class MuralComponent implements OnInit {
   constructor() {
     this.contentRefresh.comunicadosChanged$
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.carregarComunicados());
+      .subscribe(() => this.carregarNoticias());
   }
 
   ngOnInit(): void {
-    this.carregarComunicados();
+    this.carregarNoticias();
     this.carregarEventos();
   }
 
-  carregarComunicados(): void {
-    this.comunicadosService.listar().subscribe({
-      next: (list) => this.noticias.set(list),
-      error: () => this.noticias.set([]),
+  carregarNoticias(): void {
+    this.carregandoNoticias.set(true);
+    const mesAtual = new Date().getMonth() + 1;
+
+    forkJoin({
+      comunicados: this.comunicadosService.listar(),
+      aniversariantes: this.colaboradoresService.getAniversariantes(mesAtual),
+    }).subscribe({
+      next: ({ comunicados, aniversariantes }) => {
+        this.noticias.set(mesclarNoticiasMural(comunicados, aniversariantes.aniversariantes));
+        this.carregandoNoticias.set(false);
+      },
+      error: () => {
+        this.noticias.set([]);
+        this.carregandoNoticias.set(false);
+      },
     });
   }
 

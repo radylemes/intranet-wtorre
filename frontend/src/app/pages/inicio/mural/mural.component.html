@@ -7,19 +7,41 @@
 
   <div class="mural-grid">
     <div class="mural-col">
-      <h2 class="titulo-menor col-title">Comunicados</h2>
+      <div class="col-head">
+        <h2 class="titulo-menor col-title">Comunicados</h2>
+        <a class="ver-todos" routerLink="/aniversariantes">Ver todos</a>
+      </div>
       <div class="panel-card">
-        @for (n of noticias(); track n.id) {
-          <div class="news-item">
-            <div class="date">
-              <div class="d">{{ n.dia }}</div>
-              <div class="m">{{ n.mes }}</div>
-            </div>
-            <div class="body">
-              <div class="cat" [style.color]="n.categoriaCor">{{ n.categoriaLabel }}</div>
-              <div class="t">{{ n.titulo }}</div>
-            </div>
-          </div>
+        @if (carregandoNoticias()) {
+          <p class="empty-hint">Carregando comunicados…</p>
+        } @else if (!noticias().length) {
+          <p class="empty-hint">Nenhum comunicado ou aniversariante hoje.</p>
+        } @else {
+          @for (n of noticias(); track n.trackId) {
+            @if (n.link) {
+              <a class="news-item news-link" [routerLink]="n.link">
+                <div class="date">
+                  <div class="d">{{ n.dia }}</div>
+                  <div class="m">{{ n.mes }}</div>
+                </div>
+                <div class="body">
+                  <div class="cat" [class]="n.catClasse" [style.color]="n.categoriaCor">{{ n.categoriaLabel }}</div>
+                  <div class="t">{{ n.titulo }}</div>
+                </div>
+              </a>
+            } @else {
+              <div class="news-item">
+                <div class="date">
+                  <div class="d">{{ n.dia }}</div>
+                  <div class="m">{{ n.mes }}</div>
+                </div>
+                <div class="body">
+                  <div class="cat" [class]="n.catClasse" [style.color]="n.categoriaCor">{{ n.categoriaLabel }}</div>
+                  <div class="t">{{ n.titulo }}</div>
+                </div>
+              </div>
+            }
+          }
         }
       </div>
     </div>

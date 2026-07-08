@@ -71,6 +71,15 @@ async function updateProfile(id, nome, departamento) {
   return findById(id);
 }
 
+async function updateEmail(id, email) {
+  const pool = getPool();
+  await pool.execute('UPDATE usuarios SET email = ?, atualizado_em = NOW() WHERE id = ?', [
+    email,
+    id,
+  ]);
+  return findById(id);
+}
+
 async function setSetorId(id, setorId) {
   const pool = getPool();
   await pool.execute('UPDATE usuarios SET setor_id = ?, atualizado_em = NOW() WHERE id = ?', [
@@ -149,6 +158,7 @@ module.exports = {
   linkMicrosoft,
   createMicrosoftUser,
   updateProfile,
+  updateEmail,
   setSetorId,
   setAtivo,
   setPerfil,

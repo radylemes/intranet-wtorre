@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preview v5 — Vitrine de Eventos BID (estilo e-commerce)</title>
+  <style>
+    :root {
+      --wtorre: #1d54e6;
+      --raio: 16px;
+      --texto: #1f2937;
+      --texto-suave: #5b6472;
+      --borda: #e7e9ee;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif;
+      color: var(--texto);
+      background: #f6f7f9;
+    }
+    .pagina { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+
+    .vitrine { margin: 24px 0; }
+    .vitrine__header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .vitrine__eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--wtorre);
+    }
+    .vitrine__header h2 { margin: 2px 0 0; font-size: 22px; font-weight: 800; }
+    .vitrine__ver-todos {
+      font-size: 13px; font-weight: 600; color: var(--wtorre); text-decoration: none;
+    }
+    .vitrine__ver-todos:hover { text-decoration: underline; }
+
+    /* ===== Carrossel multi-card ===== */
+    .vitrine__wrapper {
+      display: grid;
+      grid-template-columns: 40px 1fr 40px;
+      align-items: center;
+      gap: 4px;
+    }
+    .vitrine__viewport { overflow: hidden; }
+    .vitrine__track {
+      display: flex;
+      transition: transform 0.45s ease;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .vitrine__track { transition: none; }
+    }
+
+    .vitrine__nav {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--borda);
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--texto);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vitrine__nav:hover { border-color: var(--wtorre); color: var(--wtorre); }
+    .vitrine__nav:disabled { opacity: 0.35; cursor: default; }
+    .vitrine__nav:focus-visible { outline: 2px solid var(--wtorre); outline-offset: 2px; }
+
+    /* ===== Card produto ===== */
+    .produto {
+      flex: 0 0 calc(100% / var(--por-pagina, 3));
+      padding: 0 8px;
+    }
+    .produto__card {
+      background: #fff;
+      border: 1px solid var(--borda);
+      border-radius: var(--raio);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .produto__card:hover {
+      box-shadow: 0 8px 24px rgba(29, 84, 230, 0.12);
+      transform: translateY(-2px);
+    }
+    .produto__card--encerrada:hover {
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+
+    .produto__media { position: relative; height: 170px; }
+    .produto__media .banner {
+      position: absolute; inset: 0;
+      display: flex; align-items: flex-end; padding: 14px;
+      color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.12em;
+    }
+    .banner--azul  { background: linear-gradient(135deg, #1d54e6, #0d2f8f); }
+    .banner--roxo  { background: linear-gradient(135deg, #820ad1, #4a0680); }
+    .banner--verde { background: linear-gradient(135deg, #0ea5a4, #065f5e); }
+    .banner--cinza { background: linear-gradient(135deg, #334155, #0f172a); }
+    .banner::before {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 130px; height: 130px; border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+    }
+    .produto__card--encerrada .banner { filter: grayscale(0.5) brightness(0.85); }
+
+    .produto__badge {
+      position: absolute; top: 10px; left: 10px; z-index: 1;
+      background: #16a34a; color: #fff;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 3px 9px; border-radius: 999px;
+    }
+    .produto__badge--fechada { background: #6b7280; }
+
+    /* Countdown compacto sobre a imagem */
+    .produto__timer {
+      position: absolute; bottom: 10px; right: 10px; z-index: 1;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(4px);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      padding: 5px 10px;
+      border-radius: 999px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .produto__timer--urgente { background: rgba(220, 38, 38, 0.92); }
+    .produto__timer .rel { font-size: 11px; opacity: 0.85; font-weight: 600; }
+
+    .produto__body {
+      padding: 14px 16px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      flex: 1;
+    }
+    .produto__titulo {
+      margin: 0;
+      font-size: 15px; font-weight: 800; line-height: 1.25;
+      text-align: center;
+    }
+    .produto__subtitulo {
+      margin: 0;
+      font-size: 12px; color: var(--texto-suave);
+      text-align: center; letter-spacing: 0.03em;
+    }
+    .produto__data {
+      text-align: center;
+      font-size: 12px; font-weight: 600; color: var(--texto-suave);
+    }
+
+    /* "Preço" do card = destaque principal */
+    .produto__destaque {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--wtorre);
+      line-height: 1.1;
+    }
+    .produto__destaque small {
+      display: block;
+      font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: #8a93a2;
+    }
+
+    .produto__stats {
+      display: flex; justify-content: center; gap: 14px;
+      font-size: 11px; color: var(--texto-suave);
+    }
+    .produto__stats b { color: var(--texto); font-weight: 700; }
+
+    .produto__info {
+      text-align: center;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--texto);
+      text-decoration: none;
+    }
+    .produto__info:hover { color: var(--wtorre); }
+
+    .produto__cta {
+      margin-top: auto;
+      display: block;
+      text-align: center;
+      background: var(--wtorre);
+      color: #fff;
+      text-decoration: none;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 11px 0;
+      border-radius: 999px;
+      transition: filter 0.15s ease;
+    }
+    .produto__cta:hover { filter: brightness(1.1); }
+    .produto__cta--secundario {
+      background: #fff;
+      color: var(--wtorre);
+      border: 1.5px solid var(--wtorre);
+    }
+
+    .vitrine__dots {
+      display: flex; justify-content: center; gap: 6px; margin-top: 14px;
+    }
+    .vitrine__dots button {
+      width: 8px; height: 8px; border-radius: 50%; border: none;
+      background: #c7cdd8; cursor: pointer; padding: 0; transition: all 0.2s ease;
+    }
+    .vitrine__dots button.ativo {
+      background: var(--wtorre); width: 20px; border-radius: 999px;
+    }
+
+    @media (max-width: 900px) { .vitrine__track { --por-pagina: 2; } }
+    @media (max-width: 600px) {
+      .vitrine__track { --por-pagina: 1; }
+      .vitrine__wrapper { grid-template-columns: 32px 1fr 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pagina">
+    <section class="vitrine" id="vitrine" aria-label="Eventos BID">
+      <div class="vitrine__header">
+        <div>
+          <span class="vitrine__eyebrow">■ PLATAFORMA BID</span>
+          <h2>Eventos BID</h2>
+        </div>
+        <a class="vitrine__ver-todos" href="#bid">Ver todos ›</a>
+      </div>
+
+      <div class="vitrine__wrapper">
+        <button class="vitrine__nav" id="btnPrev" aria-label="Anterior">‹</button>
+
+        <div class="vitrine__viewport">
+          <div class="vitrine__track" id="track" style="--por-pagina: 3">
+
+            <!-- Card 1: ABERTA -->
+            <div class="produto">
+              <article class="produto__card">
+                <div class="produto__media">
+                  <span class="produto__badge">ABERTA</span>
+                  <div class="banner banner--azul">BID · NUBANK PARQUE</div>
+                  <span class="produto__timer" data-timer data-restante-min="570">
+                    ⏱ <span data-cont>09:30:00</span>
+                  </span>
+                </div>
+                <div class="produto__body">
+                  <h3 class="produto__titulo">LINIKER</h3>
+                  <p class="produto__subtitulo">BYE BYE CAJU</p>
+                  <div class="produto__data">sáb., 11 de jul. · 19:00 · Camarote</div>
+                  <div class="produto__destaque">
+                    31
+                    <small>ingressos disponíveis</small>
+                  </div>
+                  <a class="produto__info" href="#info-21">MAIS INFO ›</a>
+                  <a class="produto__cta" href="#partida-21">FAZER MEU LANCE</a>
+                </div>
+              </article>
+            </div>
+
+            <!-- Card 2: ABERTA URGENTE -->
+            <div class="produto">
+              <article class="produto__card">
+                <div class="produto__media">
+                  <span class="produto__badge">ABERTA</span>
+                  <div class="banner banner--roxo">BID · NUBANK PARQUE</div>
+                  <span class="produto__timer produto__timer--urgente" data-timer data-restante-min="142">
+                    ⏱ <span data-cont>02:22:00</span>
+                  </span>
+                </div>
+                <div class="produto__body">
+                  <h3 class="produto__titulo">PALMEIRAS X FLAMENGO</h3>
+                  <p class="produto__subtitulo">COPA DO BRASIL · QUARTAS</p>
+                  <div class="produto__data">ter., 07 de jul. · 19:00 · Central Leste</div>
+                  <div class="produto__destaque">
+                    2
+                    <small>ingressos disponíveis</small>
+                  </div>
+                  <a class="produto__info" href="#info-13">MAIS INFO ›</a>
+                  <a class="produto__cta" href="#partida-13">FAZER MEU LANCE</a>
+                </div>
+              </article>
+            </div>
+
+            <!-- Card 3: ABERTA -->
+            <div class="produto">
+              <article class="produto__card">
+                <div class="produto__media">
+                  <span class="produto__badge">ABERTA</span>
+                  <div class="banner banner--verde">BID · NUBANK PARQUE</div>
+                  <span class="produto__timer" data-timer data-restante-min="5760">
+                    ⏱ <span data-cont>4d 00:00</span>
+                  </span>
+                </div>
+                <div class="produto__body">
+                  <h3 class="produto__titulo">TURNÊ INTERNACIONAL 2026</h3>
+                  <p class="produto__subtitulo">EVENTO ESPECIAL</p>
+                  <div class="produto__data">sáb., 11 de jul. · 20:00 · Camarote WTorre</div>
+                  <div class="produto__destaque">
+                    6
+                    <small>ingressos disponíveis</small>
+                  </div>
+                  <a class="produto__info" href="#info-14">MAIS INFO ›</a>
+                  <a class="produto__cta" href="#partida-14">FAZER MEU LANCE</a>
+                </div>
+              </article>
+            </div>
+
+            <!-- Card 4: ENCERRADA -->
+            <div class="produto">
+              <article class="produto__card produto__card--encerrada">
+                <div class="produto__media">
+                  <span class="produto__badge produto__badge--fechada">ENCERRADA</span>
+                  <div class="banner banner--cinza">BID · NUBANK PARQUE</div>
+                </div>
+                <div class="produto__body">
+                  <h3 class="produto__titulo">ENHYPEN</h3>
+                  <p class="produto__subtitulo">BLOOD SAGA</p>
+                  <div class="produto__data">sáb., 04 de jul. · 19:30 · Camarote</div>
+                  <div class="produto__destaque">
+                    31
+                    <small>ingressos sorteados</small>
+                  </div>
+                  <div class="produto__stats">
+                    <span><b>49</b> lances</span>
+                    <span><b>20</b> participantes</span>
+                  </div>
+                  <a class="produto__info" href="#info-14">MAIS INFO ›</a>
+                  <a class="produto__cta produto__cta--secundario" href="#partida-14">VER NO BID</a>
+                </div>
+              </article>
+            </div>
+
+            <!-- Card 5: ABERTA -->
+            <div class="produto">
+              <article class="produto__card">
+                <div class="produto__media">
+                  <span class="produto__badge">ABERTA</span>
+                  <div class="banner banner--azul">BID · NUBANK PARQUE</div>
+                  <span class="produto__timer" data-timer data-restante-min="2880">
+                    ⏱ <span data-cont>2d 00:00</span>
+                  </span>
+                </div>
+                <div class="produto__body">
+                  <h3 class="produto__titulo">PALMEIRAS X CORINTHIANS</h3>
+                  <p class="produto__subtitulo">BRASILEIRÃO · RODADA 15</p>
+                  <div class="produto__data">qui., 09 de jul. · 21:30 · Gol Norte</div>
+                  <div class="produto__destaque">
+                    4
+                    <small>ingressos disponíveis</small>
+                  </div>
+                  <a class="produto__info" href="#info-12">MAIS INFO ›</a>
+                  <a class="produto__cta" href="#partida-12">FAZER MEU LANCE</a>
+                </div>
+              </article>
+            </div>
+
+          </div>
+        </div>
+
+        <button class="vitrine__nav" id="btnNext" aria-label="Próximo">›</button>
+      </div>
+
+      <div class="vitrine__dots" id="dots" role="tablist"></div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      var track = document.getElementById('track');
+      var dots = document.getElementById('dots');
+      var btnPrev = document.getElementById('btnPrev');
+      var btnNext = document.getElementById('btnNext');
+      var itens = track.children.length;
+      var pagina = 0;
+
+      function porPagina() {
+        var w = window.innerWidth;
+        if (w <= 600) return 1;
+        if (w <= 900) return 2;
+        return 3;
+      }
+
+      function totalPaginas() { return Math.ceil(itens / porPagina()); }
+
+      function render() {
+        var pp = porPagina();
+        track.style.setProperty('--por-pagina', pp);
+        var tp = totalPaginas();
+        if (pagina > tp - 1) pagina = tp - 1;
+
+        track.style.transform = 'translateX(-' + (pagina * 100) + '%)';
+        btnPrev.disabled = pagina === 0;
+        btnNext.disabled = pagina >= tp - 1;
+
+        var html = '';
+        for (var i = 0; i < tp; i++) {
+          html += '<button role="tab" data-p="' + i + '" class="' +
+            (i === pagina ? 'ativo' : '') + '" aria-selected="' + (i === pagina) +
+            '" aria-label="Página ' + (i + 1) + '"></button>';
+        }
+        dots.innerHTML = html;
+      }
+
+      btnPrev.addEventListener('click', function () { if (pagina > 0) { pagina--; render(); } });
+      btnNext.addEventListener('click', function () { if (pagina < totalPaginas() - 1) { pagina++; render(); } });
+      dots.addEventListener('click', function (e) {
+        var b = e.target.closest('button[data-p]');
+        if (b) { pagina = Number(b.getAttribute('data-p')); render(); }
+      });
+      window.addEventListener('resize', render);
+      render();
+
+      /* ===== Countdown compacto ao vivo ===== */
+      var timers = [];
+      document.querySelectorAll('[data-timer]').forEach(function (el) {
+        var min = Number(el.getAttribute('data-restante-min')) || 0;
+        timers.push({ el: el, alvo: el.querySelector('[data-cont]'), deadline: Date.now() + min * 60000 });
+      });
+
+      function pad(n) { return String(n).padStart(2, '0'); }
+
+      function tique() {
+        var agora = Date.now();
+        timers.forEach(function (t) {
+          var diff = Math.max(0, t.deadline - agora);
+          var seg = Math.floor(diff / 1000);
+          var d = Math.floor(seg / 86400);
+          var h = Math.floor((seg % 86400) / 3600);
+          var m = Math.floor((seg % 3600) / 60);
+          var s = seg % 60;
+
+          // Com dias: "2d 05:30" · Sem dias: "05:30:42"
+          t.alvo.textContent = d > 0
+            ? d + 'd ' + pad(h) + ':' + pad(m)
+            : pad(h) + ':' + pad(m) + ':' + pad(s);
+
+          t.el.classList.toggle('produto__timer--urgente', diff > 0 && diff < 3 * 3600000);
+        });
+      }
+      tique();
+      setInterval(tique, 1000);
+    })();
+  </script>
+</body>
+</html>

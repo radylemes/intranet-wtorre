@@ -28,10 +28,12 @@ const grupoLogosRoutes = require('./routes/grupo-logos.routes');
 const iconesRoutes = require('./routes/icones.routes');
 const comunicadosRoutes = require('./routes/comunicados.routes');
 const eventosRoutes = require('./routes/eventos.routes');
+const bidRoutes = require('./routes/bid.routes');
 const powerbiRoutes = require('./routes/powerbi.routes');
 const assinaturasController = require('./controllers/assinaturas.controller');
 const { agendarSincronizacaoColaboradores } = require('./services/colaboradores.sync');
 const { agendarJobsCamarotes } = require('./services/camarotes-cron.service');
+const { agendarJobsBid } = require('./services/bid-cron.service');
 const { reconcileAll } = require('./services/doc-pagina-menu.sync');
 const { ensureFotosDir } = require('./controllers/colaboradores.controller');
 const { ensureGrupoLogosDir } = require('./config/grupo-logos-upload');
@@ -88,6 +90,7 @@ app.use('/api/v1/solicitacao-colaborador', solicitacaoColaboradorRoutes);
 app.use('/api/v1/content-version', contentVersionRoutes);
 app.use('/api/v1/comunicados', comunicadosRoutes);
 app.use('/api/v1/eventos', eventosRoutes);
+app.use('/api/v1/bid', bidRoutes);
 app.use('/api/v1/powerbi', powerbiRoutes);
 
 // Rotas públicas de assinaturas (sem JWT — usadas pelo instalador antes de qualquer login)
@@ -140,4 +143,5 @@ app.listen(env.port, () => {
     .catch((err) => console.error('[documentos] Falha ao sincronizar menu de páginas:', err.message));
   agendarSincronizacaoColaboradores();
   agendarJobsCamarotes();
+  agendarJobsBid();
 });

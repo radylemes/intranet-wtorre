@@ -2,6 +2,8 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { PublicChromeComponent } from '../../shared/public-chrome/public-chrome.component';
 import { HomeCarrosselComponent } from './home-carrossel/home-carrossel.component';
+import { BidPremioCardComponent } from './bid-premio-card/bid-premio-card.component';
+import { BidCarouselComponent } from './bid-carousel/bid-carousel.component';
 import { SistemasComponent } from './sistemas/sistemas.component';
 import { FooterComponent } from '../../shared/footer/footer.component';
 import { AuthService } from '../../services/auth.service';
@@ -12,6 +14,8 @@ import { AuthService } from '../../services/auth.service';
   imports: [
     PublicChromeComponent,
     HomeCarrosselComponent,
+    BidPremioCardComponent,
+    BidCarouselComponent,
     SistemasComponent,
     FooterComponent,
   ],

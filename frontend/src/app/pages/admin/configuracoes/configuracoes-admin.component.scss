@@ -10,6 +10,18 @@
   margin-top: 1.5rem;
 }
 
+.card-sub {
+  margin: 0.35rem 0 0;
+  font-size: 13px;
+  color: var(--ink-soft, #48536a);
+  max-width: 40rem;
+  line-height: 1.45;
+}
+
+.card-sub code {
+  font-size: 12px;
+}
+
 .email-actions {
   display: flex;
   flex-wrap: wrap;

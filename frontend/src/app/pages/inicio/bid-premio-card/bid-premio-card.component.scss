@@ -1,0 +1,42 @@
+:host {
+  display: block;
+}
+
+.bid-premio-card {
+  position: relative;
+  z-index: 5;
+  padding: 8px 0 16px;
+}
+
+.bid-premio-card__eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--wtorre, #1d54e6);
+}
+
+.bid-premio-card__titulo-secao {
+  margin: 2px 0 14px;
+  font-family: 'Archivo Expanded', 'Archivo', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.bid-premio-card__ticket-wrap {
+  position: relative;
+}
+
+.bid-premio-card__outros {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wtorre, #1d54e6);
+  text-decoration: none;
+}
+
+.bid-premio-card__outros:hover {
+  text-decoration: underline;
+}

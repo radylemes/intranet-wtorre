@@ -1,0 +1,157 @@
+@if (carregando()) {
+  <section class="bid-carousel bid-carousel--loading" aria-hidden="true">
+    <div class="wrap">
+      <div class="bid-carousel__placeholder"></div>
+    </div>
+  </section>
+} @else if (visivel()) {
+  <section
+    class="bid-carousel"
+    aria-label="Eventos BID"
+    (mouseenter)="onCarouselMouseEnter()"
+    (mouseleave)="onCarouselMouseLeave()"
+  >
+    <div class="wrap">
+      <div class="bid-carousel__header">
+        <div>
+          <span class="bid-carousel__eyebrow">■ PLATAFORMA BID</span>
+          <h2>Eventos BID</h2>
+        </div>
+        <a
+          class="bid-carousel__ver-todos"
+          [href]="bidAppUrl"
+          target="_blank"
+          rel="noopener"
+        >
+          Ver todos ›
+        </a>
+      </div>
+
+      <div class="bid-carousel__wrapper">
+        <button
+          type="button"
+          class="bid-carousel__nav"
+          aria-label="Anterior"
+          [disabled]="!multiplasPaginas()"
+          (click)="anterior()"
+        >
+          ‹
+        </button>
+
+        <div
+          class="bid-carousel__viewport"
+          role="region"
+          aria-roledescription="carrossel"
+          [attr.aria-label]="'Eventos BID, ' + totalPaginas() + ' páginas'"
+          tabindex="0"
+          (keydown)="onKeydown($event)"
+        >
+          <div
+            class="bid-carousel__track"
+            [class.bid-carousel__track--instant]="!transicaoAtiva()"
+            [style.transform]="trackOffset()"
+            [style.--por-pagina]="cardsPorPagina()"
+            aria-live="polite"
+            (transitionend)="onTrackTransitionEnd($event)"
+          >
+            @for (ev of eventosLoop(); track trackSlot($index, ev)) {
+              <div class="bid-card-slot" [class.bid-card-slot--vencedor]="isVencedor(ev)">
+                @if (isVencedor(ev)) {
+                  <app-bid-vencedor-ticket [data]="ticketData(ev)" [compact]="true" />
+                } @else {
+                <article
+                  class="bid-card"
+                  [class.bid-card--encerrada]="isEncerrada(ev)"
+                >
+                  <div class="bid-card__media">
+                    @if (ev.imagem_url) {
+                      <img
+                        class="bid-card__banner"
+                        [src]="ev.imagem_url"
+                        [alt]="ev.titulo"
+                        loading="lazy"
+                      />
+                    } @else {
+                      <div class="bid-card__banner bid-card__banner--fallback" role="img" [attr.aria-label]="ev.titulo"></div>
+                    }
+                    <span
+                      class="bid-card__badge"
+                      [class.bid-card__badge--encerrada]="isEncerrada(ev)"
+                    >
+                      {{ isAberta(ev) ? 'ABERTA' : 'ENCERRADA' }}
+                    </span>
+                  </div>
+
+                  <div class="bid-card__body">
+                    <h3 class="bid-card__titulo">{{ ev.titulo }}</h3>
+                    @if (ev.subtitulo) {
+                      <p class="bid-card__subtitulo">{{ ev.subtitulo }}</p>
+                    }
+                    <div class="bid-card__data">{{ formatarDataLinha(ev) }}</div>
+                    <div class="bid-card__destaque">
+                      {{ ev.quantidade_premios }}
+                      <small>{{ legendaIngressos(ev) }}</small>
+                    </div>
+                    @if (isEncerrada(ev)) {
+                      <div class="bid-card__stats">
+                        <span><b>{{ ev.total_apostas ?? 0 }}</b> lances</span>
+                        <span><b>{{ ev.total_participantes ?? 0 }}</b> participantes</span>
+                      </div>
+                    }
+                    @if (isAberta(ev) && ev.data_limite_aposta; as limite) {
+                      @if (formatarCountdown(limite); as countdown) {
+                        <div
+                          class="bid-card__timer"
+                          [class.bid-card__timer--urgente]="countdown.urgente"
+                          role="timer"
+                        >
+                          ⏱ {{ countdown.texto }}
+                        </div>
+                      }
+                    }
+                    <a
+                      class="bid-card__cta"
+                      [class.bid-card__cta--secundario]="isEncerrada(ev)"
+                      [href]="ctaUrl(ev)"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {{ textoCta(ev) }}
+                    </a>
+                  </div>
+                </article>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="bid-carousel__nav"
+          aria-label="Próximo"
+          [disabled]="!multiplasPaginas()"
+          (click)="proximo()"
+        >
+          ›
+        </button>
+      </div>
+
+      @if (multiplasPaginas()) {
+        <div class="bid-carousel__dots" role="tablist" aria-label="Páginas do carrossel">
+          @for (p of paginas(); track p) {
+            <button
+              type="button"
+              role="tab"
+              class="bid-carousel__dot"
+              [class.ativo]="paginaLogicaAtual() === p"
+              [attr.aria-selected]="paginaLogicaAtual() === p"
+              [attr.aria-label]="'Página ' + (p + 1)"
+              (click)="irParaPagina(p)"
+            ></button>
+          }
+        </div>
+      }
+    </div>
+  </section>
+}

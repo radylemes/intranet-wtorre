@@ -30,3 +30,51 @@ export interface EmailConfig extends SmtpConfig {
 export interface ConfiguracoesAdmin {
   header_chamado: HeaderChamadoConfig;
 }
+
+export interface BidIntegracaoConfig {
+  ativo: boolean;
+  api_base_url: string;
+  has_api_key: boolean;
+  api_key_hint: string | null;
+  app_url: string;
+  cache_ttl_min: number;
+  sync_automatica: boolean;
+  sync_intervalo_min: number;
+  ultima_sync?: string | null;
+  ultima_sync_erro?: string | null;
+  snapshot_status?: 'ok' | 'erro' | null;
+  snapshot_sincronizado_em?: string | null;
+  gerado_em_eventos?: string | null;
+  gerado_em_usuarios?: string | null;
+  atualizado_em?: string;
+}
+
+export interface SalvarBidIntegracaoBody {
+  ativo: boolean;
+  api_base_url: string;
+  api_key?: string;
+  app_url: string;
+  cache_ttl_min: number;
+  sync_automatica: boolean;
+  sync_intervalo_min: number;
+}
+
+export interface BidTesteConexaoResponse {
+  ok: boolean;
+  mensagem: string;
+  bids_abertos: number;
+  usuarios_ativos: number;
+  gerado_em_eventos?: string | null;
+  gerado_em_usuarios?: string | null;
+}
+
+export interface BidSincronizarResponse {
+  ok: boolean;
+  mensagem: string;
+  bids_abertos: number;
+  usuarios_ativos: number;
+  gerado_em_eventos: string | null;
+  gerado_em_usuarios: string | null;
+  sincronizado_em: string | null;
+  duracao_ms: number;
+}

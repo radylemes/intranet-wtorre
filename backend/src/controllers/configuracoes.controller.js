@@ -1,6 +1,8 @@
 const siteConfigRepo = require('../repositories/site-config.repository');
 const auditRepo = require('../repositories/auditLog.repository');
 const emailConfigService = require('../services/email-config.service');
+const bidConfigService = require('../services/bid-config.service');
+const bidIntegracaoService = require('../services/bid-integracao.service');
 const smtpMailService = require('../services/mail/smtp-mail.service');
 const emailSender = require('../utils/emailSender');
 const contentVersionService = require('../services/content-version.service');
@@ -220,6 +222,62 @@ async function testarSmtp(req, res) {
   return testarEmail(req, res);
 }
 
+async function getBidConfig(_req, res) {
+  try {
+    const bid = {
+      ...(await bidConfigService.getPublicConfig()),
+      ...(await bidIntegracaoService.getSyncStatusPublico()),
+    };
+    return res.json(bid);
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function putBidConfig(req, res) {
+  try {
+    const bid = await bidConfigService.save(req.body);
+    await auditRepo.log({
+      ...auditMeta(req),
+      action: 'BID_CONFIG_SALVA',
+      email: req.user?.email,
+    });
+    return res.json(bid);
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+
+async function sincronizarBidConfig(req, res) {
+  try {
+    const bidSyncService = require('../services/bid-sync.service');
+    const result = await bidSyncService.sincronizarBid();
+    await auditRepo.log({
+      ...auditMeta(req),
+      action: 'BID_SYNC_MANUAL',
+      email: req.user?.email,
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
+async function testarBidConfig(req, res) {
+  try {
+    const result = await bidIntegracaoService.testarConexao({ ignorarCache: true });
+    await auditRepo.log({
+      ...auditMeta(req),
+      action: 'BID_CONFIG_TESTADA',
+      email: req.user?.email,
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(err.status || 500).json({ mensagem: err.message });
+  }
+}
+
 module.exports = {
   getHeaderChamadoPublic,
   getConfiguracoes,
@@ -232,4 +290,8 @@ module.exports = {
   putSmtpConfig,
   verificarSmtp,
   testarSmtp,
+  getBidConfig,
+  putBidConfig,
+  testarBidConfig,
+  sincronizarBidConfig,
 };

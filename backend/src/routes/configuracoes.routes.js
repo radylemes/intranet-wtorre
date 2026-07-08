@@ -17,4 +17,9 @@ router.post('/smtp/verificar', requireJwt, requireModulo('configuracoes'), contr
 router.post('/smtp/teste', requireJwt, requireModulo('configuracoes'), controller.testarSmtp);
 router.put('/smtp', requireJwt, requireModulo('configuracoes'), controller.putSmtpConfig);
 
+router.get('/bid', requireJwt, requireModulo('configuracoes'), controller.getBidConfig);
+router.put('/bid', requireJwt, requireModulo('configuracoes'), controller.putBidConfig);
+router.post('/bid/testar', requireJwt, requireModulo('configuracoes'), controller.testarBidConfig);
+router.post('/bid/sincronizar', requireJwt, requireModulo('configuracoes'), controller.sincronizarBidConfig);
+
 module.exports = router;
