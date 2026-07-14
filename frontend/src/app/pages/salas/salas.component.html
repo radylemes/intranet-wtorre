@@ -1,0 +1,89 @@
+<div class="pagina salas-page">
+  <app-public-chrome>
+    <div class="salas-wrap">
+      <header class="salas-head">
+        <div class="salas-brand">
+          <span class="brand-ico">🏢</span>
+          <h1>Gestão de Salas</h1>
+        </div>
+
+        <nav class="salas-tabs" aria-label="Localidades">
+          @if (!naoConfigurado()) {
+            @for (tab of tabs(); track tab.id || tab.label; let i = $index) {
+              <button
+                type="button"
+                class="tab"
+                [class.active]="abaAtiva() === i"
+                (click)="selecionarAba(i)"
+              >
+                {{ tab.label }}
+              </button>
+            }
+          }
+        </nav>
+
+        @if (!naoConfigurado()) {
+          <button
+            type="button"
+            class="btn-refresh"
+            [class.is-updating]="atualizando()"
+            [disabled]="atualizando()"
+            (click)="atualizar()"
+          >
+            ↻ {{ atualizando() ? 'Atualizando…' : 'Atualizar disponibilidade' }}
+          </button>
+        }
+      </header>
+
+      @if (erro()) {
+        <div class="state-erro" [class.state-config]="naoConfigurado()">
+          <p>{{ erro() }}</p>
+          @if (!naoConfigurado()) {
+            <button type="button" (click)="atualizar()">Tentar novamente</button>
+          }
+        </div>
+      } @else if (view() === 'agenda' && salaSelecionada()) {
+        <app-salas-agenda
+          [sala]="salaSelecionada()!"
+          [localidadeLabel]="localidadeLabel()"
+          [occupancyPercent]="agendaOcupacao()"
+          [periods]="agendaPeriods()"
+          [daySlots]="agendaRoomSlots()"
+          [dataIso]="dataIso()"
+          [carregando]="carregandoInicial()"
+          [slotSelecionado]="slotSelecionado()"
+          (voltar)="voltarDashboard()"
+          (dataChange)="onDataChange($event)"
+          (slotClick)="abrirModal($event)"
+        />
+      } @else {
+        <app-salas-dashboard
+          [localidadeLabel]="localidadeLabel()"
+          [salas]="salasComOcupacao()"
+          [rooms]="roomsParaExibicao()"
+          [reservas]="reservasDoDia()"
+          [dataIso]="dataIso()"
+          [carregando]="carregandoInicial()"
+          [modoReservas]="modoReservas()"
+          [usuarioEmail]="usuarioEmail()"
+          (salaClick)="abrirSala($event)"
+          (dataChange)="onDataChange($event)"
+          (cancelarReserva)="cancelarReserva($event)"
+        />
+      }
+    </div>
+  </app-public-chrome>
+
+  <app-footer />
+
+  <app-salas-booking-modal
+    [open]="modalAberto()"
+    [sala]="salaSelecionada()"
+    [localidade]="apiLocalidadeSalaSelecionada()"
+    [slotStart]="slotSelecionado()?.start ?? null"
+    [roomSlots]="agendaRoomSlots()"
+    (closed)="fecharModal()"
+    (booked)="onReservado()"
+    (roomConflict)="onRoomConflict()"
+  />
+</div>

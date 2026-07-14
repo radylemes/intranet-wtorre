@@ -1,0 +1,73 @@
+<div class="salas-dashboard">
+  <div class="dash-toolbar">
+    <h2 class="localidade-titulo">{{ localidadeLabel() }}</h2>
+    <label class="data-field">
+      Data
+      <input type="date" [value]="dataIso()" (change)="onDataInput($event)" />
+    </label>
+  </div>
+
+  @if (!modoReservas()) {
+    @if (carregando()) {
+      <p class="state-msg">Carregando salas…</p>
+    } @else if (!salas().length) {
+      <p class="state-msg">Nenhuma sala disponível.</p>
+    } @else {
+      <div class="rooms-grid">
+        @for (sala of salas(); track sala.email) {
+          <article class="room-card" (click)="salaClick.emit(sala)">
+            <h3>{{ sala.name }}</h3>
+            <p class="meta"><span class="ico">✉</span> {{ sala.email }}</p>
+            <p class="meta"><span class="ico">👥</span> Capacidade: {{ sala.capacity }}</p>
+            <span class="badge-ocupacao">{{ sala.occupancyPercent }}% ocupado</span>
+            <span class="see-times">
+              Ver horários
+              <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </article>
+        }
+      </div>
+    }
+  }
+
+  <section class="reservas-sec">
+    <header>
+      <h3>Reservas</h3>
+      <p>Total de {{ reservas().length }} reservas</p>
+    </header>
+
+    @if (carregando()) {
+      <p class="state-msg">Carregando reservas…</p>
+    } @else if (!reservas().length) {
+      <p class="state-msg">Nenhuma reserva para esta data.</p>
+    } @else {
+      <div class="reservas-grid">
+        @for (r of reservas(); track r.eventId || r.id || r.start) {
+          <article class="reserva-card">
+            <div class="reserva-head">
+              <strong>{{ reservaTitulo(r) }}</strong>
+              @if (podeCancelar(r)) {
+                <button
+                  type="button"
+                  class="btn-cancel"
+                  title="Cancelar reserva"
+                  (click)="cancelarReserva.emit(r); $event.stopPropagation()"
+                >
+                  ×
+                </button>
+              }
+            </div>
+            <p class="meta"><span class="ico">📍</span> {{ nomeSala(r.roomEmail) }}</p>
+            <p class="meta">
+              <span class="ico">📅</span>
+              {{ formatDateTimeBr(r.start) }} até {{ formatDateTimeBr(r.end) }}
+            </p>
+            <p class="organizer"><span class="ico">👤</span> {{ reservaOrganizer(r) }}</p>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</div>

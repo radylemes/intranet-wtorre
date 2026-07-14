@@ -1,0 +1,210 @@
+@if (open()) {
+  <div class="salas-modal-backdrop" (click)="fechar()">
+    <div class="salas-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <header class="salas-modal-head">
+        <div>
+          <h2>Agendar Sala</h2>
+          <p>Preencha os detalhes da sua reunião</p>
+        </div>
+        <button type="button" class="btn-icon" (click)="fechar()" aria-label="Fechar">×</button>
+      </header>
+
+      <div class="salas-modal-body">
+        <aside class="salas-modal-resumo">
+          <span class="eyebrow">Sala selecionada</span>
+          <h3>{{ sala()?.name }}</h3>
+          <div class="resumo-item">
+            <span class="ico">🕐</span>
+            <div>
+              <small>Horário selecionado</small>
+              <strong>{{ horarioLabel() }}</strong>
+            </div>
+          </div>
+          <div class="resumo-item">
+            <span class="ico">✉</span>
+            <div>
+              <small>Sala</small>
+              <strong>{{ sala()?.email }}</strong>
+            </div>
+          </div>
+          <div class="resumo-item">
+            <span class="ico">✓</span>
+            <div>
+              <small>Disponibilidade</small>
+              @if (previewCarregando()) {
+                <span class="badge badge-muted">Verificando…</span>
+              } @else if (availabilityPreview()) {
+                <span class="badge" [class.badge-ok]="isRoomAvailable()" [class.badge-danger]="!isRoomAvailable()">
+                  {{ isRoomAvailable() ? 'Disponível' : 'Indisponível' }}
+                </span>
+              } @else {
+                <span class="badge badge-muted">Aguardando</span>
+              }
+            </div>
+          </div>
+          @if (participantes().length && availabilityPreview()) {
+            <div class="resumo-item resumo-participantes-status">
+              <span class="ico">👥</span>
+              <div>
+                <small>Status dos participantes</small>
+                <div class="participants-status">
+                  <span class="status-ok">✓ {{ availableCount() }} disponível{{ availableCount() !== 1 ? 'eis' : '' }}</span>
+                  @if (conflictCount() > 0) {
+                    <span class="status-bad">× {{ conflictCount() }} com conflito</span>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </aside>
+
+        <section class="salas-modal-form">
+          <label class="field">
+            <span>Título da reunião *</span>
+            <input type="text" [ngModel]="titulo()" (ngModelChange)="onTituloChange($event)" placeholder="Ex: Reunião com Cliente" />
+          </label>
+
+          <div class="field">
+            <span>Organizador</span>
+            <p class="field-help">A reserva será criada no seu calendário; a sala entra como recurso.</p>
+            <input type="text" [value]="organizerLabel()" readonly />
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Início</span>
+              <input type="text" [value]="slotStart() ? formatTimeBr(slotStart()!) : ''" readonly />
+            </label>
+            <label class="field">
+              <span>Horário de fim *</span>
+              <select [ngModel]="fimIdx()" (ngModelChange)="onFimChange(+$event)">
+                @for (op of opcoesFimLista(); track op.minutos; let i = $index) {
+                  <option [value]="i">{{ op.label }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <div class="field">
+            <span>Participantes (opcional)</span>
+            <div class="participantes-row">
+              <input
+                type="text"
+                [ngModel]="participanteBusca()"
+                (ngModelChange)="onParticipanteInput($event)"
+                placeholder="Digite para buscar ou informe o e-mail"
+              />
+              <button type="button" class="btn-add" (click)="adicionarParticipante()">+</button>
+            </div>
+            @if (sugestoes().length) {
+              <ul class="sugestoes">
+                @for (u of sugestoes(); track u.email) {
+                  <li>
+                    <button type="button" (click)="adicionarParticipante(u.email)">
+                      {{ u.displayName || u.name || u.email }} — {{ u.email }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+            @if (participantes().length) {
+              <div class="chips">
+                @for (p of participantes(); track p) {
+                  <span class="chip">
+                    {{ p }}
+                    <button type="button" (click)="removerParticipante(p)">×</button>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        </section>
+
+        <aside class="salas-modal-preview" [class.visible]="availabilityPreview() || previewCarregando()">
+          <h4>Prévia de disponibilidade</h4>
+          <p class="hint">Informe início/fim e participantes para visualizar a prévia.</p>
+          @if (previewErro() && !availabilityPreview()) {
+            <p class="state">{{ previewErro() }}</p>
+          } @else if (previewCarregando() && !availabilityPreview()) {
+            <p class="state">Carregando prévia…</p>
+          } @else if (availabilityPreview(); as preview) {
+            @if (previewCarregando()) {
+              <p class="preview-updating">Atualizando…</p>
+            }
+            <div class="preview-stack">
+              <div
+                class="preview-item preview-item-room"
+                [class.available]="isRoomAvailable()"
+                [class.busy]="!isRoomAvailable()"
+              >
+                <span class="preview-label">Sala ({{ preview.room.email }})</span>
+              </div>
+              @for (p of preview.participants; track p.email) {
+                <div
+                  class="preview-item preview-item-participant"
+                  [class.available]="isParticipantAvailable(p.email)"
+                  [class.busy]="!isParticipantAvailable(p.email)"
+                  [class.requester]="isRequesterEmail(p.email)"
+                >
+                  <span class="preview-label">
+                    {{ isRequesterEmail(p.email) ? 'Organizador: ' : '' }}{{ p.email }}
+                  </span>
+                  @if (!isRequesterEmail(p.email)) {
+                    <button
+                      type="button"
+                      class="preview-remove"
+                      (click)="removerParticipante(p.email)"
+                      [attr.aria-label]="'Remover ' + p.email"
+                    >
+                      ×
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            <div class="legend">
+              <span><i class="sq ok"></i> Disponível</span>
+              <span><i class="sq bad"></i> Ocupado</span>
+            </div>
+          }
+        </aside>
+      </div>
+
+      <footer class="salas-modal-foot">
+        <button type="button" class="btn-secondary" (click)="fechar()">Cancelar</button>
+        <button
+          type="button"
+          class="btn-primary"
+          [disabled]="submitDisabled()"
+          (click)="reservar()"
+        >
+          {{ submitButtonLabel() }}
+        </button>
+      </footer>
+    </div>
+
+    @if (showConflictConfirm()) {
+      <div
+        class="salas-conflict-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="salas-conflict-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="salas-conflict-dialog" (click)="$event.stopPropagation()">
+          <div class="salas-conflict-icon" aria-hidden="true">!</div>
+          <h2 id="salas-conflict-title" class="salas-conflict-title">Conflito na agenda</h2>
+          <p class="salas-conflict-message">{{ conflictConfirmText() }}</p>
+          <div class="salas-conflict-actions">
+            <button type="button" class="btn-primary" [disabled]="salvando()" (click)="confirmConflict()">
+              {{ salvando() ? 'Reservando…' : 'Agendar mesmo assim' }}
+            </button>
+            <button type="button" class="btn-secondary" [disabled]="salvando()" (click)="cancelConflictConfirm()">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}

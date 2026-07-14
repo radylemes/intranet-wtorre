@@ -30,6 +30,7 @@ const comunicadosRoutes = require('./routes/comunicados.routes');
 const eventosRoutes = require('./routes/eventos.routes');
 const bidRoutes = require('./routes/bid.routes');
 const powerbiRoutes = require('./routes/powerbi.routes');
+const salasRoutes = require('./routes/salas.routes');
 const assinaturasController = require('./controllers/assinaturas.controller');
 const { agendarSincronizacaoColaboradores } = require('./services/colaboradores.sync');
 const { agendarJobsCamarotes } = require('./services/camarotes-cron.service');
@@ -92,6 +93,7 @@ app.use('/api/v1/comunicados', comunicadosRoutes);
 app.use('/api/v1/eventos', eventosRoutes);
 app.use('/api/v1/bid', bidRoutes);
 app.use('/api/v1/powerbi', powerbiRoutes);
+app.use('/api/v1/salas', salasRoutes);
 
 // Rotas públicas de assinaturas (sem JWT — usadas pelo instalador antes de qualquer login)
 app.get('/api/v1/assinaturas/script/instalar', assinaturasController.obterScriptBase);

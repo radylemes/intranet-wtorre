@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!--
+  Protótipo de referência visual — Dashboard de Salas (Intranet WTorre).
+  Não é código de produção. Ver implementação em app/pages/salas/.
+  Tokens: --wtorre #1d54e6, cards radius 16px, botões pílula, slots semânticos verde/vermelho/cinza.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <title>Protótipo — Dashboard Salas</title>
+  <style>
+    :root { --wtorre: #1d54e6; --bg: #f4f5f8; --panel: #fff; --line: #e4e8f0; --radius: 16px; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: #10151f; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    .head { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 1rem; }
+    .tabs { display: flex; gap: 0.25rem; border: 1px solid var(--line); border-radius: 999px; padding: 0.25rem; background: var(--panel); }
+    .tab { border: none; background: transparent; padding: 0.5rem 0.85rem; border-radius: 999px; font-weight: 600; }
+    .tab.active { background: rgba(29,84,230,.12); color: var(--wtorre); }
+    .btn { border: none; background: var(--wtorre); color: #fff; border-radius: 999px; padding: 0.65rem 1.25rem; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin: 1.5rem 0; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.5rem; }
+    .badge { display: inline-block; margin-top: 0.75rem; padding: 0.2rem 0.55rem; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 0.78rem; font-weight: 700; }
+    .see-times { color: var(--wtorre); font-weight: 600; margin-top: 0.75rem; display: inline-flex; gap: 0.4rem; }
+    h2.local { color: var(--wtorre); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <strong>Gestão de Salas</strong>
+      <nav class="tabs">
+        <button class="tab active">Nubank Parque</button>
+        <button class="tab">WTorre</button>
+        <button class="tab">Reservas</button>
+      </nav>
+      <button class="btn">Atualizar disponibilidade</button>
+    </header>
+    <h2 class="local">Nubank Parque</h2>
+    <div class="grid">
+      <article class="card">
+        <h3>Sala 01 - Backstage</h3>
+        <p>sala01@wtorre.com.br</p>
+        <span class="badge">8% ocupado</span>
+        <div class="see-times">Ver horários →</div>
+      </article>
+    </div>
+  </div>
+</body>
+</html>

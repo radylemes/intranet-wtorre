@@ -1,0 +1,460 @@
+<div class="admin-page salas-admin-page">
+  <header class="page-head">
+    <h1>Administração de áreas e salas</h1>
+    <p class="page-subtitle">
+      Configure domínios por aba, mapeamento de tenants Microsoft e ordem de exibição das salas na página
+      <code>/salas</code>.
+    </p>
+  </header>
+
+  @if (carregando()) {
+    <p class="empty">Carregando...</p>
+  } @else {
+    <section class="card salas-unified-card">
+      <nav class="admin-tabs" aria-label="Administração de salas">
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'conexao'"
+          (click)="selecionarAba('conexao')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Conexão</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'dominios'"
+          (click)="selecionarAba('dominios')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2" />
+            </svg>
+          </span>
+          <span class="tab-label">Domínios e logos</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'mapeamento'"
+          (click)="selecionarAba('mapeamento')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 6h16v12H4V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+              <path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Mapeamento</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'salas'"
+          (click)="selecionarAba('salas')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M3 21h18M5 21V7l7-4 7 4v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Salas</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'ordem'"
+          (click)="selecionarAba('ordem')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span class="tab-label">Ordem de exibição</span>
+        </button>
+      </nav>
+
+      @if (abaAtiva() === 'conexao') {
+        <div class="tabpane">
+          <div class="pane-head">
+            <div>
+              <h2>Conexão com a API</h2>
+              <p class="hint">Integração Graph para reservas, agenda e listagem de salas.</p>
+            </div>
+          </div>
+          <div class="pane-body">
+            <form [formGroup]="conexaoForm" (ngSubmit)="salvarConexao()" class="config-form">
+              <div class="toggle-field">
+                <div>
+                  <div class="tt">Integração ativa</div>
+                  <div class="ts">Habilita a página pública de reserva de salas</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" formControlName="ativo" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="field">
+                <label for="salas-api-url">URL da API</label>
+                <input
+                  id="salas-api-url"
+                  formControlName="api_base_url"
+                  type="url"
+                  placeholder="https://salas.exemplo.com/api"
+                />
+                <div class="help">URL base da API externa, sem barra final.</div>
+              </div>
+
+              <div class="field">
+                <label for="salas-localidade-padrao">Aba padrão</label>
+                <input
+                  id="salas-localidade-padrao"
+                  formControlName="localidade_padrao"
+                  type="text"
+                  placeholder="wtorre"
+                />
+                <div class="help">ID da aba exibida ao abrir <code>/salas</code> (ex.: <code>wtorre</code>).</div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary" [disabled]="salvandoConexao()">
+                  {{ salvandoConexao() ? 'Salvando...' : 'Salvar conexão' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-ghost"
+                  [disabled]="testando()"
+                  (click)="testarConexao()"
+                >
+                  {{ testando() ? 'Testando...' : 'Testar conexão' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
+
+      @if (abaAtiva() === 'dominios') {
+        <div class="tabpane">
+          <div class="pane-head">
+            <div>
+              <h2>Domínios e logos por site</h2>
+              <p class="hint">Cada coluna representa uma aba exibida na página pública.</p>
+            </div>
+            @if (painelPronto) {
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="salvandoUi()"
+                (click)="salvarUiConfig()"
+              >
+                {{ salvandoUi() ? 'Salvando...' : 'Salvar alterações' }}
+              </button>
+            }
+          </div>
+          <div class="pane-body">
+            @if (painelPronto && config(); as cfg) {
+              <div class="tabs-grid">
+                @for (tab of cfg.tabs; track tab.id) {
+                  <article class="tab-card">
+                    <div class="field">
+                      <label [for]="'tab-label-' + tab.id">Nome da aba</label>
+                      <input [id]="'tab-label-' + tab.id" type="text" [(ngModel)]="tab.label" [name]="'label-' + tab.id" />
+                    </div>
+
+                    <div class="logo-block">
+                      <span class="logo-label">Logo</span>
+                      @if (getTabLogoUrl(tab); as logoUrl) {
+                        <img [src]="logoUrl" [alt]="tab.label" class="logo-preview" />
+                        @if (isBuiltinLogo(tab)) {
+                          <p class="muted logo-hint">Exibindo logo padrão (fallback)</p>
+                        }
+                      } @else {
+                        <p class="muted logo-empty">Nenhum logo configurado</p>
+                      }
+                      <div class="field">
+                        <label [for]="'logo-file-' + tab.id">Usar logo cadastrado</label>
+                        <select
+                          [id]="'logo-file-' + tab.id"
+                          [ngModel]="tab.logoFile ?? ''"
+                          (ngModelChange)="assignRegisteredLogo(tab, $event)"
+                          [name]="'logoFile-' + tab.id"
+                        >
+                          <option value="">Nenhum — usar logo padrão abaixo</option>
+                          @for (logo of registeredLogos(); track logo.name) {
+                            <option [value]="logo.name">{{ logo.name }}</option>
+                          }
+                        </select>
+                        @if (!registeredLogos().length) {
+                          <div class="help">Nenhum arquivo em <code>storage/salas-logos</code> ainda.</div>
+                        }
+                      </div>
+                      <div class="logo-actions">
+                        <label class="btn-ghost btn-sm file-btn">
+                          {{ logoUploadingTabId() === tab.id ? 'Enviando...' : 'Enviar novo logo' }}
+                          <input
+                            type="file"
+                            accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
+                            (change)="onLogoSelected(tab, $event)"
+                            [disabled]="logoUploadingTabId() === tab.id"
+                          />
+                        </label>
+                        @if (tab.logoFile) {
+                          <button
+                            type="button"
+                            class="btn-ghost btn-sm"
+                            [disabled]="logoUploadingTabId() === tab.id"
+                            (click)="removeCustomLogo(tab)"
+                          >
+                            Remover logo
+                          </button>
+                        }
+                      </div>
+                      <div class="field">
+                        <label [for]="'logo-key-' + tab.id">Logo padrão (fallback)</label>
+                        <select [id]="'logo-key-' + tab.id" [(ngModel)]="tab.logoKey" [name]="'logoKey-' + tab.id">
+                          @for (option of builtinLogoOptions; track option.key) {
+                            <option [value]="option.key">{{ option.label }}</option>
+                          }
+                        </select>
+                        <div class="help">Usado quando nenhum arquivo cadastrado está selecionado.</div>
+                      </div>
+                    </div>
+
+                    <div class="domains-list">
+                      @for (domain of tab.domains; track domain) {
+                        <span class="domain-chip">
+                          {{ domain }}
+                          <button
+                            type="button"
+                            class="chip-remove"
+                            (click)="removeDomain(tab, domain)"
+                            aria-label="Remover domínio"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      }
+                    </div>
+                    <div class="domain-add">
+                      <input
+                        type="text"
+                        [ngModel]="domainInputs()[tab.id]"
+                        (ngModelChange)="updateDomainInput(tab.id, $event)"
+                        [name]="'domain-' + tab.id"
+                        placeholder="novo-dominio.com.br"
+                      />
+                      <button type="button" class="btn-ghost btn-sm" (click)="addDomain(tab)">Adicionar</button>
+                    </div>
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="empty-hint">Configure e salve a conexão na aba <strong>Conexão</strong> para carregar o painel.</p>
+            }
+          </div>
+        </div>
+      }
+
+      @if (abaAtiva() === 'mapeamento') {
+        <div class="tabpane">
+          <div class="pane-head">
+            <div>
+              <h2>Mapeamento domínio → Tenant Microsoft</h2>
+              <p class="hint">Define qual tenant Graph cada domínio de e-mail utiliza.</p>
+            </div>
+            @if (painelPronto) {
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="salvandoUi()"
+                (click)="salvarUiConfig()"
+              >
+                {{ salvandoUi() ? 'Salvando...' : 'Salvar alterações' }}
+              </button>
+            }
+          </div>
+          <div class="pane-body">
+            @if (painelPronto && config(); as cfg) {
+              <div class="mapping-table">
+                @for (mapping of getDomainMappings(); track mapping.domain) {
+                  <div class="mapping-row">
+                    <span class="mapping-domain">{{ mapping.domain }}</span>
+                    <select
+                      [(ngModel)]="cfg.domainToApiLocalidade[mapping.domain]"
+                      [name]="'api-' + mapping.domain"
+                    >
+                      @for (option of apiLocalidadeOptions(); track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+                @if (!getDomainMappings().length) {
+                  <p class="muted">Adicione domínios na aba Domínios e logos para configurar o mapeamento.</p>
+                }
+              </div>
+            } @else {
+              <p class="empty-hint">Configure e salve a conexão na aba <strong>Conexão</strong> para carregar o painel.</p>
+            }
+          </div>
+        </div>
+      }
+
+      @if (abaAtiva() === 'salas') {
+        <div class="tabpane">
+          <div class="pane-head">
+            <div>
+              <h2>Salas</h2>
+              <p class="hint">Atribua cada sala a uma aba/fila exibida na página pública.</p>
+            </div>
+            @if (painelPronto) {
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="salvandoUi()"
+                (click)="salvarUiConfig()"
+              >
+                {{ salvandoUi() ? 'Salvando...' : 'Salvar alterações' }}
+              </button>
+            }
+          </div>
+          <div class="pane-body">
+            @if (painelPronto && config(); as cfg) {
+              @if (!rooms().length) {
+                <p class="muted">Nenhuma sala retornada pela API externa.</p>
+              } @else {
+                <div class="rooms-table">
+                  <div class="rooms-header">
+                    <span>Sala</span>
+                    <span>E-mail</span>
+                    <span>Unidade</span>
+                    <span>Fila</span>
+                    <span></span>
+                  </div>
+                  @for (room of rooms(); track room.email) {
+                    <div class="rooms-row">
+                      <span>{{ room.name }}</span>
+                      <span class="rooms-email">{{ room.email }}</span>
+                      <span>{{ room.apiLocalidade }}</span>
+                      <select
+                        [ngModel]="room.tabId ?? ''"
+                        (ngModelChange)="setRoomTab(room.email, $event)"
+                        [name]="'room-tab-' + room.email"
+                      >
+                        <option value="">Sem aba</option>
+                        @for (tab of cfg.tabs; track tab.id) {
+                          <option [value]="tab.id">{{ tab.label }}</option>
+                        }
+                      </select>
+                      <button
+                        type="button"
+                        class="btn-ghost btn-sm"
+                        [disabled]="room.tabSource !== 'override'"
+                        (click)="clearRoomOverride(room.email)"
+                      >
+                        Usar domínio
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            } @else {
+              <p class="empty-hint">Configure e salve a conexão na aba <strong>Conexão</strong> para carregar o painel.</p>
+            }
+          </div>
+        </div>
+      }
+
+      @if (abaAtiva() === 'ordem') {
+        <div class="tabpane">
+          <div class="pane-head">
+            <div>
+              <h2>Ordem de exibição das salas</h2>
+              <p class="hint">Defina a ordem e o nome exibido de cada sala na página pública.</p>
+            </div>
+            @if (painelPronto) {
+              <button
+                type="button"
+                class="btn-primary"
+                [disabled]="salvandoUi()"
+                (click)="salvarUiConfig()"
+              >
+                {{ salvandoUi() ? 'Salvando...' : 'Salvar alterações' }}
+              </button>
+            }
+          </div>
+          <div class="pane-body">
+            @if (painelPronto && config(); as cfg) {
+              <div class="tabs-grid">
+                @for (tab of cfg.tabs; track tab.id) {
+                  <article class="tab-card">
+                    <h3 class="tab-title">{{ tab.label }}</h3>
+                    @if (getOrderedRoomsForTab(tab.id).length === 0) {
+                      <p class="muted">Nenhuma sala atribuída a esta aba.</p>
+                    } @else {
+                      <ol class="room-order-list">
+                        @for (room of getOrderedRoomsForTab(tab.id); track room.email; let i = $index) {
+                          <li class="room-order-item">
+                            <span class="room-order-index">{{ i + 1 }}.</span>
+                            <div class="room-order-name-field">
+                              <input
+                                type="text"
+                                class="room-order-input"
+                                [ngModel]="getRoomDisplayName(room.email)"
+                                (ngModelChange)="setRoomDisplayName(room.email, $event)"
+                                [name]="'room-name-' + room.email"
+                                [placeholder]="getRoomApiName(room.email)"
+                                maxlength="120"
+                              />
+                              @if (hasRoomDisplayNameOverride(room.email)) {
+                                <span class="room-order-original">Nome na API: {{ getRoomApiName(room.email) }}</span>
+                              }
+                            </div>
+                            <div class="room-order-actions">
+                              <button
+                                type="button"
+                                class="icon-btn"
+                                [disabled]="i === 0"
+                                (click)="moveRoom(tab.id, room.email, -1)"
+                                aria-label="Mover para cima"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                class="icon-btn"
+                                [disabled]="i === getOrderedRoomsForTab(tab.id).length - 1"
+                                (click)="moveRoom(tab.id, room.email, 1)"
+                                aria-label="Mover para baixo"
+                              >
+                                ↓
+                              </button>
+                            </div>
+                          </li>
+                        }
+                      </ol>
+                    }
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="empty-hint">Configure e salve a conexão na aba <strong>Conexão</strong> para carregar o painel.</p>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+</div>

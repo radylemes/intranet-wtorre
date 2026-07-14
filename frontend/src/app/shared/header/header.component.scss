@@ -17,7 +17,7 @@ header.main {
 nav.menu {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 0;
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
@@ -29,6 +29,7 @@ nav.menu {
   gap: 12px;
   flex-shrink: 0;
   margin-left: auto;
+  padding-left: 28px;
 }
 
 @mixin navrow-compact-menu-items($padding, $font-size, $gap, $icon-size: 15px) {
@@ -62,7 +63,7 @@ nav.menu {
 .navrow--compact-1 {
   gap: 24px;
 
-  @include navrow-compact-menu-items(9px 11px, 13px, 2px, 15px);
+  @include navrow-compact-menu-items(9px 8px, 13px, 0, 15px);
 
   .btn-chamado {
     padding: 10px 16px;
@@ -73,7 +74,7 @@ nav.menu {
 .navrow--compact-2 {
   gap: 16px;
 
-  @include navrow-compact-menu-items(7px 9px, 12.5px, 2px, 14px);
+  @include navrow-compact-menu-items(7px 7px, 12.5px, 0, 14px);
 
   .btn-chamado {
     padding: 9px 13px;
@@ -239,6 +240,7 @@ nav.menu {
   .header-cta {
     margin-left: auto;
     gap: 10px;
+    padding-left: 0;
   }
 
   .header-cta .btn-chamado {

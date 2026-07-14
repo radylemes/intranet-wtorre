@@ -55,6 +55,12 @@ export const routes: Routes = [
       import('./pages/agendas/agendas.component').then((m) => m.AgendasComponent),
   },
   {
+    path: 'salas',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/salas/salas.component').then((m) => m.SalasComponent),
+  },
+  {
     path: 'assinaturas',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -251,6 +257,13 @@ export const routes: Routes = [
             (m) => m.ConfiguracoesAdminComponent
           ),
         data: { adminTitle: 'Configurações' },
+      },
+      {
+        path: 'salas',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/salas/salas-admin.component').then((m) => m.SalasAdminComponent),
+        data: { adminTitle: 'Reservas de Salas' },
       },
       {
         path: 'camarotes',

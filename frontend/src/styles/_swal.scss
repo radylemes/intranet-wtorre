@@ -1,5 +1,10 @@
 /* SweetAlert2 — tema WTorre (global, injetado no body) */
 
+/* Acima de modais de página (salas/camarotes z-index 1200, preview 1000) */
+.swal2-container {
+  z-index: 2000 !important;
+}
+
 .swal-wtorre {
   border-radius: 16px !important;
   background: var(--panel, #fff) !important;

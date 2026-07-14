@@ -91,6 +91,14 @@ body.pagina-inicio::before {
   mask-image: radial-gradient(ellipse 100% 80% at 50% 0%, #000, transparent 75%);
 }
 
+body.pagina-salas {
+  background: var(--bg);
+}
+
+body.pagina-salas app-footer footer {
+  background: var(--bg);
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(24px);

@@ -24,6 +24,7 @@ export const PAGINAS_INTERNAS: PaginaInterna[] = [
   { path: '/bi/camarotes', label: 'BI / Camarotes' },
   { path: '/dashboards', label: 'Dashboards' },
   { path: '/agendas', label: 'Agendas / Eventos' },
+  { path: '/salas', label: 'Reservar sala' },
 ];
 
 export function paginasDocumentosFromPaginas(

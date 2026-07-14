@@ -1,0 +1,13 @@
+-- ui-config local na intranet (fonte de verdade do admin /salas).
+--
+-- PRODUÇÃO — executar manualmente UMA vez se salas_config já existir:
+--
+-- ALTER TABLE salas_config
+--   ADD COLUMN ui_config_json JSON NOT NULL DEFAULT (JSON_OBJECT());
+--
+-- Após o ALTER, popular com o ui-config atual (ajuste o JSON conforme ambiente):
+--
+-- UPDATE salas_config SET ui_config_json = CAST('...' AS JSON) WHERE id = 1;
+--
+-- Idempotente no migrate automatizado:
+SELECT 1;

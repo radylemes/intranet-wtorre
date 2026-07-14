@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<!--
+  Protótipo de referência visual — Agenda da sala + Modal Agendar (Intranet WTorre).
+  Não é código de produção. Ver implementação em app/pages/salas/.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <title>Protótipo — Agenda e Modal Salas</title>
+  <style>
+    :root { --wtorre: #1d54e6; --wtorre-soft: rgba(29,84,230,.12); --radius: 16px; --radius-sm: 10px; --line: #e4e8f0; --panel: #fff; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f4f5f8; }
+    .layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+    .sidebar, .main { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem; }
+    .status { background: var(--wtorre-soft); border: 1px solid rgb(29 84 230 / 25%); color: #1e3a8a; border-radius: var(--radius-sm); padding: 0.75rem; margin: 1rem 0; }
+    .slot-free { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.5rem; text-align: center; }
+    .slot-busy { background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); opacity: 0.85; }
+    .modal { margin: 2rem auto; max-width: 900px; background: #fff; border-radius: var(--radius); box-shadow: 0 24px 60px rgb(16 24 40 / 20%); }
+    .modal-body { display: grid; grid-template-columns: 240px 1fr 260px; gap: 1rem; padding: 1rem; }
+    .btn-primary { background: var(--wtorre); color: #fff; border: none; border-radius: 999px; padding: 0.65rem 1.5rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <button>← Voltar</button>
+      <h2>Sala 01 - Backstage</h2>
+      <div class="status">Status Atual: 8% do tempo do dia está ocupado.</div>
+    </aside>
+    <main class="main">
+      <div class="slot-free">12:30 — Disponível</div>
+      <div class="slot-busy">10:30–12:00 — Ocupado</div>
+    </main>
+  </div>
+  <div class="modal">
+    <header style="padding:1rem;border-bottom:1px solid var(--line)"><h2>Agendar Sala</h2></header>
+    <div class="modal-body">
+      <aside>Resumo da sala</aside>
+      <section>Formulário</section>
+      <aside>Prévia</aside>
+    </div>
+    <footer style="padding:1rem;text-align:right"><button class="btn-primary">Reservar</button></footer>
+  </div>
+</body>
+</html>

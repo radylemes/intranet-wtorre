@@ -1,0 +1,79 @@
+<div class="salas-agenda">
+  <aside class="agenda-sidebar-col">
+    <div class="agenda-sidebar-card">
+      <button type="button" class="btn-voltar" (click)="voltar.emit()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Voltar
+      </button>
+      <h2>{{ sala().name }}</h2>
+      <p class="sub">{{ localidadeLabel() }}</p>
+      <div class="cap-block">
+        <span class="cap-label">Capacidade</span>
+        <strong class="cap-value">{{ sala().capacity }} pessoas</strong>
+      </div>
+      <div class="status-box">
+        <svg class="status-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 10v5M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>{{ statusMsg() }}</span>
+      </div>
+    </div>
+
+    <div class="agenda-legend-card">
+      <div class="legend">
+        <span><i class="sq free"></i> Disponível</span>
+        <span><i class="sq busy"></i> Indisponível</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="agenda-main">
+    <div class="agenda-toolbar">
+      <span class="agenda-eyebrow">Agenda da sala</span>
+      <label class="data-field">
+        Data
+        <input type="date" [value]="dataIso()" (change)="onDataInput($event)" />
+      </label>
+    </div>
+
+    @if (carregando()) {
+      <p class="state-msg">Carregando horários…</p>
+    } @else {
+      @for (period of periods(); track period.id) {
+        <section class="period">
+          <header>
+            <h3>{{ period.label }} ({{ period.range }})</h3>
+          </header>
+          <div class="slots-grid">
+            @for (slot of period.slots; track slot.start.getTime()) {
+              @if (!slot.skip) {
+                <button
+                  type="button"
+                  class="slot"
+                  [class.past]="slot.status === 'past'"
+                  [class.free]="slot.status === 'free'"
+                  [class.busy]="slot.status === 'occupied'"
+                  [class.selected]="slot.status === 'free' && isSelected(slot)"
+                  [style.grid-column]="slot.colspan ? 'span ' + slot.colspan : null"
+                  [disabled]="slot.status !== 'free'"
+                  (click)="onSlotClick(slot)"
+                >
+                  @if (slot.status === 'occupied') {
+                    <span class="slot-time">{{ slot.label }}</span>
+                    <span class="slot-sub">{{ slot.organizer || slot.subject }}</span>
+                  } @else {
+                    <span class="slot-time">{{ slot.label }}</span>
+                    <span class="slot-sub">30 min</span>
+                  }
+                </button>
+              }
+            }
+          </div>
+        </section>
+      }
+    }
+  </div>
+</div>
