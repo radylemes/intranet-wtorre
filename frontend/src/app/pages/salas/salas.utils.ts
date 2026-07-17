@@ -69,6 +69,39 @@ export function calcOccupancyPercent(
   return Math.round((occupied / bookable.length) * 100);
 }
 
+function findOverlappingBooking(
+  startIso: string,
+  endIso: string,
+  bookings: Reserva[]
+): Reserva | undefined {
+  // Preferir a booking cujo início bate com o slot (mais específica em overlaps).
+  let best: Reserva | undefined;
+  let bestStart = Number.POSITIVE_INFINITY;
+  for (const booking of bookings) {
+    if (!overlapsInterval(startIso, endIso, booking.start, booking.end)) continue;
+    const bookingStart = new Date(booking.start).getTime();
+    if (bookingStart < bestStart) {
+      best = booking;
+      bestStart = bookingStart;
+    }
+  }
+  return best;
+}
+
+function bookingSubject(booking: Reserva): string | undefined {
+  return booking.title || booking.subject || undefined;
+}
+
+function bookingOrganizer(booking: Reserva): string | undefined {
+  return booking.organizer || booking.organizerEmail || booking.requesterEmail || undefined;
+}
+
+function resolveBookingKey(booking: Reserva): string {
+  const id = (booking.eventId || booking.id || '').trim();
+  if (id) return id;
+  return `${booking.start}|${booking.end}|${bookingOrganizer(booking) || ''}`;
+}
+
 function slotStatus(
   start: Date,
   end: Date,
@@ -79,31 +112,37 @@ function slotStatus(
   status: SlotStatus;
   subject?: string;
   organizer?: string;
+  bookingKey?: string;
 } {
   if (end <= now) return { status: 'past' };
 
   const startIso = start.toISOString();
   const endIso = end.toISOString();
+  const booking = findOverlappingBooking(startIso, endIso, bookings);
 
   for (const item of items) {
     if (!isBusyScheduleStatus(item.status ?? 'busy')) continue;
     if (overlapsInterval(startIso, endIso, item.start, item.end)) {
+      const fromScheduleSubject = item.subject || item.title;
+      const fromScheduleOrganizer = item.organizer || item.organizerEmail;
+      // Booking é a fonte de verdade para rótulo/organizador (o schedule Graph
+      // frequentemente cobre várias reservas num único busy, com o 1º organizador).
       return {
         status: 'occupied',
-        subject: item.subject || item.title,
-        organizer: item.organizer || item.organizerEmail,
+        subject: (booking ? bookingSubject(booking) : undefined) || fromScheduleSubject,
+        organizer: (booking ? bookingOrganizer(booking) : undefined) || fromScheduleOrganizer,
+        bookingKey: booking ? resolveBookingKey(booking) : undefined,
       };
     }
   }
 
-  for (const booking of bookings) {
-    if (overlapsInterval(startIso, endIso, booking.start, booking.end)) {
-      return {
-        status: 'occupied',
-        subject: booking.title || booking.subject,
-        organizer: booking.organizer || booking.organizerEmail || booking.requesterEmail,
-      };
-    }
+  if (booking) {
+    return {
+      status: 'occupied',
+      subject: bookingSubject(booking),
+      organizer: bookingOrganizer(booking),
+      bookingKey: resolveBookingKey(booking),
+    };
   }
 
   return { status: 'free' };
@@ -125,7 +164,7 @@ export function buildDayTimeSlots(
       start.setHours(h, min, 0, 0);
       const end = new Date(start);
       end.setMinutes(end.getMinutes() + 30);
-      const { status, subject, organizer } = slotStatus(start, end, items, bookings, now);
+      const { status, subject, organizer, bookingKey } = slotStatus(start, end, items, bookings, now);
       slots.push({
         start,
         end,
@@ -133,6 +172,7 @@ export function buildDayTimeSlots(
         label: formatTimeBr(start),
         subject,
         organizer,
+        bookingKey,
       });
     }
   }
@@ -224,6 +264,18 @@ export function resolveBookableSlotClick(clicked: TimeSlot, bookable: TimeSlot[]
   return bookable.find((slot) => slot.start.getTime() === clicked.start.getTime()) ?? clicked;
 }
 
+function canMergeOccupied(current: TimeSlot, next: TimeSlot): boolean {
+  const currentKey = (current.bookingKey || '').trim();
+  const nextKey = (next.bookingKey || '').trim();
+  // Reservas distintas nunca se unem — mesmo com o mesmo organizador.
+  if (currentKey || nextKey) return !!currentKey && currentKey === nextKey;
+
+  const currentOrganizer = (current.organizer || '').trim();
+  const nextOrganizer = (next.organizer || '').trim();
+  // Sem booking: só une se ambos tiverem o mesmo organizador não vazio.
+  return !!currentOrganizer && currentOrganizer === nextOrganizer;
+}
+
 function mergeAdjacentOccupied(slots: TimeSlot[]): TimeSlot[] {
   const result: TimeSlot[] = [];
   let i = 0;
@@ -239,13 +291,15 @@ function mergeAdjacentOccupied(slots: TimeSlot[]): TimeSlot[] {
     let end = slot.end;
     let subject = slot.subject;
     let organizer = slot.organizer;
+    const key = slot.bookingKey;
     while (j < slots.length) {
       const next = slots[j];
       if (next.status !== 'occupied') break;
       if (next.start.getTime() !== end.getTime()) break;
-      if ((next.organizer || '') !== (organizer || '')) break;
+      if (!canMergeOccupied({ ...slot, subject, organizer, bookingKey: key }, next)) break;
       end = next.end;
       if (!subject) subject = next.subject;
+      if (!organizer) organizer = next.organizer;
       j++;
     }
 
@@ -256,6 +310,7 @@ function mergeAdjacentOccupied(slots: TimeSlot[]): TimeSlot[] {
       label: `${formatTimeBr(slot.start)} - ${formatTimeBr(end)}`,
       subject,
       organizer,
+      bookingKey: key,
       colspan: j - i,
       merged: j - i > 1,
     });

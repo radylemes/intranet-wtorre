@@ -149,6 +149,8 @@ export interface TimeSlot {
   label: string;
   subject?: string;
   organizer?: string;
+  /** Identidade da reserva (eventId/id+start) para limitar o merge visual. */
+  bookingKey?: string;
   colspan?: number;
   merged?: boolean;
   skip?: boolean;
