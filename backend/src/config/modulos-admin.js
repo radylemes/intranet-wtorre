@@ -14,6 +14,7 @@ const MODULOS = [
   { codigo: 'eventos', nome: 'Eventos', ordem: 13 },
   { codigo: 'powerbi', nome: 'Power BI', ordem: 14 },
   { codigo: 'salas', nome: 'Reservas de Salas', ordem: 15 },
+  { codigo: 'followup-suprimentos', nome: 'Follow-up de Suprimentos', ordem: 16 },
 ];
 
 const CODIGOS = new Set(MODULOS.map((m) => m.codigo));

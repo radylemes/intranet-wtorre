@@ -8,6 +8,7 @@ const PAGINAS_INTERNAS = [
   { path: '/plaquinhas-camarote', label: 'Plaquinhas Camarote' },
   { path: '/ferramentas/pdf', label: 'Ferramentas de PDF' },
   { path: '/salas', label: 'Reservar sala' },
+  { path: '/followup-suprimentos', label: 'Follow-up de Suprimentos' },
 ];
 
 const DOCUMENTOS_PATH_REGEX = /^\/documentos(\/[a-z0-9-]+)?$/;

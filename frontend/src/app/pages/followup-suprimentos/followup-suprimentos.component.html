@@ -1,0 +1,206 @@
+<app-public-chrome>
+  <div class="fu-page">
+    <header class="page-head">
+      <div>
+        <h1>Follow-up de Suprimentos</h1>
+        <p>Acompanhe o status das suas requisições de compra.</p>
+      </div>
+      @if (podeAdmin()) {
+        <a routerLink="/admin/followup-suprimentos" class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            />
+          </svg>
+          Configurar
+        </a>
+      }
+    </header>
+
+    <section class="summary">
+      <div class="avatar" aria-hidden="true">{{ avatarIniciais() }}</div>
+      <div class="who">
+        <b>@{{ login() }}</b>
+        <span><b>{{ total() }}</b> solicitações no total</span>
+      </div>
+      @if (stats().length) {
+        <div class="stats">
+          @for (s of stats(); track s.key) {
+            <div class="stat">
+              <span class="n">{{ s.qtd }}</span>
+              <span class="l"><i class="dot" [attr.data-tone]="s.key"></i>{{ s.label }}</span>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="toolbar">
+      <div class="field-label">Consultar por número da RM</div>
+      <div class="search-row">
+        <label class="search-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            inputmode="numeric"
+            placeholder="Digite o número da RM…"
+            aria-label="Número da RM"
+            [ngModel]="busca()"
+            (ngModelChange)="busca.set($event)"
+            (keydown.enter)="pesquisar()"
+          />
+        </label>
+        <button type="button" class="btn btn-primary btn-search" (click)="pesquisar()">Pesquisar</button>
+        <button type="button" class="btn btn-ghost btn-search" (click)="limparBusca()">Minhas RMs</button>
+      </div>
+
+      @if (filiaisChips().length) {
+        <div class="filials" role="group" aria-label="Filtrar por filial">
+          <span class="tag">FILIAL</span>
+          <button
+            type="button"
+            class="chip"
+            [class.active]="filialFiltro() === null"
+            (click)="selecionarFilial(null)"
+          >
+            Todas
+          </button>
+          @for (f of filiaisChips(); track f.codigo) {
+            <button
+              type="button"
+              class="chip"
+              [class.active]="filialFiltro() === f.codigo"
+              (click)="selecionarFilial(f.codigo)"
+              [title]="f.nome || f.codigo"
+            >
+              {{ f.codigo }}
+              @if (f.qtd > 0) {
+                <span class="cnt">{{ f.qtd }}</span>
+              }
+            </button>
+          }
+        </div>
+      }
+    </section>
+
+    <div class="results-head">
+      <h2>
+        @if (modoBusca() && buscaNumero()) {
+          Resultado da busca pela solicitação nº <em>{{ buscaNumero() }}</em>
+        } @else {
+          {{ contexto() }}
+        }
+      </h2>
+      <span class="count">
+        {{ listaExibida().length }}
+        {{ listaExibida().length === 1 ? 'pedido encontrado' : 'pedidos encontrados' }}
+      </span>
+    </div>
+
+    @if (carregando()) {
+      <div class="empty"><b>Carregando…</b>Buscando solicitações.</div>
+    } @else if (erro()) {
+      <div class="empty empty-err"><b>Não foi possível carregar</b>{{ erro() }}</div>
+    } @else if (!listaExibida().length) {
+      <div class="empty">
+        <b>Nenhuma solicitação encontrada</b>
+        @if (modoBusca()) {
+          Não existe solicitação com o número “{{ busca() }}” (ou você não tem permissão para vê-la).
+        } @else if (filialFiltro()) {
+          Nenhuma solicitação para a filial {{ filialFiltro() }}.
+        } @else {
+          Você ainda não possui solicitações na base de follow-up.
+        }
+      </div>
+    } @else {
+      <div class="grid">
+        @for (r of listaExibida(); track trackSolicitacao(r)) {
+          @let tone = cardTone(r);
+          @let msg = msgView(r);
+          <article class="card" [attr.data-tone]="tone">
+            <div class="stripe" aria-hidden="true"></div>
+            <div class="card-head">
+              <div>
+                <div class="rm">
+                  <span class="num">RM {{ r.n_requisicao }}</span>
+                  <span class="meta">Filial <b>{{ r.cod_filial || '—' }}</b></span>
+                </div>
+                @if (r.requisitante) {
+                  <div class="solic">Solicitante · <b>{{ r.requisitante }}</b></div>
+                }
+              </div>
+              <span class="badge" [attr.data-tone]="tone">
+                <i class="dot"></i>{{ r.status_geral || '—' }}
+              </span>
+            </div>
+
+            <div class="status-msg">
+              <div class="lead">
+                {{ msg.lead }}
+                @if (msg.pill) {
+                  <span class="pill">#{{ msg.pill }}</span>
+                }
+              </div>
+              @if (msg.body) {
+                <p>{{ msg.body }}</p>
+              }
+            </div>
+
+            @if (msg.showHowto) {
+              <details class="howto">
+                <summary>
+                  Como consultar a NF no Mega
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </summary>
+                <div class="howto-body">
+                  <ol>
+                    <li>Acesse <b>Follow-up de Pedidos de compra</b>.</li>
+                    <li>
+                      Insira o número do pedido no campo <code>Número do pedido</code>
+                      @if (r.pedido_contrato) {
+                        ({{ r.pedido_contrato }}).
+                      } @else {
+                        .
+                      }
+                    </li>
+                    <li>
+                      Filtre a data de emissão
+                      @if (r.data_emissao_pedido) {
+                        para <b>{{ dataEmissaoLabel(r) }}</b>.
+                      } @else {
+                        .
+                      }
+                    </li>
+                    <li>Clique na aba <b>Recebimentos</b>.</li>
+                  </ol>
+                </div>
+              </details>
+            }
+
+            <div class="card-foot">
+              <div class="m">
+                <div class="k">Centro de custo</div>
+                <div class="v">{{ r.centro_custo || '—' }}</div>
+              </div>
+              <div class="m">
+                <div class="k">Fornecedor</div>
+                <div class="v">{{ r.fornecedor || '—' }}</div>
+              </div>
+              <div class="m val">
+                <div class="k">Valor</div>
+                <div class="v">{{ formatMoeda(r.valor_total_pedido) }}</div>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+  <app-footer />
+</app-public-chrome>

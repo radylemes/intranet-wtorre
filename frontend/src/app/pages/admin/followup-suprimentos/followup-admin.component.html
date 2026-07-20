@@ -1,0 +1,234 @@
+<div class="admin-page followup-admin">
+  <header class="page-head">
+    <div>
+      <h1>Follow-up de Suprimentos</h1>
+      <p class="page-subtitle">
+        Localização da planilha no SharePoint e sincronização. Autenticação via
+        <strong>tenant principal</strong> (Administração → Tenants Azure).
+      </p>
+    </div>
+    <div class="page-actions">
+      <span class="sync-info"><span class="dot-ok"></span>Última sync: {{ ultimaSyncLabel() }}</span>
+      <button type="button" class="btn-ghost btn-sm" [disabled]="sincronizando()" (click)="sincronizar()">
+        {{ sincronizando() ? 'Sincronizando…' : '⟳ Sincronizar agora' }}
+      </button>
+    </div>
+  </header>
+
+  @if (carregando()) {
+    <p class="empty">Carregando...</p>
+  } @else {
+    <section class="card followup-unified-card">
+      <nav class="admin-tabs" aria-label="Follow-up de Suprimentos">
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'sharepoint'"
+          (click)="selecionarAba('sharepoint')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="tab-label">SharePoint</span>
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          [class.active]="abaAtiva() === 'sincronizacao'"
+          (click)="selecionarAba('sincronizacao')"
+        >
+          <span class="tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M23 4v6h-6M1 20v-6h6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="tab-label">Sincronização</span>
+        </button>
+      </nav>
+
+      @if (abaAtiva() === 'sharepoint') {
+        <div class="followup-tab-panel">
+          <div class="section-label">Arquivo de origem</div>
+          <p class="tab-hint">
+            URL de compartilhamento do arquivo Excel no SharePoint (sem <code>?rtime=…</code>).
+            Cole o link gerado pelo botão "Copiar link" do SharePoint.
+          </p>
+
+          <div class="sp-form">
+            <div class="field">
+              <label class="fl" for="fu-url">URL do arquivo SharePoint</label>
+              <input
+                id="fu-url"
+                type="url"
+                placeholder="https://wtorre.sharepoint.com/:x:/r/sites/…/_layouts/15/Doc.aspx?sourcedoc=…"
+                [ngModel]="sharepointUrl()"
+                (ngModelChange)="sharepointUrl.set($event)"
+              />
+            </div>
+            <div class="field sp-field-sheet">
+              <label class="fl" for="fu-aba-rm">Aba TblRM</label>
+              <input id="fu-aba-rm" type="text" [ngModel]="abaRm()" (ngModelChange)="abaRm.set($event)" />
+            </div>
+            <div class="field sp-field-sheet">
+              <label class="fl" for="fu-aba-mx">Aba TblMatrizMensagens</label>
+              <input
+                id="fu-aba-mx"
+                type="text"
+                [ngModel]="abaMatriz()"
+                (ngModelChange)="abaMatriz.set($event)"
+              />
+            </div>
+          </div>
+
+          @if (configSalva()?.sharepoint_url) {
+            <div class="sp-status">
+              <span class="sbadge sbadge-ok">Configurado</span>
+              <span class="sp-url-preview">{{ configSalva()!.sharepoint_url }}</span>
+            </div>
+          } @else {
+            <div class="sp-status">
+              <span class="sbadge sbadge-pend">URL não configurada</span>
+            </div>
+          }
+
+          <div class="panel-actions">
+            <button type="button" class="btn-ghost" [disabled]="testando()" (click)="testar()">
+              {{ testando() ? 'Testando…' : 'Testar conexão' }}
+            </button>
+            <button
+              type="button"
+              class="btn-ghost"
+              [disabled]="sincronizando()"
+              (click)="sincronizar()"
+            >
+              {{ sincronizando() ? 'Sincronizando…' : '⟳ Testar sincronização' }}
+            </button>
+            <button type="button" class="btn-primary" [disabled]="salvando()" (click)="salvar()">
+              {{ salvando() ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
+
+          @if (testePassos().length) {
+            <div class="diag-block">
+              <div class="section-label">
+                Diagnóstico
+                @if (testeOk() === true) {
+                  <span class="sbadge sbadge-ok">OK</span>
+                } @else if (testeOk() === false) {
+                  <span class="sbadge sbadge-err">Falha</span>
+                }
+              </div>
+              <ul class="diag-list">
+                @for (p of testePassos(); track $index) {
+                  <li [class.ok]="p.ok" [class.fail]="!p.ok">
+                    <strong>{{ p.passo }}</strong> — {{ p.detalhe }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      }
+
+      @if (abaAtiva() === 'sincronizacao') {
+        <div class="followup-tab-panel">
+          <div class="section-label">Sincronização automática</div>
+          <p class="tab-hint">
+            Quando ativa, o backend baixa a planilha no intervalo configurado (instância líder PM2).
+          </p>
+
+          <div class="form-row sync-row">
+            <label class="tog">
+              <input
+                type="checkbox"
+                [ngModel]="syncAutomatica()"
+                (ngModelChange)="syncAutomatica.set($event)"
+              />
+              <span class="tog-ui" aria-hidden="true"></span>
+              <span class="tog-txt">Ativar sync agendada</span>
+            </label>
+            <div class="field field-inline">
+              <label class="fl" for="fu-int">Intervalo (minutos)</label>
+              <input
+                id="fu-int"
+                type="number"
+                min="5"
+                max="10080"
+                [ngModel]="syncIntervaloMin()"
+                (ngModelChange)="syncIntervaloMin.set(+$event || 60)"
+              />
+            </div>
+          </div>
+
+          <div class="panel-actions">
+            <button type="button" class="btn-ghost" [disabled]="sincronizando()" (click)="sincronizar()">
+              {{ sincronizando() ? 'Sincronizando…' : '⟳ Sincronizar agora' }}
+            </button>
+            <button type="button" class="btn-primary" [disabled]="salvando()" (click)="salvar()">
+              {{ salvando() ? 'Salvando…' : 'Salvar configuração' }}
+            </button>
+          </div>
+
+          <div class="section-label status-label">Status da última sincronização</div>
+          @if (status(); as st) {
+            <div class="status-grid">
+              <div>
+                <span class="lbl">Data/hora</span>
+                <b>{{ st.ultima_sync ? (st.ultima_sync | date: 'dd/MM/yyyy HH:mm') : 'Nunca' }}</b>
+              </div>
+              <div>
+                <span class="lbl">Status</span>
+                <b
+                  [class.ok]="st.ultima_sync_status === 'sucesso'"
+                  [class.err]="st.ultima_sync_status === 'erro'"
+                >
+                  {{ st.ultima_sync_status || '—' }}
+                </b>
+              </div>
+              <div>
+                <span class="lbl">Linhas importadas</span>
+                <b>{{ st.ultima_sync_linhas ?? '—' }}</b>
+              </div>
+              <div>
+                <span class="lbl">Em andamento</span>
+                <b>{{ st.sync_em_andamento ? 'Sim' : 'Não' }}</b>
+              </div>
+            </div>
+            @if (st.ultima_sync_erro) {
+              <p class="erro-msg">{{ st.ultima_sync_erro }}</p>
+            }
+          } @else {
+            <p class="empty">Sem dados de sincronização.</p>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>

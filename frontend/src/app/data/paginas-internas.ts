@@ -25,6 +25,7 @@ export const PAGINAS_INTERNAS: PaginaInterna[] = [
   { path: '/dashboards', label: 'Dashboards' },
   { path: '/agendas', label: 'Agendas / Eventos' },
   { path: '/salas', label: 'Reservar sala' },
+  { path: '/followup-suprimentos', label: 'Follow-up de Suprimentos' },
 ];
 
 export function paginasDocumentosFromPaginas(

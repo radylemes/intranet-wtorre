@@ -107,6 +107,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'followup-suprimentos',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/followup-suprimentos/followup-suprimentos.component').then(
+        (m) => m.FollowupSuprimentosComponent
+      ),
+  },
+  {
     path: 'dashboards',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -273,6 +281,15 @@ export const routes: Routes = [
             (m) => m.CamarotesAdminComponent
           ),
         data: { adminTitle: 'Configuração de Camarotes' },
+      },
+      {
+        path: 'followup-suprimentos',
+        canActivate: [moduloGuardFromRoute],
+        loadComponent: () =>
+          import('./pages/admin/followup-suprimentos/followup-admin.component').then(
+            (m) => m.FollowupAdminComponent
+          ),
+        data: { adminTitle: 'Follow-up de Suprimentos' },
       },
       {
         path: 'solicitacao-colaborador',
