@@ -9,6 +9,7 @@ import { SolicitacaoColaboradorService } from '../../../services/solicitacao-col
 import {
   SolicitacaoCampo,
   SolicitacaoColaborador,
+  SolicitacaoEmailIndividual,
   SolicitacaoEnvio,
   SolicitacaoGrupo,
   SolicitacaoVisualizador,
@@ -16,7 +17,11 @@ import {
 } from '../../../models/solicitacao-colaborador.model';
 import { AdminModalComponent } from '../../../shared/admin/admin-modal/admin-modal.component';
 
-type AbaSolicitacao = 'grupos' | 'acesso' | 'historico';
+type AbaSolicitacao = 'grupos' | 'individuais' | 'acesso' | 'historico';
+
+const ASSUNTO_PADRAO = 'Nova solicitação de colaborador — {nome} ({tipo})';
+const ASSUNTO_PLACEHOLDERS =
+  'Placeholders: {nome}, {sobrenome}, {tipo}, {departamento}, {cargo}, {empresa}, {solicitante}, {data_inicio}';
 
 @Component({
   selector: 'app-solicitacao-colaborador-admin',
@@ -31,6 +36,10 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly busca$ = new Subject<string>();
   private readonly buscaDestinatarios$ = new Subject<string>();
+  private readonly buscaIndividual$ = new Subject<string>();
+
+  readonly assuntoPadrao = ASSUNTO_PADRAO;
+  readonly assuntoPlaceholders = ASSUNTO_PLACEHOLDERS;
 
   readonly carregando = signal(false);
   readonly mensagem = signal('');
@@ -38,6 +47,7 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
 
   readonly campos = signal<SolicitacaoCampo[]>([]);
   readonly grupos = signal<SolicitacaoGrupo[]>([]);
+  readonly emailsIndividuais = signal<SolicitacaoEmailIndividual[]>([]);
   readonly visualizadores = signal<SolicitacaoVisualizador[]>([]);
   readonly solicitacoes = signal<SolicitacaoColaborador[]>([]);
 
@@ -45,11 +55,24 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
   readonly editandoGrupoId = signal<number | null>(null);
   readonly salvandoGrupo = signal(false);
   readonly grupoNome = signal('');
+  readonly grupoAssunto = signal('');
   readonly grupoDestinatarios = signal<string[]>([]);
   readonly grupoEmailNovo = signal('');
   readonly grupoCamposSel = signal<string[]>([]);
   readonly grupoAtivo = signal(true);
   readonly grupoOrdem = signal(0);
+
+  /** null = fechado; -1 = novo; id > 0 = editando */
+  readonly editandoIndividualId = signal<number | null>(null);
+  readonly salvandoIndividual = signal(false);
+  readonly individualNome = signal('');
+  readonly individualEmail = signal('');
+  readonly individualAssunto = signal('');
+  readonly individualCamposSel = signal<string[]>([]);
+  readonly individualAtivo = signal(true);
+  readonly individualOrdem = signal(0);
+  readonly resultadosIndividual = signal<UsuarioAdBusca[]>([]);
+  readonly buscaIndividualTexto = signal('');
 
   readonly adicionarViewerAberto = signal(false);
   readonly resultadosBusca = signal<UsuarioAdBusca[]>([]);
@@ -68,11 +91,18 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
   readonly abaAtiva = signal<AbaSolicitacao>('grupos');
 
   readonly camposDisponiveis = computed(() => this.campos());
-  readonly editorAberto = computed(() => this.editandoGrupoId() !== null);
+  readonly editorAberto = computed(
+    () => this.editandoGrupoId() !== null || this.editandoIndividualId() !== null
+  );
   readonly editandoNovo = computed(() => this.editandoGrupoId() === -1);
   readonly modalGrupoAberto = computed(() => this.editandoGrupoId() !== null);
   readonly tituloModalGrupo = computed(() =>
     this.editandoNovo() ? 'Novo grupo' : 'Editar grupo'
+  );
+  readonly editandoIndividualNovo = computed(() => this.editandoIndividualId() === -1);
+  readonly modalIndividualAberto = computed(() => this.editandoIndividualId() !== null);
+  readonly tituloModalIndividual = computed(() =>
+    this.editandoIndividualNovo() ? 'Novo e-mail individual' : 'Editar e-mail individual'
   );
 
   constructor() {
@@ -104,6 +134,13 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
         next: (list) => this.resultadosDestinatarios.set(list),
         error: () => this.erro.set('Erro na busca de destinatários.'),
       });
+
+    this.buscaIndividual$
+      .pipe(debounceTime(300), distinctUntilChanged(), switchMap(buscaAd))
+      .subscribe({
+        next: (list) => this.resultadosIndividual.set(list),
+        error: () => this.erro.set('Erro na busca de destinatários.'),
+      });
   }
 
   carregarTudo(): void {
@@ -115,6 +152,11 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
     this.service.listarGrupos().subscribe({
       next: (g) => this.grupos.set(g),
       error: (e: HttpErrorResponse) => this.erro.set(e.error?.mensagem || 'Erro ao carregar grupos.'),
+    });
+    this.service.listarEmailsIndividuais().subscribe({
+      next: (list) => this.emailsIndividuais.set(list),
+      error: (e: HttpErrorResponse) =>
+        this.erro.set(e.error?.mensagem || 'Erro ao carregar e-mails individuais.'),
     });
     this.service.listarVisualizadores().subscribe({
       next: (v) => this.visualizadores.set(v),
@@ -139,6 +181,10 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
 
   fecharModalGrupo(): void {
     this.cancelarEditor();
+  }
+
+  fecharModalIndividual(): void {
+    this.cancelarEditorIndividual();
   }
 
   isExpandido(id: number): boolean {
@@ -174,9 +220,17 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
     return `${parts[0].slice(0, 6)}…@${parts[1] || ''}`;
   }
 
+  truncarAssunto(assunto: string | null | undefined): string {
+    const s = (assunto || '').trim() || ASSUNTO_PADRAO;
+    if (s.length <= 64) return s;
+    return `${s.slice(0, 61)}…`;
+  }
+
   novoGrupo(): void {
+    this.editandoIndividualId.set(null);
     this.editandoGrupoId.set(-1);
     this.grupoNome.set('');
+    this.grupoAssunto.set(ASSUNTO_PADRAO);
     this.grupoDestinatarios.set([]);
     this.grupoEmailNovo.set('');
     this.buscaDestinatariosTexto.set('');
@@ -187,8 +241,10 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
   }
 
   editarGrupo(g: SolicitacaoGrupo): void {
+    this.editandoIndividualId.set(null);
     this.editandoGrupoId.set(g.id);
     this.grupoNome.set(g.nome);
+    this.grupoAssunto.set(g.assunto || ASSUNTO_PADRAO);
     this.grupoDestinatarios.set([...g.destinatarios]);
     this.grupoEmailNovo.set('');
     this.buscaDestinatariosTexto.set('');
@@ -270,10 +326,12 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
       return;
     }
 
+    const assunto = this.grupoAssunto().trim() || null;
     const body = {
       nome,
       destinatarios: this.grupoDestinatarios(),
       campos: this.grupoCamposSel(),
+      assunto,
       ativo: this.grupoAtivo(),
       ordem: this.grupoOrdem(),
     };
@@ -304,6 +362,7 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
         nome: g.nome,
         destinatarios: g.destinatarios,
         campos: g.campos,
+        assunto: g.assunto ?? null,
         ativo: novoAtivo,
         ordem: g.ordem,
       })
@@ -323,6 +382,145 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
           this.mensagem.set('Grupo excluído.');
           this.grupos.update((list) => list.filter((x) => x.id !== g.id));
           if (this.editandoGrupoId() === g.id) this.editandoGrupoId.set(null);
+        },
+        error: (e: HttpErrorResponse) => this.erro.set(e.error?.mensagem || 'Erro ao excluir.'),
+      });
+    });
+  }
+
+  novoIndividual(): void {
+    this.editandoGrupoId.set(null);
+    this.editandoIndividualId.set(-1);
+    this.individualNome.set('');
+    this.individualEmail.set('');
+    this.individualAssunto.set(ASSUNTO_PADRAO);
+    this.individualCamposSel.set([]);
+    this.individualAtivo.set(true);
+    this.individualOrdem.set(this.emailsIndividuais().length);
+    this.buscaIndividualTexto.set('');
+    this.resultadosIndividual.set([]);
+  }
+
+  editarIndividual(item: SolicitacaoEmailIndividual): void {
+    this.editandoGrupoId.set(null);
+    this.editandoIndividualId.set(item.id);
+    this.individualNome.set(item.nome || '');
+    this.individualEmail.set(item.email);
+    this.individualAssunto.set(item.assunto || ASSUNTO_PADRAO);
+    this.individualCamposSel.set([...item.campos]);
+    this.individualAtivo.set(item.ativo);
+    this.individualOrdem.set(item.ordem);
+    this.buscaIndividualTexto.set('');
+    this.resultadosIndividual.set([]);
+  }
+
+  cancelarEditorIndividual(): void {
+    this.editandoIndividualId.set(null);
+    this.buscaIndividualTexto.set('');
+    this.resultadosIndividual.set([]);
+  }
+
+  toggleCampoIndividual(chave: string): void {
+    const atual = this.individualCamposSel();
+    if (atual.includes(chave)) {
+      this.individualCamposSel.set(atual.filter((c) => c !== chave));
+    } else {
+      this.individualCamposSel.set([...atual, chave]);
+    }
+  }
+
+  onBuscaIndividual(q: string): void {
+    this.buscaIndividualTexto.set(q);
+    this.buscaIndividual$.next(q);
+  }
+
+  selecionarEmailIndividualDoAd(col: UsuarioAdBusca): void {
+    const email = col.email?.trim().toLowerCase();
+    if (!email) {
+      this.erro.set('Colaborador sem e-mail cadastrado no AD.');
+      return;
+    }
+    this.individualEmail.set(email);
+    if (!this.individualNome().trim()) {
+      this.individualNome.set(col.nome || '');
+    }
+    this.buscaIndividualTexto.set('');
+    this.resultadosIndividual.set([]);
+  }
+
+  salvarIndividual(): void {
+    const email = this.individualEmail().trim().toLowerCase();
+    if (!email) {
+      this.erro.set('Informe o e-mail do destinatário.');
+      return;
+    }
+    if (!this.individualCamposSel().length) {
+      this.erro.set('Selecione ao menos um campo.');
+      return;
+    }
+
+    const body = {
+      nome: this.individualNome().trim() || null,
+      email,
+      assunto: this.individualAssunto().trim() || null,
+      campos: this.individualCamposSel(),
+      ativo: this.individualAtivo(),
+      ordem: this.individualOrdem(),
+    };
+
+    this.salvandoIndividual.set(true);
+    const id = this.editandoIndividualId();
+    const req =
+      id && id > 0
+        ? this.service.atualizarEmailIndividual(id, body)
+        : this.service.criarEmailIndividual(body);
+
+    req.subscribe({
+      next: () => {
+        this.salvandoIndividual.set(false);
+        this.editandoIndividualId.set(null);
+        this.mensagem.set(id && id > 0 ? 'E-mail individual atualizado.' : 'E-mail individual criado.');
+        this.service.listarEmailsIndividuais().subscribe({
+          next: (list) => this.emailsIndividuais.set(list),
+        });
+      },
+      error: (e: HttpErrorResponse) => {
+        this.salvandoIndividual.set(false);
+        this.erro.set(e.error?.mensagem || 'Erro ao salvar e-mail individual.');
+      },
+    });
+  }
+
+  toggleIndividualAtivo(item: SolicitacaoEmailIndividual): void {
+    this.service
+      .atualizarEmailIndividual(item.id, {
+        nome: item.nome ?? null,
+        email: item.email,
+        assunto: item.assunto ?? null,
+        campos: item.campos,
+        ativo: !item.ativo,
+        ordem: item.ordem,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.emailsIndividuais.update((list) =>
+            list.map((x) => (x.id === item.id ? updated : x))
+          );
+        },
+        error: (e: HttpErrorResponse) =>
+          this.erro.set(e.error?.mensagem || 'Erro ao atualizar e-mail individual.'),
+      });
+  }
+
+  excluirIndividual(item: SolicitacaoEmailIndividual): void {
+    const label = item.nome || item.email;
+    this.alertas.confirmarExclusao({ texto: `Excluir o e-mail individual "${label}"?` }).then((ok) => {
+      if (!ok) return;
+      this.service.removerEmailIndividual(item.id).subscribe({
+        next: () => {
+          this.mensagem.set('E-mail individual excluído.');
+          this.emailsIndividuais.update((list) => list.filter((x) => x.id !== item.id));
+          if (this.editandoIndividualId() === item.id) this.editandoIndividualId.set(null);
         },
         error: (e: HttpErrorResponse) => this.erro.set(e.error?.mensagem || 'Erro ao excluir.'),
       });
@@ -403,7 +601,7 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
       next: (d) => {
         this.enviosPorSolicitacao.update((map) => ({
           ...map,
-          [s.id]: this.ultimosEnviosPorGrupo(d.envios),
+          [s.id]: this.ultimosEnviosPorDestino(d.envios),
         }));
         this.carregandoEnvios.set(null);
       },
@@ -414,11 +612,13 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
     });
   }
 
-  /** Mantém o envio mais recente de cada grupo para exibição no expand. */
-  private ultimosEnviosPorGrupo(envios: SolicitacaoEnvio[]): SolicitacaoEnvio[] {
+  /** Mantém o envio mais recente de cada grupo/individual para exibição no expand. */
+  private ultimosEnviosPorDestino(envios: SolicitacaoEnvio[]): SolicitacaoEnvio[] {
     const map = new Map<string, SolicitacaoEnvio>();
     for (const e of envios) {
-      const key = String(e.grupo_id ?? e.grupo_nome);
+      const key = e.email_individual_id
+        ? `i:${e.email_individual_id}`
+        : `g:${e.grupo_id ?? e.grupo_nome}`;
       const prev = map.get(key);
       if (!prev || (e.enviado_em && prev.enviado_em && e.enviado_em > prev.enviado_em)) {
         map.set(key, e);
@@ -431,40 +631,61 @@ export class SolicitacaoColaboradorAdminComponent implements OnInit {
     return this.enviosPorSolicitacao()[id] || [];
   }
 
-  previewGrupo(solicitacaoId: number, grupoId: number | null | undefined): void {
-    if (!grupoId) return;
-    this.service.previewEmail(solicitacaoId, grupoId).subscribe({
+  previewEnvio(solicitacaoId: number, e: SolicitacaoEnvio): void {
+    if (e.email_individual_id) {
+      this.service.previewEmailIndividual(solicitacaoId, e.email_individual_id).subscribe({
+        next: (r) => {
+          this.previewHtml.set(this.sanitizer.bypassSecurityTrustHtml(r.html));
+          this.previewAberto.set(true);
+        },
+        error: (err: HttpErrorResponse) =>
+          this.erro.set(err.error?.mensagem || 'Erro no preview.'),
+      });
+      return;
+    }
+    if (!e.grupo_id) return;
+    this.service.previewEmail(solicitacaoId, e.grupo_id).subscribe({
       next: (r) => {
         this.previewHtml.set(this.sanitizer.bypassSecurityTrustHtml(r.html));
         this.previewAberto.set(true);
       },
-      error: (e: HttpErrorResponse) => this.erro.set(e.error?.mensagem || 'Erro no preview.'),
+      error: (err: HttpErrorResponse) => this.erro.set(err.error?.mensagem || 'Erro no preview.'),
     });
   }
 
-  reenviarGrupo(solicitacaoId: number, grupoId: number | null | undefined, nome: string): void {
-    if (!grupoId) return;
+  reenviarEnvio(solicitacaoId: number, e: SolicitacaoEnvio): void {
+    const isIndividual = !!e.email_individual_id;
+    const nome = e.grupo_nome;
     this.alertas
       .confirmar({
         titulo: 'Reenviar e-mail',
-        texto: `Reenviar e-mail do grupo "${nome}"?`,
+        texto: isIndividual
+          ? `Reenviar e-mail individual "${nome}"?`
+          : `Reenviar e-mail do grupo "${nome}"?`,
         confirmar: 'Reenviar',
       })
       .then((ok) => {
         if (!ok) return;
-        this.service.reenviarEmail(solicitacaoId, grupoId).subscribe({
+        const req = isIndividual
+          ? this.service.reenviarEmailIndividual(solicitacaoId, e.email_individual_id!)
+          : e.grupo_id
+            ? this.service.reenviarEmail(solicitacaoId, e.grupo_id)
+            : null;
+        if (!req) return;
+        req.subscribe({
           next: () => {
             this.mensagem.set('Reenvio solicitado.');
             this.service.obterSolicitacaoAdmin(solicitacaoId).subscribe({
               next: (d) => {
                 this.enviosPorSolicitacao.update((map) => ({
                   ...map,
-                  [solicitacaoId]: this.ultimosEnviosPorGrupo(d.envios),
+                  [solicitacaoId]: this.ultimosEnviosPorDestino(d.envios),
                 }));
               },
             });
           },
-          error: (e: HttpErrorResponse) => this.erro.set(e.error?.mensagem || 'Erro no reenvio.'),
+          error: (err: HttpErrorResponse) =>
+            this.erro.set(err.error?.mensagem || 'Erro no reenvio.'),
         });
       });
   }

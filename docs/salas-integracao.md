@@ -141,8 +141,9 @@ O botão **Salvar alterações** persiste em `salas_config.ui_config_json` e sin
 |----------------|-------------|
 | `/api/v1/salas/rooms?localidade=` | `/rooms` |
 | `/api/v1/salas/schedule?localidade=` | `/schedule` |
-| `/api/v1/salas/book?localidade=` | `/book` |
+| `/api/v1/salas/book?localidade=` | `/book` — encaminha `requesterEmail` do body (organizador escolhível) |
 | `/api/v1/salas/bookings?localidade=` | `/bookings` |
+| `/api/v1/salas/bookings/:eventId` DELETE | `/bookings/:eventId` — só organizador ou `ADMIN` |
 | `/api/v1/salas/directory/users?localidade=` | `/directory/users` |
 
 `GET /api/v1/salas/ui-config` **não** chama a API externa — lê o banco local.

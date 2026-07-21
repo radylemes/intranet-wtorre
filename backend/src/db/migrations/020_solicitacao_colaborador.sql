@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS solicitacao_grupos (
   nome VARCHAR(120) NOT NULL,
   destinatarios JSON NOT NULL,
   campos JSON NOT NULL,
+  assunto VARCHAR(255) NULL,
   ativo TINYINT(1) NOT NULL DEFAULT 1,
   ordem INT NOT NULL DEFAULT 0,
   criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -47,10 +48,24 @@ CREATE TABLE IF NOT EXISTS solicitacao_grupos (
   KEY idx_ativo_ordem (ativo, ordem)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS solicitacao_emails_individuais (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(120) NULL,
+  email VARCHAR(255) NOT NULL,
+  assunto VARCHAR(255) NULL,
+  campos JSON NOT NULL,
+  ativo TINYINT(1) NOT NULL DEFAULT 1,
+  ordem INT NOT NULL DEFAULT 0,
+  criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_email (email),
+  KEY idx_ativo_ordem (ativo, ordem)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS solicitacao_envios (
   id INT AUTO_INCREMENT PRIMARY KEY,
   solicitacao_id INT NOT NULL,
   grupo_id INT NULL,
+  email_individual_id INT NULL,
   grupo_nome VARCHAR(120) NOT NULL,
   destinatarios JSON NOT NULL,
   status ENUM('ok','erro') NOT NULL,
@@ -59,6 +74,7 @@ CREATE TABLE IF NOT EXISTS solicitacao_envios (
   enviado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (solicitacao_id) REFERENCES solicitacoes_colaborador(id) ON DELETE CASCADE,
   FOREIGN KEY (grupo_id) REFERENCES solicitacao_grupos(id) ON DELETE SET NULL,
+  FOREIGN KEY (email_individual_id) REFERENCES solicitacao_emails_individuais(id) ON DELETE SET NULL,
   KEY idx_solicitacao (solicitacao_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

@@ -478,6 +478,11 @@
   border: 2px solid var(--salas-busy-border);
 }
 
+.sq.unverified {
+  background: transparent;
+  border: 2px dashed #94a3b8;
+}
+
 .agenda-main {
   background: var(--panel);
   border: 1px solid var(--line-solid, var(--line));
@@ -898,6 +903,27 @@
 .preview-item.busy {
   background: var(--salas-busy-bg);
   border-color: var(--salas-busy-border);
+}
+
+.preview-item.unverified {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  border-style: dashed;
+}
+
+.preview-status-hint {
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+
+.organizer-chip-row {
+  margin-bottom: 0.4rem;
+}
+
+.chip-organizer {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #312e81;
 }
 
 .preview-remove {

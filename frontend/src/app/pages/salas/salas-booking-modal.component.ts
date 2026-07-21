@@ -47,6 +47,7 @@ export class SalasBookingModalComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly previewQuery$ = new Subject<void>();
   private readonly participanteQuery$ = new Subject<string>();
+  private readonly organizadorQuery$ = new Subject<string>();
 
   readonly open = input(false);
   readonly sala = input<Sala | null>(null);
@@ -59,6 +60,10 @@ export class SalasBookingModalComponent implements OnDestroy {
   readonly roomConflict = output<void>();
 
   readonly titulo = signal('');
+  readonly organizadorEmail = signal('');
+  readonly organizadorNome = signal('');
+  readonly organizadorBusca = signal('');
+  readonly sugestoesOrganizador = signal<DirectoryUser[]>([]);
   readonly participantes = signal<string[]>([]);
   readonly participanteBusca = signal('');
   readonly sugestoes = signal<DirectoryUser[]>([]);
@@ -88,15 +93,8 @@ export class SalasBookingModalComponent implements OnDestroy {
   });
 
   readonly normalizedRequesterEmail = computed(() =>
-    (this.auth.usuario()?.email ?? '').trim().toLowerCase()
+    this.organizadorEmail().trim().toLowerCase()
   );
-
-  readonly organizerLabel = computed(() => {
-    const u = this.auth.usuario();
-    if (!u?.email) return '';
-    const nome = u.nome_completo || u.nome || u.email;
-    return `${nome} — ${u.email}`;
-  });
 
   readonly hasRoomConflict = computed(() => this.hasRoomConflictsForSelectedRange());
 
@@ -217,12 +215,36 @@ export class SalasBookingModalComponent implements OnDestroy {
         this.sugestoes.set(users);
       });
 
+    this.organizadorQuery$
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          const normalized = query.trim();
+          const loc = this.localidade();
+          if (normalized.length < 2 || !loc) {
+            this.sugestoesOrganizador.set([]);
+            return of([] as DirectoryUser[]);
+          }
+          return this.salasService.searchUsers(loc, normalized).pipe(
+            catchError(() => of({ users: [] })),
+            switchMap((res) => of(res.users ?? []))
+          );
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((users) => {
+        this.sugestoesOrganizador.set(users);
+      });
+
     effect(() => {
       if (!this.open()) return;
+      this.resetOrganizadorFromAuth();
       this.titulo.set('');
       this.participantes.set([]);
       this.participanteBusca.set('');
       this.sugestoes.set([]);
+      this.sugestoesOrganizador.set([]);
       this.fimIdx.set(0);
       this.availabilityPreview.set(null);
       this.previewErro.set('');
@@ -255,6 +277,33 @@ export class SalasBookingModalComponent implements OnDestroy {
 
   onFimChange(idx: number): void {
     this.fimIdx.set(idx);
+    this.agendarPreview();
+  }
+
+  onOrganizadorInput(value: string): void {
+    this.organizadorBusca.set(value);
+    this.organizadorQuery$.next(value);
+  }
+
+  selecionarOrganizador(user: DirectoryUser): void {
+    const email = user.email.trim().toLowerCase();
+    if (!this.isValidEmail(email)) return;
+    this.organizadorEmail.set(email);
+    this.organizadorNome.set(user.displayName || user.name || email);
+    this.organizadorBusca.set('');
+    this.sugestoesOrganizador.set([]);
+    this.participantes.set(this.participantes().filter((p) => p !== email));
+    this.agendarPreview();
+  }
+
+  confirmarOrganizadorDigitado(): void {
+    const valor = this.organizadorBusca().trim().toLowerCase();
+    if (!valor || !this.isValidEmail(valor)) return;
+    this.organizadorEmail.set(valor);
+    this.organizadorNome.set(valor);
+    this.organizadorBusca.set('');
+    this.sugestoesOrganizador.set([]);
+    this.participantes.set(this.participantes().filter((p) => p !== valor));
     this.agendarPreview();
   }
 
@@ -297,6 +346,17 @@ export class SalasBookingModalComponent implements OnDestroy {
     return this.isEntityAvailable(p);
   }
 
+  /** Status visual da prévia: available | busy | unverified */
+  participantPreviewKind(email: string): 'available' | 'busy' | 'unverified' {
+    const item = this.availabilityPreview()?.participants?.find(
+      (x) => x.email.toLowerCase() === email.toLowerCase()
+    );
+    if (!item) return 'available';
+    const status = item.availabilityStatus ?? 'available';
+    if (status === 'unknown' || status === 'not_validated_contact') return 'unverified';
+    return this.isEntityAvailable(item) ? 'available' : 'busy';
+  }
+
   isRoomAvailable(): boolean {
     return !this.hasRoomConflict();
   }
@@ -317,7 +377,7 @@ export class SalasBookingModalComponent implements OnDestroy {
       return;
     }
     if (!requester) {
-      this.alertas.erro('Sua conta não possui e-mail válido para reservar.');
+      this.alertas.erro('Informe o e-mail do organizador.');
       return;
     }
     if (!this.isValidEmail(requester)) {
@@ -344,6 +404,16 @@ export class SalasBookingModalComponent implements OnDestroy {
 
   cancelConflictConfirm(): void {
     this.showConflictConfirm.set(false);
+  }
+
+  private resetOrganizadorFromAuth(): void {
+    const u = this.auth.usuario();
+    const email = (u?.email ?? '').trim().toLowerCase();
+    this.organizadorEmail.set(email);
+    this.organizadorNome.set(
+      email ? u?.nome_completo || u?.nome || email : ''
+    );
+    this.organizadorBusca.set('');
   }
 
   private executarReserva(
@@ -389,11 +459,11 @@ export class SalasBookingModalComponent implements OnDestroy {
           } else if (code === 'REQUESTER_CONFLICT') {
             mensagem =
               err.error?.mensagem ||
-              'Você já possui compromisso neste horário. Confirme novamente se deseja agendar.';
+              'O organizador já possui compromisso neste horário. Confirme novamente se deseja agendar.';
           } else if (code === 'REQUESTER_CALENDAR_UNAVAILABLE') {
             mensagem =
               err.error?.mensagem ||
-              'Não foi possível criar a reserva no seu calendário. Tente novamente ou contate o suporte.';
+              'Não foi possível criar a reserva no calendário do organizador. Tente novamente ou contate o suporte.';
           } else if (code === 'ROOM_CONFLICT') {
             mensagem =
               err.error?.mensagem ||

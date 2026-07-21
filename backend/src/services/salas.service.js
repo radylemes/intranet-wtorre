@@ -117,12 +117,22 @@ async function previewAvailability(localidade, payload) {
 async function book(localidade, user, payload) {
   const config = await assertConfigured();
   const loc = await resolveLocalidade(localidade);
-  const requesterEmail = String(user.email || '').trim().toLowerCase();
-  if (!requesterEmail) {
+
+  if (!user?.email) {
     const err = new Error('Usuário sem e-mail válido para reservar.');
     err.status = 400;
     throw err;
   }
+
+  const requesterEmail = String(payload?.requesterEmail || '')
+    .trim()
+    .toLowerCase();
+  if (!requesterEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requesterEmail)) {
+    const err = new Error('E-mail do organizador inválido.');
+    err.status = 400;
+    throw err;
+  }
+
   const body = {
     ...payload,
     requesterEmail,
@@ -161,7 +171,9 @@ async function cancelBooking(localidade, user, eventId, query = {}) {
 
   if (alvo) {
     const organizer = (alvo.organizer || alvo.organizerEmail || alvo.requesterEmail || '').toLowerCase();
-    if (organizer && organizer !== user.email.toLowerCase()) {
+    const isOrganizer = organizer && organizer === String(user.email || '').toLowerCase();
+    const isAdmin = user?.perfil === 'ADMIN';
+    if (organizer && !isOrganizer && !isAdmin) {
       const err = new Error('Você só pode cancelar reservas das quais é o organizador.');
       err.status = 403;
       throw err;

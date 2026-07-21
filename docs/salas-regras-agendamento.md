@@ -35,7 +35,9 @@ Documento de referência do comportamento **atual** do sistema (backend + fronte
 
 - String de caracteres por slot de tempo.
 - Caracteres `1`, `2`, `3`, `4` indicam ocupação no slot.
-- Usado como reforço quando `getSchedule` pode omitir eventos na janela consultada.
+- Usado como reforço **somente para a sala**, quando `getSchedule` pode omitir eventos na janela consultada.
+- **Participantes/organizador** usam apenas itens de `getSchedule` (conflitos com overlap no intervalo pedido) — evita falso “ocupado” por `availabilityView`.
+- Na UI da intranet, `unknown` / `not_validated_contact` aparecem como **“Não verificado”** (não como “Ocupado”).
 
 ### Reservas do calendário da sala
 
@@ -85,7 +87,7 @@ Reservas feitas em `/salas` seguem o **Assistente de agendamento** do Outlook:
 
 | Pergunta | Resposta |
 |----------|----------|
-| Quem organiza? | **Usuário autenticado** (JWT). A intranet não permite reservar em nome de terceiros. |
+| Quem organiza? | **E-mail escolhido no formulário** (`requesterEmail`). Default = usuário logado; dá para buscar outra pessoa no diretório. |
 | Onde o evento é criado? | Calendário do organizador (`POST /users/{requesterEmail}/events`). |
 | Como a sala é convidada? | Attendee `type: resource` (mailbox da sala) + campo `location`. |
 | Participantes? | Attendees `type: required` no mesmo evento. |
@@ -96,7 +98,8 @@ Reservas feitas em `/salas` seguem o **Assistente de agendamento** do Outlook:
 
 - O `eventId` devolvido pertence ao calendário do organizador — cancelamento e check-in usam esse ID.
 - A ocupação da grade da sala vem do convite como **recurso**, não apenas do texto em Local.
-- O proxy da intranet **sobrescreve** `requesterEmail` do body com `user.email` do JWT.
+- O proxy da intranet **valida e encaminha** o `requesterEmail` do body (não sobrescreve com o JWT). Quem está autenticado precisa ter e-mail válido na sessão, mas o organizador da reserva pode ser outra pessoa.
+- Cancelamento na intranet: **organizador da reserva** ou usuário com perfil `ADMIN`.
 
 ### Ordem de validação no `BookRoomUseCase`
 
@@ -190,13 +193,14 @@ A pré-visualização **não bloqueia** — apenas informa. O bloqueio ocorre na
 
 | Situação | Comportamento |
 |----------|---------------|
+| Organizador | Busca no diretório (default = usuário logado); reserva no calendário escolhido |
 | Sala ocupada | Botão *"Sala indisponível"*; submit bloqueado |
 | Solicitante ou participante ocupado | Botão *"Conflito na agenda"*; ao confirmar, abre diálogo |
 | Diálogo de confirmação | Envia `allowRequesterConflict: true` **e** `allowParticipantConflict: true` |
 | `ROOM_CONFLICT` na API | Toast de erro; recarrega slots da sala |
 | `REQUESTER_CONFLICT` / `PARTICIPANT_CONFLICT` na API | Toast específico (race condition se alguém ocupou entre prévia e reserva) |
 
-A pré-visualização é recarregada com debounce de **300 ms** quando título, horários, solicitante ou participantes mudam.
+A pré-visualização é recarregada com debounce de **300 ms** quando título, horários, organizador ou participantes mudam.
 
 ---
 

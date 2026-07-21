@@ -62,6 +62,18 @@ export interface SolicitacaoGrupo {
   nome: string;
   destinatarios: string[];
   campos: string[];
+  assunto?: string | null;
+  ativo: boolean;
+  ordem: number;
+  criado_em?: string;
+}
+
+export interface SolicitacaoEmailIndividual {
+  id: number;
+  nome?: string | null;
+  email: string;
+  assunto?: string | null;
+  campos: string[];
   ativo: boolean;
   ordem: number;
   criado_em?: string;
@@ -71,6 +83,7 @@ export interface SolicitacaoEnvio {
   id: number;
   solicitacao_id: number;
   grupo_id?: number | null;
+  email_individual_id?: number | null;
   grupo_nome: string;
   destinatarios: string[];
   status: 'ok' | 'erro';

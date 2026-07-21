@@ -8,6 +8,7 @@ import {
   SolicitacaoColaborador,
   SolicitacaoCriarResposta,
   SolicitacaoDetalheAdmin,
+  SolicitacaoEmailIndividual,
   SolicitacaoGrupo,
   SolicitacaoVisualizador,
   UsuarioAdBusca,
@@ -58,8 +59,8 @@ export class SolicitacaoColaboradorService {
     return this.http.get<SolicitacaoDetalheAdmin>(this.api(`/admin/solicitacoes/${id}`));
   }
 
-  previewEmail(solicitacaoId: number, grupoId: number): Observable<{ html: string }> {
-    return this.http.get<{ html: string }>(
+  previewEmail(solicitacaoId: number, grupoId: number): Observable<{ html: string; subject?: string }> {
+    return this.http.get<{ html: string; subject?: string }>(
       this.api(`/admin/solicitacoes/${solicitacaoId}/preview/${grupoId}`)
     );
   }
@@ -67,6 +68,22 @@ export class SolicitacaoColaboradorService {
   reenviarEmail(solicitacaoId: number, grupoId: number): Observable<unknown> {
     return this.http.post(
       this.api(`/admin/solicitacoes/${solicitacaoId}/reenviar/${grupoId}`),
+      {}
+    );
+  }
+
+  previewEmailIndividual(
+    solicitacaoId: number,
+    emailId: number
+  ): Observable<{ html: string; subject?: string }> {
+    return this.http.get<{ html: string; subject?: string }>(
+      this.api(`/admin/solicitacoes/${solicitacaoId}/preview-individual/${emailId}`)
+    );
+  }
+
+  reenviarEmailIndividual(solicitacaoId: number, emailId: number): Observable<unknown> {
+    return this.http.post(
+      this.api(`/admin/solicitacoes/${solicitacaoId}/reenviar-individual/${emailId}`),
       {}
     );
   }
@@ -85,6 +102,30 @@ export class SolicitacaoColaboradorService {
 
   removerGrupo(id: number): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(this.api(`/admin/grupos/${id}`));
+  }
+
+  listarEmailsIndividuais(): Observable<SolicitacaoEmailIndividual[]> {
+    return this.http.get<SolicitacaoEmailIndividual[]>(this.api('/admin/emails-individuais'));
+  }
+
+  criarEmailIndividual(
+    body: Partial<SolicitacaoEmailIndividual>
+  ): Observable<SolicitacaoEmailIndividual> {
+    return this.http.post<SolicitacaoEmailIndividual>(this.api('/admin/emails-individuais'), body);
+  }
+
+  atualizarEmailIndividual(
+    id: number,
+    body: Partial<SolicitacaoEmailIndividual>
+  ): Observable<SolicitacaoEmailIndividual> {
+    return this.http.put<SolicitacaoEmailIndividual>(
+      this.api(`/admin/emails-individuais/${id}`),
+      body
+    );
+  }
+
+  removerEmailIndividual(id: number): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(this.api(`/admin/emails-individuais/${id}`));
   }
 
   buscarUsuariosAd(q: string): Observable<UsuarioAdBusca[]> {

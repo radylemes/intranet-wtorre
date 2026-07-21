@@ -1,7 +1,9 @@
 <div class="admin-page sol-admin-page">
   <header class="page-head">
     <h1>Solicitação de colaborador</h1>
-    <p class="page-subtitle">Grupos de e-mail, acesso ao formulário e histórico de solicitações.</p>
+    <p class="page-subtitle">
+      Grupos de e-mail, e-mails individuais, acesso ao formulário e histórico de solicitações.
+    </p>
   </header>
 
   <section class="card sol-unified-card">
@@ -19,6 +21,22 @@
           </svg>
         </span>
         <span class="tab-label">Grupos de e-mail</span>
+      </button>
+      <button
+        type="button"
+        class="admin-tab"
+        [class.active]="abaAtiva() === 'individuais'"
+        (click)="selecionarAba('individuais')"
+      >
+        <span class="tab-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 6h16v12H4V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            <path d="M4 8l8 5 8-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="18" cy="18" r="4" stroke="currentColor" stroke-width="2" />
+            <path d="M18 16.5v3M16.5 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="tab-label">E-mails individuais</span>
       </button>
       <button
         type="button"
@@ -59,8 +77,8 @@
           <div>
             <h2>Grupos de e-mail</h2>
             <p class="hint">
-              Cada grupo recebe um e-mail só com os campos selecionados. Uma solicitação dispara um e-mail por grupo
-              ativo. Destinatários: somente domínios internos.
+              Cada grupo recebe um e-mail só com os campos selecionados. Uma solicitação dispara um e-mail por
+              destinatário do grupo ativo. Destinatários: somente domínios internos.
             </p>
           </div>
           <button type="button" class="btn btn-primary btn-sm" (click)="novoGrupo()" [disabled]="editorAberto()">
@@ -87,6 +105,7 @@
               <span class="group-dot" [class.off]="!g.ativo"></span>
               <div class="group-meta">
                 <div class="group-name">{{ g.nome }}</div>
+                <div class="group-assunto">{{ truncarAssunto(g.assunto) }}</div>
                 <div class="group-fields-grid">
                   <div class="group-field-block">
                     <div class="field-label">Destinatários</div>
@@ -120,6 +139,89 @@
                     <path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
                   </svg>
                   Editar
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Aba: E-mails individuais -->
+    @if (abaAtiva() === 'individuais') {
+      <div class="sol-tab-panel">
+        <div class="pane-head">
+          <div>
+            <h2>E-mails individuais</h2>
+            <p class="hint">
+              Um destinatário por cadastro, com assunto e campos próprios. Disparado junto com os grupos ativos em
+              cada solicitação. Destinatários: somente domínios internos.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            (click)="novoIndividual()"
+            [disabled]="editorAberto()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Novo e-mail
+          </button>
+        </div>
+
+        <div class="pane-body">
+          @if (!emailsIndividuais().length) {
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 6h16v12H4V6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                <path d="M4 8l8 5 8-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+              <p>Nenhum e-mail individual cadastrado.</p>
+            </div>
+          }
+
+          @for (item of emailsIndividuais(); track item.id) {
+            <div class="group-row">
+              <span class="group-dot" [class.off]="!item.ativo"></span>
+              <div class="group-meta">
+                <div class="group-name">{{ item.nome || item.email }}</div>
+                @if (item.nome) {
+                  <div class="group-assunto">{{ item.email }}</div>
+                }
+                <div class="group-assunto">{{ truncarAssunto(item.assunto) }}</div>
+                <div class="group-fields-grid">
+                  <div class="group-field-block">
+                    <div class="field-label">Campos enviados</div>
+                    <div class="chips">
+                      @for (chave of item.campos; track chave) {
+                        <span class="chip">{{ labelCampo(chave) }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="group-actions">
+                <button
+                  type="button"
+                  class="toggle"
+                  [class.off]="!item.ativo"
+                  [attr.aria-pressed]="item.ativo"
+                  [attr.aria-label]="item.ativo ? 'Desativar e-mail' : 'Ativar e-mail'"
+                  (click)="toggleIndividualAtivo(item)"
+                ></button>
+                <button type="button" class="btn btn-ghost btn-sm" (click)="editarIndividual(item)">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+                    <path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                  </svg>
+                  Editar
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" (click)="excluirIndividual(item)">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+                    <path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  Excluir
                 </button>
               </div>
             </div>
@@ -295,11 +397,11 @@
                                 <div class="sub-email">{{ resumoDestinatarios(e.destinatarios) }}</div>
                               </div>
                               <div class="sub-actions">
-                                @if (e.status === 'ok') {
+                                @if (e.status === 'ok' && (e.grupo_id || e.email_individual_id)) {
                                   <button
                                     type="button"
                                     class="btn btn-ghost btn-sm"
-                                    (click)="$event.stopPropagation(); previewGrupo(s.id, e.grupo_id)"
+                                    (click)="$event.stopPropagation(); previewEnvio(s.id, e)"
                                   >
                                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
                                       <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
@@ -308,19 +410,21 @@
                                     Pré-visualizar
                                   </button>
                                 }
-                                <button
-                                  type="button"
-                                  class="btn btn-sm"
-                                  [class.btn-primary]="e.status === 'erro'"
-                                  [class.btn-ghost]="e.status !== 'erro'"
-                                  (click)="$event.stopPropagation(); reenviarGrupo(s.id, e.grupo_id, e.grupo_nome)"
-                                >
-                                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
-                                    <path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                                    <path d="M20 9A8 8 0 005.5 7.5M4 15a8 8 0 0014.5 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                                  </svg>
-                                  Reenviar
-                                </button>
+                                @if (e.grupo_id || e.email_individual_id) {
+                                  <button
+                                    type="button"
+                                    class="btn btn-sm"
+                                    [class.btn-primary]="e.status === 'erro'"
+                                    [class.btn-ghost]="e.status !== 'erro'"
+                                    (click)="$event.stopPropagation(); reenviarEnvio(s.id, e)"
+                                  >
+                                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="btn-icon">
+                                      <path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                      <path d="M20 9A8 8 0 005.5 7.5M4 15a8 8 0 0014.5 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                    </svg>
+                                    Reenviar
+                                  </button>
+                                }
                               </div>
                             </div>
                           }
@@ -373,6 +477,18 @@
         (ngModelChange)="grupoNome.set($event)"
         placeholder="Ex.: TI, Credenciamento…"
       />
+    </div>
+
+    <div class="field">
+      <label for="grupo-assunto">Assunto do e-mail</label>
+      <input
+        id="grupo-assunto"
+        type="text"
+        [ngModel]="grupoAssunto()"
+        (ngModelChange)="grupoAssunto.set($event)"
+        [placeholder]="assuntoPadrao"
+      />
+      <p class="field-hint">{{ assuntoPlaceholders }}</p>
     </div>
 
     <div class="field">
@@ -429,6 +545,107 @@
             type="checkbox"
             [checked]="grupoCamposSel().includes(c.chave)"
             (change)="toggleCampoGrupo(c.chave)"
+          />
+          {{ c.label }}
+          @if (c.tipo === 'file') {
+            <span class="file">arquivo</span>
+          }
+        </label>
+      }
+    </div>
+  </div>
+</app-admin-modal>
+
+<!-- Modal: criar/editar e-mail individual -->
+<app-admin-modal
+  [open]="modalIndividualAberto()"
+  size="wide"
+  [title]="tituloModalIndividual()"
+  [salvando]="salvandoIndividual()"
+  saveLabel="Salvar e-mail"
+  (save)="salvarIndividual()"
+  (cancel)="fecharModalIndividual()"
+>
+  <div class="modal-grupo-form">
+    <div class="modal-toggle-row">
+      <div>
+        <div class="modal-toggle-label">E-mail ativo</div>
+        <div class="modal-toggle-hint">Inativos não recebem e-mails</div>
+      </div>
+      <button
+        type="button"
+        class="toggle"
+        [class.off]="!individualAtivo()"
+        [attr.aria-pressed]="individualAtivo()"
+        aria-label="E-mail ativo"
+        (click)="individualAtivo.set(!individualAtivo())"
+      ></button>
+    </div>
+
+    <div class="field">
+      <label for="ind-nome">Nome (opcional)</label>
+      <input
+        id="ind-nome"
+        type="text"
+        [ngModel]="individualNome()"
+        (ngModelChange)="individualNome.set($event)"
+        placeholder="Ex.: RH — João"
+      />
+    </div>
+
+    <div class="field">
+      <label for="ind-email">E-mail (somente domínio interno)</label>
+      <div class="dest-busca">
+        <input
+          type="search"
+          placeholder="Buscar no AD por nome ou e-mail…"
+          [ngModel]="buscaIndividualTexto()"
+          (ngModelChange)="onBuscaIndividual($event)"
+        />
+        @if (resultadosIndividual().length) {
+          <ul class="busca-resultados">
+            @for (c of resultadosIndividual(); track c.id) {
+              <li>
+                <button type="button" (click)="selecionarEmailIndividualDoAd(c)">
+                  {{ c.nome }} — {{ c.email || '—' }}
+                  @if (c.departamento) {
+                    <span class="busca-meta">· {{ c.departamento }}</span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+      <input
+        id="ind-email"
+        type="email"
+        [ngModel]="individualEmail()"
+        (ngModelChange)="individualEmail.set($event)"
+        placeholder="nome@empresa.com"
+      />
+    </div>
+
+    <div class="field">
+      <label for="ind-assunto">Assunto do e-mail</label>
+      <input
+        id="ind-assunto"
+        type="text"
+        [ngModel]="individualAssunto()"
+        (ngModelChange)="individualAssunto.set($event)"
+        [placeholder]="assuntoPadrao"
+      />
+      <p class="field-hint">{{ assuntoPlaceholders }}</p>
+    </div>
+
+    <div class="field-label">Campos que este destinatário recebe</div>
+    <div class="catalog">
+      @for (c of camposDisponiveis(); track c.chave) {
+        <label class="cat" [class.on]="individualCamposSel().includes(c.chave)">
+          <input
+            type="checkbox"
+            [checked]="individualCamposSel().includes(c.chave)"
+            (change)="toggleCampoIndividual(c.chave)"
           />
           {{ c.label }}
           @if (c.tipo === 'file') {

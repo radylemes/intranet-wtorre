@@ -30,6 +30,16 @@ router.post(
 router.get('/admin/solicitacoes', ...adminGuard, controller.listarSolicitacoesAdmin);
 router.get('/admin/solicitacoes/:id', ...adminGuard, controller.obterSolicitacaoAdmin);
 router.get(
+  '/admin/solicitacoes/:id/preview-individual/:emailId',
+  ...adminGuard,
+  controller.previewEmailIndividual
+);
+router.post(
+  '/admin/solicitacoes/:id/reenviar-individual/:emailId',
+  ...adminGuard,
+  controller.reenviarEmailIndividual
+);
+router.get(
   '/admin/solicitacoes/:id/preview/:grupoId',
   ...adminGuard,
   controller.previewEmail
@@ -44,6 +54,11 @@ router.get('/admin/grupos', ...adminGuard, controller.listarGrupos);
 router.post('/admin/grupos', ...adminGuard, controller.criarGrupo);
 router.put('/admin/grupos/:id', ...adminGuard, controller.atualizarGrupo);
 router.delete('/admin/grupos/:id', ...adminGuard, controller.removerGrupo);
+
+router.get('/admin/emails-individuais', ...adminGuard, controller.listarEmailsIndividuais);
+router.post('/admin/emails-individuais', ...adminGuard, controller.criarEmailIndividual);
+router.put('/admin/emails-individuais/:id', ...adminGuard, controller.atualizarEmailIndividual);
+router.delete('/admin/emails-individuais/:id', ...adminGuard, controller.removerEmailIndividual);
 
 router.get('/admin/usuarios-ad/buscar', ...adminGuard, controller.buscarUsuariosAd);
 

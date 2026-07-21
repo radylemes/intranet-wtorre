@@ -1,4 +1,5 @@
 const DEFAULT_DOMAIN_TO_API_LOCALIDADE = {
+  'nubankparque.com': 'Allianz',
   'nubankparque.com.br': 'Allianz',
   'allianzparque.com.br': 'Allianz',
   'basecoworking.space': 'Allianz',
@@ -15,7 +16,7 @@ const DEFAULT_UI_CONFIG = {
     {
       id: 'nubankparque',
       label: 'Nubank Parque',
-      domains: ['nubankparque.com.br', 'allianzparque.com.br'],
+      domains: ['nubankparque.com', 'nubankparque.com.br', 'allianzparque.com.br'],
       logoKey: 'nubankparque',
       logoFile: null,
     },

@@ -52,6 +52,21 @@ function mapGrupo(row) {
     nome: row.nome,
     destinatarios: parseJson(row.destinatarios, []),
     campos: parseJson(row.campos, []),
+    assunto: row.assunto ?? null,
+    ativo: !!row.ativo,
+    ordem: row.ordem,
+    criado_em: row.criado_em,
+  };
+}
+
+function mapEmailIndividual(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    nome: row.nome ?? null,
+    email: row.email,
+    assunto: row.assunto ?? null,
+    campos: parseJson(row.campos, []),
     ativo: !!row.ativo,
     ordem: row.ordem,
     criado_em: row.criado_em,
@@ -64,6 +79,7 @@ function mapEnvio(row) {
     id: row.id,
     solicitacao_id: row.solicitacao_id,
     grupo_id: row.grupo_id,
+    email_individual_id: row.email_individual_id ?? null,
     grupo_nome: row.grupo_nome,
     destinatarios: parseJson(row.destinatarios, []),
     status: row.status,
@@ -207,12 +223,13 @@ async function findGrupoById(id) {
 async function createGrupo(data) {
   const pool = getPool();
   const [result] = await pool.execute(
-    `INSERT INTO solicitacao_grupos (nome, destinatarios, campos, ativo, ordem)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO solicitacao_grupos (nome, destinatarios, campos, assunto, ativo, ordem)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     [
       data.nome,
       JSON.stringify(data.destinatarios),
       JSON.stringify(data.campos),
+      data.assunto ?? null,
       data.ativo ? 1 : 0,
       data.ordem ?? 0,
     ]
@@ -223,12 +240,14 @@ async function createGrupo(data) {
 async function updateGrupo(id, data) {
   const pool = getPool();
   await pool.execute(
-    `UPDATE solicitacao_grupos SET nome = ?, destinatarios = ?, campos = ?, ativo = ?, ordem = ?
+    `UPDATE solicitacao_grupos
+     SET nome = ?, destinatarios = ?, campos = ?, assunto = ?, ativo = ?, ordem = ?
      WHERE id = ?`,
     [
       data.nome,
       JSON.stringify(data.destinatarios),
       JSON.stringify(data.campos),
+      data.assunto ?? null,
       data.ativo ? 1 : 0,
       data.ordem ?? 0,
       id,
@@ -243,15 +262,85 @@ async function deleteGrupo(id) {
   return result.affectedRows > 0;
 }
 
+async function listEmailsIndividuaisAtivos() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT * FROM solicitacao_emails_individuais WHERE ativo = 1 ORDER BY ordem ASC, id ASC'
+  );
+  return rows.map(mapEmailIndividual);
+}
+
+async function listEmailsIndividuaisAdmin() {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT * FROM solicitacao_emails_individuais ORDER BY ordem ASC, id ASC'
+  );
+  return rows.map(mapEmailIndividual);
+}
+
+async function findEmailIndividualById(id) {
+  const pool = getPool();
+  const [rows] = await pool.execute(
+    'SELECT * FROM solicitacao_emails_individuais WHERE id = ? LIMIT 1',
+    [id]
+  );
+  return mapEmailIndividual(rows[0]);
+}
+
+async function createEmailIndividual(data) {
+  const pool = getPool();
+  const [result] = await pool.execute(
+    `INSERT INTO solicitacao_emails_individuais (nome, email, assunto, campos, ativo, ordem)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      data.nome ?? null,
+      data.email,
+      data.assunto ?? null,
+      JSON.stringify(data.campos),
+      data.ativo ? 1 : 0,
+      data.ordem ?? 0,
+    ]
+  );
+  return findEmailIndividualById(result.insertId);
+}
+
+async function updateEmailIndividual(id, data) {
+  const pool = getPool();
+  await pool.execute(
+    `UPDATE solicitacao_emails_individuais
+     SET nome = ?, email = ?, assunto = ?, campos = ?, ativo = ?, ordem = ?
+     WHERE id = ?`,
+    [
+      data.nome ?? null,
+      data.email,
+      data.assunto ?? null,
+      JSON.stringify(data.campos),
+      data.ativo ? 1 : 0,
+      data.ordem ?? 0,
+      id,
+    ]
+  );
+  return findEmailIndividualById(id);
+}
+
+async function deleteEmailIndividual(id) {
+  const pool = getPool();
+  const [result] = await pool.execute('DELETE FROM solicitacao_emails_individuais WHERE id = ?', [
+    id,
+  ]);
+  return result.affectedRows > 0;
+}
+
 async function createEnvio(data) {
   const pool = getPool();
   const [result] = await pool.execute(
     `INSERT INTO solicitacao_envios
-      (solicitacao_id, grupo_id, grupo_nome, destinatarios, status, erro, message_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (solicitacao_id, grupo_id, email_individual_id, grupo_nome, destinatarios, status, erro, message_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.solicitacao_id,
       data.grupo_id ?? null,
+      data.email_individual_id ?? null,
       data.grupo_nome ?? null,
       JSON.stringify(data.destinatarios ?? []),
       data.status ?? 'erro',
@@ -332,6 +421,12 @@ module.exports = {
   createGrupo,
   updateGrupo,
   deleteGrupo,
+  listEmailsIndividuaisAtivos,
+  listEmailsIndividuaisAdmin,
+  findEmailIndividualById,
+  createEmailIndividual,
+  updateEmailIndividual,
+  deleteEmailIndividual,
   createEnvio,
   listEnviosBySolicitacao,
   isVisualizador,

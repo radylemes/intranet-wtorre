@@ -14,11 +14,16 @@ const {
   validarGrupoSensivel,
   encodeBlobRef,
 } = require('../utils/solicitacao-validation.util');
+const { validarAssunto } = require('../utils/solicitacao-email-assunto.util');
 const { validarEmailsAlerta } = require('../utils/camarotes-email-domains.util');
 const { env } = require('../config/env');
 
 function handleError(res, err) {
   if (err.code === 'ER_DUP_ENTRY') {
+    const msg = String(err.message || '');
+    if (msg.includes('uk_email')) {
+      return res.status(409).json({ mensagem: 'Já existe um e-mail individual com este endereço.' });
+    }
     return res.status(409).json({ mensagem: 'Registro duplicado. Verifique o nome do grupo.' });
   }
   const bindParamError =
@@ -202,6 +207,28 @@ async function reenviarEmail(req, res) {
   }
 }
 
+async function previewEmailIndividual(req, res) {
+  try {
+    const solicitacaoId = Number(req.params.id);
+    const emailId = Number(req.params.emailId);
+    const preview = await envioService.previewIndividual(solicitacaoId, emailId);
+    return res.json(preview);
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+async function reenviarEmailIndividual(req, res) {
+  try {
+    const solicitacaoId = Number(req.params.id);
+    const emailId = Number(req.params.emailId);
+    const resultado = await envioService.reenviarIndividual(solicitacaoId, emailId);
+    return res.json(resultado);
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
 async function listarGrupos(_req, res) {
   try {
     const lista = await repo.listGruposAdmin();
@@ -220,11 +247,15 @@ async function criarGrupo(req, res) {
     const destinatarios = validarEmailsAlerta(req.body?.destinatarios ?? []);
     const campos = validarCamposGrupo(req.body?.campos ?? []);
     validarGrupoSensivel(campos, destinatarios);
+    const assunto = validarAssunto(
+      req.body?.assunto !== undefined ? req.body.assunto : null
+    );
 
     const grupo = await repo.createGrupo({
       nome,
       destinatarios,
       campos,
+      assunto,
       ativo: req.body?.ativo !== false,
       ordem: Number(req.body?.ordem) || 0,
     });
@@ -250,11 +281,15 @@ async function atualizarGrupo(req, res) {
       req.body?.campos !== undefined ? req.body.campos : existing.campos
     );
     validarGrupoSensivel(campos, destinatarios);
+    const assunto = validarAssunto(
+      req.body?.assunto !== undefined ? req.body.assunto : existing.assunto
+    );
 
     const grupo = await repo.updateGrupo(id, {
       nome,
       destinatarios,
       campos,
+      assunto,
       ativo: req.body?.ativo !== undefined ? !!req.body.ativo : existing.ativo,
       ordem: req.body?.ordem !== undefined ? Number(req.body.ordem) : existing.ordem,
     });
@@ -270,6 +305,97 @@ async function removerGrupo(req, res) {
     const removido = await repo.deleteGrupo(id);
     if (!removido) {
       return res.status(404).json({ mensagem: 'Grupo não encontrado.' });
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+async function listarEmailsIndividuais(_req, res) {
+  try {
+    const lista = await repo.listEmailsIndividuaisAdmin();
+    return res.json(lista);
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+async function criarEmailIndividual(req, res) {
+  try {
+    const emailList = validarEmailsAlerta(
+      req.body?.email ? [String(req.body.email).trim().toLowerCase()] : []
+    );
+    if (!emailList.length) {
+      return res.status(400).json({ mensagem: 'E-mail do destinatário é obrigatório.' });
+    }
+    const campos = validarCamposGrupo(req.body?.campos ?? []);
+    validarGrupoSensivel(campos, emailList);
+    const assunto = validarAssunto(
+      req.body?.assunto !== undefined ? req.body.assunto : null
+    );
+    const nome = req.body?.nome != null ? String(req.body.nome).trim() || null : null;
+
+    const individual = await repo.createEmailIndividual({
+      nome,
+      email: emailList[0],
+      assunto,
+      campos,
+      ativo: req.body?.ativo !== false,
+      ordem: Number(req.body?.ordem) || 0,
+    });
+    return res.status(201).json(individual);
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+async function atualizarEmailIndividual(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const existing = await repo.findEmailIndividualById(id);
+    if (!existing) {
+      return res.status(404).json({ mensagem: 'E-mail individual não encontrado.' });
+    }
+
+    const emailRaw =
+      req.body?.email !== undefined ? String(req.body.email).trim().toLowerCase() : existing.email;
+    const emailList = validarEmailsAlerta([emailRaw]);
+    if (!emailList.length) {
+      return res.status(400).json({ mensagem: 'E-mail do destinatário é obrigatório.' });
+    }
+    const campos = validarCamposGrupo(
+      req.body?.campos !== undefined ? req.body.campos : existing.campos
+    );
+    validarGrupoSensivel(campos, emailList);
+    const assunto = validarAssunto(
+      req.body?.assunto !== undefined ? req.body.assunto : existing.assunto
+    );
+    const nome =
+      req.body?.nome !== undefined
+        ? String(req.body.nome || '').trim() || null
+        : existing.nome;
+
+    const individual = await repo.updateEmailIndividual(id, {
+      nome,
+      email: emailList[0],
+      assunto,
+      campos,
+      ativo: req.body?.ativo !== undefined ? !!req.body.ativo : existing.ativo,
+      ordem: req.body?.ordem !== undefined ? Number(req.body.ordem) : existing.ordem,
+    });
+    return res.json(individual);
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+async function removerEmailIndividual(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const removido = await repo.deleteEmailIndividual(id);
+    if (!removido) {
+      return res.status(404).json({ mensagem: 'E-mail individual não encontrado.' });
     }
     return res.json({ ok: true });
   } catch (err) {
@@ -355,10 +481,16 @@ module.exports = {
   obterSolicitacaoAdmin,
   previewEmail,
   reenviarEmail,
+  previewEmailIndividual,
+  reenviarEmailIndividual,
   listarGrupos,
   criarGrupo,
   atualizarGrupo,
   removerGrupo,
+  listarEmailsIndividuais,
+  criarEmailIndividual,
+  atualizarEmailIndividual,
+  removerEmailIndividual,
   buscarUsuariosAd,
   listarVisualizadores,
   adicionarVisualizador,

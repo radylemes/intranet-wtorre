@@ -64,10 +64,42 @@
             <input type="text" [ngModel]="titulo()" (ngModelChange)="onTituloChange($event)" placeholder="Ex: Reunião com Cliente" />
           </label>
 
-          <div class="field">
-            <span>Organizador</span>
-            <p class="field-help">A reserva será criada no seu calendário; a sala entra como recurso.</p>
-            <input type="text" [value]="organizerLabel()" readonly />
+          <div class="field participant-search-wrap">
+            <span>Organizador *</span>
+            <p class="field-help">
+              A reserva será criada no calendário do organizador; a sala entra como recurso.
+            </p>
+            @if (organizadorEmail()) {
+              <div class="chips organizer-chip-row">
+                <span class="chip chip-organizer">
+                  {{ organizadorNome() || organizadorEmail() }} — {{ organizadorEmail() }}
+                </span>
+              </div>
+            }
+            <div class="participantes-row">
+              <input
+                type="text"
+                [ngModel]="organizadorBusca()"
+                (ngModelChange)="onOrganizadorInput($event)"
+                (keydown.enter)="$event.preventDefault(); confirmarOrganizadorDigitado()"
+                placeholder="Digite nome ou e-mail para trocar o organizador"
+                autocomplete="off"
+              />
+              <button type="button" class="btn-add" (click)="confirmarOrganizadorDigitado()" aria-label="Confirmar organizador">
+                ✓
+              </button>
+            </div>
+            @if (sugestoesOrganizador().length) {
+              <ul class="sugestoes">
+                @for (u of sugestoesOrganizador(); track u.email) {
+                  <li>
+                    <button type="button" (click)="selecionarOrganizador(u)">
+                      {{ u.displayName || u.name || u.email }} — {{ u.email }}
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
           </div>
 
           <div class="field-row">
@@ -142,12 +174,16 @@
               @for (p of preview.participants; track p.email) {
                 <div
                   class="preview-item preview-item-participant"
-                  [class.available]="isParticipantAvailable(p.email)"
-                  [class.busy]="!isParticipantAvailable(p.email)"
+                  [class.available]="participantPreviewKind(p.email) === 'available'"
+                  [class.busy]="participantPreviewKind(p.email) === 'busy'"
+                  [class.unverified]="participantPreviewKind(p.email) === 'unverified'"
                   [class.requester]="isRequesterEmail(p.email)"
                 >
                   <span class="preview-label">
                     {{ isRequesterEmail(p.email) ? 'Organizador: ' : '' }}{{ p.email }}
+                    @if (participantPreviewKind(p.email) === 'unverified') {
+                      <small class="preview-status-hint"> — não verificado</small>
+                    }
                   </span>
                   @if (!isRequesterEmail(p.email)) {
                     <button
@@ -165,6 +201,7 @@
             <div class="legend">
               <span><i class="sq ok"></i> Disponível</span>
               <span><i class="sq bad"></i> Ocupado</span>
+              <span><i class="sq unverified"></i> Não verificado</span>
             </div>
           }
         </aside>

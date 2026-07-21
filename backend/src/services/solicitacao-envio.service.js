@@ -1,17 +1,12 @@
 const repo = require('../repositories/solicitacao-colaborador.repository');
 const blobService = require('./blob.service');
-const { sendMailBatched } = require('../utils/emailSender');
+const { sendEmail, sendMailBatched } = require('../utils/emailSender');
 const { CHAVES_ANEXO } = require('../config/solicitacao-campos');
 const { buildGrupoHtml, buildTextoPlano, CAMPO_COL_MAP } = require('../utils/solicitacao-email-html.util');
+const { buildAssunto } = require('../utils/solicitacao-email-assunto.util');
 const { decodeBlobRef, validarGrupoSensivel } = require('../utils/solicitacao-validation.util');
 const { validarEmailsAlerta } = require('../utils/camarotes-email-domains.util');
 const { env } = require('../config/env');
-
-const TIPO_LABELS = {
-  novo: 'Novo',
-  reposicao: 'Reposição',
-  mudanca: 'Mudança',
-};
 
 async function montarAnexos(solicitacao, campos) {
   const attachments = [];
@@ -50,6 +45,14 @@ async function montarAnexos(solicitacao, campos) {
   return attachments;
 }
 
+async function montarConteudo(solicitacao, campos, assuntoTemplate) {
+  const html = buildGrupoHtml(solicitacao, campos);
+  const text = buildTextoPlano(solicitacao, campos);
+  const attachments = await montarAnexos(solicitacao, campos);
+  const subject = buildAssunto(assuntoTemplate, solicitacao);
+  return { html, text, attachments, subject };
+}
+
 async function enviarGrupo(solicitacao, grupo) {
   const destinatarios = validarEmailsAlerta(grupo.destinatarios || []);
   if (!destinatarios.length) {
@@ -60,12 +63,11 @@ async function enviarGrupo(solicitacao, grupo) {
 
   validarGrupoSensivel(grupo.campos, destinatarios);
 
-  const html = buildGrupoHtml(solicitacao, grupo.campos);
-  const text = buildTextoPlano(solicitacao, grupo.campos);
-  const attachments = await montarAnexos(solicitacao, grupo.campos);
-
-  const tipoLabel = TIPO_LABELS[solicitacao.tipo] || solicitacao.tipo;
-  const subject = `Nova solicitação de colaborador — ${solicitacao.nome} (${tipoLabel})`;
+  const { html, text, attachments, subject } = await montarConteudo(
+    solicitacao,
+    grupo.campos,
+    grupo.assunto
+  );
 
   const { enviados, erros } = await sendMailBatched({
     recipients: destinatarios,
@@ -96,6 +98,47 @@ async function enviarGrupo(solicitacao, grupo) {
   return { ok: true, destinatarios };
 }
 
+async function enviarIndividual(solicitacao, individual) {
+  const destinatarios = validarEmailsAlerta([individual.email]);
+  if (!destinatarios.length) {
+    const err = new Error(
+      `E-mail individual "${individual.nome || individual.email}" não possui destinatário válido.`
+    );
+    err.status = 400;
+    throw err;
+  }
+
+  validarGrupoSensivel(individual.campos, destinatarios);
+
+  const { html, text, attachments, subject } = await montarConteudo(
+    solicitacao,
+    individual.campos,
+    individual.assunto
+  );
+
+  try {
+    await sendEmail({
+      to: destinatarios[0],
+      subject,
+      html,
+      text,
+      attachments,
+    });
+    return { ok: true, destinatarios };
+  } catch (err) {
+    return {
+      ok: false,
+      erro: err.message || 'Falha no envio.',
+      destinatarios,
+    };
+  }
+}
+
+function labelIndividual(individual) {
+  if (individual.nome) return `E-mail individual — ${individual.nome}`;
+  return `E-mail individual — ${individual.email}`;
+}
+
 async function enviarParaGrupos(solicitacaoId) {
   const solicitacao = await repo.findSolicitacaoById(solicitacaoId);
   if (!solicitacao) {
@@ -105,13 +148,21 @@ async function enviarParaGrupos(solicitacaoId) {
   }
 
   const grupos = await repo.listGruposAtivos();
-  if (!grupos.length) {
-    return { grupos: [], status: solicitacao.status, aviso: 'Nenhum grupo de e-mail ativo.' };
+  const individuais = await repo.listEmailsIndividuaisAtivos();
+  const totalDestinos = grupos.length + individuais.length;
+
+  if (!totalDestinos) {
+    return {
+      grupos: [],
+      individuais: [],
+      status: solicitacao.status,
+      aviso: 'Nenhum grupo ou e-mail individual ativo.',
+    };
   }
 
-  const resultados = [];
+  const resultadosGrupos = [];
+  const resultadosIndividuais = [];
   let okCount = 0;
-  let errCount = 0;
 
   for (const grupo of grupos) {
     let status = 'ok';
@@ -122,7 +173,6 @@ async function enviarParaGrupos(solicitacaoId) {
       if (!res.ok) {
         status = 'erro';
         erro = res.erro;
-        errCount += 1;
       } else {
         okCount += 1;
         if (res.parcial) erro = res.erro;
@@ -137,9 +187,8 @@ async function enviarParaGrupos(solicitacaoId) {
         erro,
       });
 
-      resultados.push({ grupo_id: grupo.id, grupo_nome: grupo.nome, status, erro });
+      resultadosGrupos.push({ grupo_id: grupo.id, grupo_nome: grupo.nome, status, erro });
     } catch (err) {
-      errCount += 1;
       erro = err.message;
       await repo.createEnvio({
         solicitacao_id: solicitacaoId,
@@ -149,17 +198,69 @@ async function enviarParaGrupos(solicitacaoId) {
         status: 'erro',
         erro,
       });
-      resultados.push({ grupo_id: grupo.id, grupo_nome: grupo.nome, status: 'erro', erro });
+      resultadosGrupos.push({ grupo_id: grupo.id, grupo_nome: grupo.nome, status: 'erro', erro });
+    }
+  }
+
+  for (const individual of individuais) {
+    let status = 'ok';
+    let erro = null;
+    const nomeLabel = labelIndividual(individual);
+
+    try {
+      const res = await enviarIndividual(solicitacao, individual);
+      if (!res.ok) {
+        status = 'erro';
+        erro = res.erro;
+      } else {
+        okCount += 1;
+      }
+
+      await repo.createEnvio({
+        solicitacao_id: solicitacaoId,
+        email_individual_id: individual.id,
+        grupo_nome: nomeLabel,
+        destinatarios: res.destinatarios || [individual.email],
+        status,
+        erro,
+      });
+
+      resultadosIndividuais.push({
+        email_individual_id: individual.id,
+        grupo_nome: nomeLabel,
+        status,
+        erro,
+      });
+    } catch (err) {
+      erro = err.message;
+      await repo.createEnvio({
+        solicitacao_id: solicitacaoId,
+        email_individual_id: individual.id,
+        grupo_nome: nomeLabel,
+        destinatarios: [individual.email],
+        status: 'erro',
+        erro,
+      });
+      resultadosIndividuais.push({
+        email_individual_id: individual.id,
+        grupo_nome: nomeLabel,
+        status: 'erro',
+        erro,
+      });
     }
   }
 
   let statusFinal = 'erro';
-  if (okCount === grupos.length) statusFinal = 'enviada';
+  if (okCount === totalDestinos) statusFinal = 'enviada';
   else if (okCount > 0) statusFinal = 'parcial';
 
   await repo.updateSolicitacaoStatus(solicitacaoId, statusFinal);
 
-  return { grupos: resultados, status: statusFinal };
+  return {
+    grupos: resultadosGrupos,
+    individuais: resultadosIndividuais,
+    status: statusFinal,
+  };
 }
 
 async function previewGrupo(solicitacaoId, grupoId) {
@@ -175,7 +276,29 @@ async function previewGrupo(solicitacaoId, grupoId) {
     err.status = 404;
     throw err;
   }
-  return { html: buildGrupoHtml(solicitacao, grupo.campos) };
+  return {
+    html: buildGrupoHtml(solicitacao, grupo.campos),
+    subject: buildAssunto(grupo.assunto, solicitacao),
+  };
+}
+
+async function previewIndividual(solicitacaoId, emailId) {
+  const solicitacao = await repo.findSolicitacaoById(solicitacaoId);
+  if (!solicitacao) {
+    const err = new Error('Solicitação não encontrada.');
+    err.status = 404;
+    throw err;
+  }
+  const individual = await repo.findEmailIndividualById(emailId);
+  if (!individual) {
+    const err = new Error('E-mail individual não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+  return {
+    html: buildGrupoHtml(solicitacao, individual.campos),
+    subject: buildAssunto(individual.assunto, solicitacao),
+  };
 }
 
 async function reenviarGrupo(solicitacaoId, grupoId) {
@@ -222,9 +345,54 @@ async function reenviarGrupo(solicitacaoId, grupoId) {
   return { envio, status, erro };
 }
 
+async function reenviarIndividual(solicitacaoId, emailId) {
+  const solicitacao = await repo.findSolicitacaoById(solicitacaoId);
+  if (!solicitacao) {
+    const err = new Error('Solicitação não encontrada.');
+    err.status = 404;
+    throw err;
+  }
+  const individual = await repo.findEmailIndividualById(emailId);
+  if (!individual) {
+    const err = new Error('E-mail individual não encontrado.');
+    err.status = 404;
+    throw err;
+  }
+
+  let status = 'ok';
+  let erro = null;
+  let destinatarios = [individual.email];
+  const nomeLabel = labelIndividual(individual);
+
+  try {
+    const res = await enviarIndividual(solicitacao, individual);
+    destinatarios = res.destinatarios || destinatarios;
+    if (!res.ok) {
+      status = 'erro';
+      erro = res.erro;
+    }
+  } catch (err) {
+    status = 'erro';
+    erro = err.message;
+  }
+
+  const envio = await repo.createEnvio({
+    solicitacao_id: solicitacaoId,
+    email_individual_id: individual.id,
+    grupo_nome: nomeLabel,
+    destinatarios,
+    status,
+    erro,
+  });
+
+  return { envio, status, erro };
+}
+
 module.exports = {
   enviarParaGrupos,
   previewGrupo,
+  previewIndividual,
   reenviarGrupo,
+  reenviarIndividual,
   buildGrupoHtml,
 };
