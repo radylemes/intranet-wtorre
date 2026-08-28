@@ -8,6 +8,7 @@ import { documentosHubGuard } from './guards/documentos-hub.guard';
 import { superAdminGuard } from './guards/super-admin.guard';
 import { camarotesViewerGuard } from './guards/camarotes-viewer.guard';
 import { solicitacaoViewerGuard } from './guards/solicitacao-viewer.guard';
+import { rustdeskGuard, rustdeskRouteMatch } from './guards/rustdesk.guard';
 
 export const routes: Routes = [
   {
@@ -113,6 +114,12 @@ export const routes: Routes = [
       import('./pages/followup-suprimentos/followup-suprimentos.component').then(
         (m) => m.FollowupSuprimentosComponent
       ),
+  },
+  {
+    matcher: rustdeskRouteMatch,
+    canActivate: [authGuard, rustdeskGuard],
+    loadComponent: () =>
+      import('./pages/ti/rustdesk/rustdesk.component').then((m) => m.RustdeskComponent),
   },
   {
     path: 'dashboards',

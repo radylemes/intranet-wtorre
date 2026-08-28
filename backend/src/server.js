@@ -32,11 +32,13 @@ const bidRoutes = require('./routes/bid.routes');
 const powerbiRoutes = require('./routes/powerbi.routes');
 const salasRoutes = require('./routes/salas.routes');
 const followupRoutes = require('./routes/followup.routes');
+const rustdeskRoutes = require('./routes/rustdesk.routes');
 const assinaturasController = require('./controllers/assinaturas.controller');
 const { agendarSincronizacaoColaboradores } = require('./services/colaboradores.sync');
 const { agendarJobsCamarotes } = require('./services/camarotes-cron.service');
 const { agendarJobsBid } = require('./services/bid-cron.service');
 const { agendarJobsFollowup } = require('./services/followup-cron.service');
+const { agendarJobsRustdesk } = require('./services/rustdesk-cron.service');
 const { reconcileAll } = require('./services/doc-pagina-menu.sync');
 const { ensureFotosDir } = require('./controllers/colaboradores.controller');
 const { ensureGrupoLogosDir } = require('./config/grupo-logos-upload');
@@ -97,6 +99,7 @@ app.use('/api/v1/bid', bidRoutes);
 app.use('/api/v1/powerbi', powerbiRoutes);
 app.use('/api/v1/salas', salasRoutes);
 app.use('/api/v1/followup', followupRoutes);
+app.use('/api/v1/rustdesk', rustdeskRoutes);
 
 // Rotas públicas de assinaturas (sem JWT — usadas pelo instalador antes de qualquer login)
 app.get('/api/v1/assinaturas/script/instalar', assinaturasController.obterScriptBase);
@@ -150,4 +153,5 @@ app.listen(env.port, () => {
   agendarJobsCamarotes();
   agendarJobsBid();
   agendarJobsFollowup();
+  agendarJobsRustdesk();
 });

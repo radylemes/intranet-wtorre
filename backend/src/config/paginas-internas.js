@@ -9,6 +9,7 @@ const PAGINAS_INTERNAS = [
   { path: '/ferramentas/pdf', label: 'Ferramentas de PDF' },
   { path: '/salas', label: 'Reservar sala' },
   { path: '/followup-suprimentos', label: 'Follow-up de Suprimentos' },
+  { path: '/ti/rustdesk', label: 'TI / Rust Desk' },
 ];
 
 const DOCUMENTOS_PATH_REGEX = /^\/documentos(\/[a-z0-9-]+)?$/;
